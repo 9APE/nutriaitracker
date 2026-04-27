@@ -7,6 +7,9 @@ import { TodayScreen } from "@/components/nouri/TodayScreen";
 import { LogScreen } from "@/components/nouri/LogScreen";
 import { HistoryScreen } from "@/components/nouri/HistoryScreen";
 import { InsightsScreen } from "@/components/nouri/InsightsScreen";
+import { NotificationBell } from "@/components/nouri/NotificationBell";
+import { useAutoSuggestions } from "@/hooks/useAutoSuggestions";
+import { notifStore } from "@/lib/nouri-suggestions";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -14,6 +17,7 @@ const Index = () => {
   const [goals, setGoals] = useState<Goals>(() => storage.getGoals());
   const [meals, setMeals] = useState<Meal[]>(() => storage.getMeals());
   const [tab, setTab] = useState<TabKey>("today");
+  const [notifKey, setNotifKey] = useState(0);
 
   useEffect(() => {
     storage.setMeals(meals);
@@ -22,6 +26,12 @@ const Index = () => {
   useEffect(() => {
     storage.setGoals(goals);
   }, [goals]);
+
+  useAutoSuggestions({
+    goals,
+    meals,
+    onNew: () => setNotifKey((k) => k + 1),
+  });
 
   const handleOnboardDone = () => {
     setGoals(storage.getGoals());
@@ -41,6 +51,7 @@ const Index = () => {
   const handleSignOut = () => {
     if (!confirm("Sign out and reset all your Nouri data?")) return;
     storage.reset();
+    notifStore.clear();
     setMeals([]);
     setGoals(storage.getGoals());
     setOnboarded(false);
@@ -53,7 +64,17 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <NouriHeader onSignOut={handleSignOut} />
+      <NouriHeader
+        onSignOut={handleSignOut}
+        rightSlot={
+          <NotificationBell
+            goals={goals}
+            meals={meals}
+            onAddMeal={handleAddMeal}
+            refreshKey={notifKey}
+          />
+        }
+      />
       <main>
         {tab === "today" && (
           <TodayScreen
