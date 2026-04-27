@@ -35,7 +35,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    const dataUrl = `data:${mimeType};base64,${audio}`;
+    // Strip any data URL prefix and whitespace — Gemini expects raw base64
+    let cleanAudio = audio.trim();
+    if (cleanAudio.startsWith("data:") && cleanAudio.includes(",")) {
+      cleanAudio = cleanAudio.split(",")[1];
+    }
+    cleanAudio = cleanAudio.replace(/\s/g, "");
+    const dataUrl = `data:${mimeType};base64,${cleanAudio}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
