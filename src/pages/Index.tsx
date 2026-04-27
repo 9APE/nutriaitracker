@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { storage, type Goals, type Meal } from "@/lib/nouri-storage";
-import { Onboarding } from "@/components/nouri/Onboarding";
+import { Navigate } from "react-router-dom";
+import { storage, type Goals, type Meal, DEFAULT_GOALS } from "@/lib/nouri-storage";
+import { Onboarding, type BodyStats } from "@/components/nouri/Onboarding";
 import { TabBar, type TabKey } from "@/components/nouri/TabBar";
 import { NouriHeader } from "@/components/nouri/NouriHeader";
 import { TodayScreen } from "@/components/nouri/TodayScreen";
@@ -10,22 +11,103 @@ import { InsightsScreen } from "@/components/nouri/InsightsScreen";
 import { NotificationBell } from "@/components/nouri/NotificationBell";
 import { useAutoSuggestions } from "@/hooks/useAutoSuggestions";
 import { notifStore } from "@/lib/nouri-suggestions";
+import { useAuth } from "@/lib/auth-context";
+import { cloud, type Profile } from "@/lib/nouri-cloud";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+
+const MIGRATED_KEY = "nouri:migrated";
 
 const Index = () => {
-  const [onboarded, setOnboarded] = useState<boolean>(() => storage.isOnboarded());
-  const [goals, setGoals] = useState<Goals>(() => storage.getGoals());
-  const [meals, setMeals] = useState<Meal[]>(() => storage.getMeals());
+  const { user, loading: authLoading, signOut } = useAuth();
+  const [bootstrapping, setBootstrapping] = useState(true);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [goals, setGoals] = useState<Goals>(DEFAULT_GOALS);
+  const [meals, setMeals] = useState<Meal[]>([]);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [tab, setTab] = useState<TabKey>("today");
   const [notifKey, setNotifKey] = useState(0);
 
+  // Load user data on auth
   useEffect(() => {
-    storage.setMeals(meals);
-  }, [meals]);
+    if (!user) {
+      setBootstrapping(false);
+      return;
+    }
 
-  useEffect(() => {
-    storage.setGoals(goals);
-  }, [goals]);
+    let cancelled = false;
+    setBootstrapping(true);
+
+    (async () => {
+      try {
+        // One-time migration from localStorage (only for *this* browser)
+        const alreadyMigrated = localStorage.getItem(`${MIGRATED_KEY}:${user.id}`) === "true";
+        if (!alreadyMigrated) {
+          const localMeals = storage.getMeals();
+          if (localMeals.length > 0) {
+            try {
+              await cloud.bulkInsertMeals(
+                user.id,
+                localMeals.map((m) => ({
+                  meal_name: m.meal_name,
+                  type: m.type,
+                  calories: m.calories,
+                  protein: m.protein,
+                  carbs: m.carbs,
+                  fat: m.fat,
+                  date: m.date,
+                }))
+              );
+              toast(`Imported ${localMeals.length} meals from this device`);
+            } catch (e) {
+              console.error("migration failed", e);
+            }
+          }
+          // Migrate goals if user has customised them locally
+          const localGoals = storage.getGoals();
+          const isDefaultGoals =
+            localGoals.calories === DEFAULT_GOALS.calories &&
+            localGoals.protein === DEFAULT_GOALS.protein &&
+            localGoals.carbs === DEFAULT_GOALS.carbs &&
+            localGoals.fat === DEFAULT_GOALS.fat;
+          if (!isDefaultGoals) {
+            try {
+              await cloud.upsertGoals(user.id, localGoals);
+            } catch (e) {
+              console.error("goal migration failed", e);
+            }
+          }
+          localStorage.setItem(`${MIGRATED_KEY}:${user.id}`, "true");
+          // Clear local data so it's no longer the source of truth
+          storage.reset();
+        }
+
+        const [prof, g, ms] = await Promise.all([
+          cloud.getProfile(user.id),
+          cloud.getGoals(user.id),
+          cloud.listMeals(user.id),
+        ]);
+        if (cancelled) return;
+
+        setProfile(prof);
+        setGoals(g ?? DEFAULT_GOALS);
+        setMeals(ms);
+
+        // Trigger onboarding if profile has no body stats yet
+        const hasStats = !!(prof?.age || prof?.weight_kg || prof?.height_cm || prof?.activity_level);
+        setNeedsOnboarding(!hasStats);
+      } catch (e: any) {
+        console.error(e);
+        toast.error(e?.message || "Failed to load your data");
+      } finally {
+        if (!cancelled) setBootstrapping(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   useAutoSuggestions({
     goals,
@@ -33,33 +115,97 @@ const Index = () => {
     onNew: () => setNotifKey((k) => k + 1),
   });
 
-  const handleOnboardDone = () => {
-    setGoals(storage.getGoals());
-    setOnboarded(true);
+  const handleOnboardDone = async ({
+    goals: g,
+    stats,
+  }: {
+    goals: Goals;
+    stats: BodyStats;
+  }) => {
+    if (!user) return;
+    try {
+      await cloud.upsertGoals(user.id, g);
+      await cloud.updateProfile(user.id, {
+        age: stats.age ?? null,
+        weight_kg: stats.weight_kg ?? null,
+        height_cm: stats.height_cm ?? null,
+        activity_level: stats.activity_level ?? null,
+      });
+      setGoals(g);
+      setProfile((p) => (p ? { ...p, ...stats } as Profile : p));
+      setNeedsOnboarding(false);
+      toast.success("All set 🌿");
+    } catch (e: any) {
+      toast.error(e?.message || "Couldn't save your profile");
+    }
   };
 
-  const handleAddMeal = (m: Meal) => {
+  const handleAddMeal = async (m: Meal) => {
+    if (!user) return;
+    // Optimistic add
     setMeals((prev) => [m, ...prev]);
     setTab("today");
+    try {
+      const saved = await cloud.addMeal(user.id, {
+        meal_name: m.meal_name,
+        type: m.type,
+        calories: m.calories,
+        protein: m.protein,
+        carbs: m.carbs,
+        fat: m.fat,
+        date: m.date,
+      });
+      // Replace optimistic entry with server row (so id matches)
+      setMeals((prev) => [saved, ...prev.filter((x) => x.id !== m.id)]);
+    } catch (e: any) {
+      setMeals((prev) => prev.filter((x) => x.id !== m.id));
+      toast.error(e?.message || "Couldn't save meal");
+    }
   };
 
-  const handleDeleteMeal = (id: string) => {
+  const handleDeleteMeal = async (id: string) => {
+    if (!user) return;
+    const previous = meals;
     setMeals((prev) => prev.filter((m) => m.id !== id));
-    toast("Meal removed");
+    try {
+      await cloud.deleteMeal(user.id, id);
+      toast("Meal removed");
+    } catch (e: any) {
+      setMeals(previous);
+      toast.error(e?.message || "Couldn't delete meal");
+    }
   };
 
-  const handleSignOut = () => {
-    if (!confirm("Sign out and reset all your Nouri data?")) return;
-    storage.reset();
+  const handleSignOut = async () => {
+    if (!confirm("Sign out of Nouri?")) return;
     notifStore.clear();
-    setMeals([]);
-    setGoals(storage.getGoals());
-    setOnboarded(false);
+    await signOut();
     toast("Signed out");
   };
 
-  if (!onboarded) {
-    return <Onboarding onDone={handleOnboardDone} />;
+  if (authLoading || (user && bootstrapping)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="animate-spin text-primary" size={28} />
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/auth" replace />;
+
+  if (needsOnboarding) {
+    return (
+      <Onboarding
+        initialGoals={goals}
+        initialStats={{
+          age: profile?.age ?? undefined,
+          weight_kg: profile?.weight_kg ?? undefined,
+          height_cm: profile?.height_cm ?? undefined,
+          activity_level: profile?.activity_level ?? undefined,
+        }}
+        onDone={handleOnboardDone}
+      />
+    );
   }
 
   return (
