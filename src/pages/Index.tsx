@@ -1,16 +1,75 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useEffect, useState } from "react";
+import { storage, type Goals, type Meal } from "@/lib/nouri-storage";
+import { Onboarding } from "@/components/nouri/Onboarding";
+import { TabBar, type TabKey } from "@/components/nouri/TabBar";
+import { NouriHeader } from "@/components/nouri/NouriHeader";
+import { TodayScreen } from "@/components/nouri/TodayScreen";
+import { LogScreen } from "@/components/nouri/LogScreen";
+import { HistoryScreen } from "@/components/nouri/HistoryScreen";
+import { InsightsScreen } from "@/components/nouri/InsightsScreen";
+import { toast } from "sonner";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
+  const [onboarded, setOnboarded] = useState<boolean>(() => storage.isOnboarded());
+  const [goals, setGoals] = useState<Goals>(() => storage.getGoals());
+  const [meals, setMeals] = useState<Meal[]>(() => storage.getMeals());
+  const [tab, setTab] = useState<TabKey>("today");
+
+  useEffect(() => {
+    storage.setMeals(meals);
+  }, [meals]);
+
+  useEffect(() => {
+    storage.setGoals(goals);
+  }, [goals]);
+
+  const handleOnboardDone = () => {
+    setGoals(storage.getGoals());
+    setOnboarded(true);
+  };
+
+  const handleAddMeal = (m: Meal) => {
+    setMeals((prev) => [m, ...prev]);
+    setTab("today");
+  };
+
+  const handleDeleteMeal = (id: string) => {
+    setMeals((prev) => prev.filter((m) => m.id !== id));
+    toast("Meal removed");
+  };
+
+  const handleSignOut = () => {
+    if (!confirm("Sign out and reset all your Nouri data?")) return;
+    storage.reset();
+    setMeals([]);
+    setGoals(storage.getGoals());
+    setOnboarded(false);
+    toast("Signed out");
+  };
+
+  if (!onboarded) {
+    return <Onboarding onDone={handleOnboardDone} />;
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen bg-background">
+      <NouriHeader onSignOut={handleSignOut} />
+      <main>
+        {tab === "today" && (
+          <TodayScreen
+            goals={goals}
+            meals={meals}
+            onDeleteMeal={handleDeleteMeal}
+            onGoLog={() => setTab("log")}
+          />
+        )}
+        {tab === "log" && <LogScreen onLogged={handleAddMeal} />}
+        {tab === "history" && <HistoryScreen meals={meals} onDelete={handleDeleteMeal} />}
+        {tab === "insights" && <InsightsScreen meals={meals} goals={goals} />}
+      </main>
+      <TabBar active={tab} onChange={setTab} />
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
