@@ -35,7 +35,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    const dataUrl = `data:${mimeType};base64,${audio}`;
+    // Strip any data URL prefix and whitespace — Gemini expects raw base64
+    let cleanAudio = audio.trim();
+    if (cleanAudio.startsWith("data:") && cleanAudio.includes(",")) {
+      cleanAudio = cleanAudio.split(",")[1];
+    }
+    cleanAudio = cleanAudio.replace(/\s/g, "");
+    const format = mimeType.includes("mp4") ? "mp4" : mimeType.includes("mpeg") ? "mp3" : mimeType.includes("ogg") ? "ogg" : "webm";
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -51,7 +57,7 @@ Deno.serve(async (req) => {
             role: "user",
             content: [
               { type: "text", text: "Transcribe this meal description." },
-              { type: "input_audio", input_audio: { data: dataUrl, format: mimeType.includes("mp4") ? "mp4" : "webm" } },
+              { type: "input_audio", input_audio: { data: cleanAudio, format } },
             ],
           },
         ],
