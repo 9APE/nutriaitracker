@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Mic, Loader2, Send } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Mic, Loader2, Send, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useVoice } from "@/hooks/useVoice";
@@ -20,30 +20,72 @@ interface LogScreenProps {
   onLogged: (m: Meal) => void;
 }
 
+type ChatMsg =
+  | { id: string; role: "user"; text: string }
+  | { id: string; role: "assistant"; text: string; pending?: boolean };
+
+const uid = () => crypto.randomUUID();
+
+async function analyzeWithRetry(text: string, attempts = 2): Promise<Awaited<ReturnType<typeof analyzeMeal>>> {
+  let lastErr: any;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await analyzeMeal(text);
+    } catch (e) {
+      lastErr = e;
+      // brief backoff before retry
+      await new Promise((r) => setTimeout(r, 600));
+    }
+  }
+  throw lastErr;
+}
+
 export function LogScreen({ onLogged }: LogScreenProps) {
   const voice = useVoice();
   const [text, setText] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzed, setAnalyzed] = useState<Omit<Meal, "id" | "created_at"> | null>(null);
+  const [chat, setChat] = useState<ChatMsg[]>([]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Live mirror voice transcript into the textarea
   useEffect(() => {
-    if (voice.listening && voice.transcript) {
-      setText(voice.transcript);
-    }
-  }, [voice.transcript, voice.listening]);
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [chat, analyzing, voice.transcribing]);
 
-  const handleAnalyze = async (input?: string) => {
-    const payload = (input ?? text).trim();
+  const pushAssistant = (text: string, pending = false) => {
+    const id = uid();
+    setChat((c) => [...c, { id, role: "assistant", text, pending }]);
+    return id;
+  };
+  const updateAssistant = (id: string, text: string, pending = false) => {
+    setChat((c) => c.map((m) => (m.id === id ? { ...m, text, pending } : m)));
+  };
+
+  const runAnalyze = async (input: string) => {
+    const payload = input.trim();
     if (!payload) {
-      toast.error("Describe your meal first");
+      pushAssistant("I didn't catch that — could you try again or type your meal below?");
       return;
     }
+
+    setChat((c) => [...c, { id: uid(), role: "user", text: payload }]);
+    const thinkingId = pushAssistant("Calculating macros…", true);
+
     setAnalyzing(true);
     try {
-      const meal = await analyzeMeal(payload);
+      const meal = await analyzeWithRetry(payload, 2);
+      updateAssistant(
+        thinkingId,
+        `Got it — **${meal.meal_name}** (${meal.type}). About **${meal.calories} kcal**, ${meal.protein}g protein, ${meal.carbs}g carbs, ${meal.fat}g fat. Tap **Log it** to save.`,
+        false
+      );
       setAnalyzed(meal);
     } catch (e: any) {
+      updateAssistant(
+        thinkingId,
+        `Sorry — I couldn't analyse that (${e?.message || "unknown error"}). Try rephrasing with quantities, e.g. "150g chicken, 80g rice".`,
+        false
+      );
       toast.error(e?.message || "Could not analyze meal");
     } finally {
       setAnalyzing(false);
@@ -52,17 +94,25 @@ export function LogScreen({ onLogged }: LogScreenProps) {
 
   const handleMicTap = async () => {
     if (voice.listening) {
-      voice.stop();
-      // small delay to let final transcript settle
-      setTimeout(() => {
-        const finalText = (voice.transcript || text).trim();
-        if (finalText) handleAnalyze(finalText);
-      }, 300);
+      const finalText = await voice.stop();
+      setText("");
+      // Always respond, even if empty
+      await runAnalyze(finalText || "");
     } else {
       voice.reset();
       setText("");
       await voice.start();
     }
+  };
+
+  const handleSubmitText = async () => {
+    const t = text.trim();
+    if (!t) {
+      toast.error("Describe your meal first");
+      return;
+    }
+    setText("");
+    await runAnalyze(t);
   };
 
   const confirmMeal = () => {
@@ -74,62 +124,94 @@ export function LogScreen({ onLogged }: LogScreenProps) {
     };
     onLogged(meal);
     setAnalyzed(null);
-    setText("");
+    pushAssistant(`Logged **${meal.meal_name}** ✓ Anything else?`);
     voice.reset();
     toast.success(`Logged ${meal.meal_name}`);
   };
+
+  const busy = analyzing || voice.transcribing;
 
   return (
     <div className="px-5 pt-4 pb-28 max-w-md mx-auto">
       <div className="mb-6">
         <h1 className="font-serif text-2xl font-medium">Log a Meal</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Be specific for accurate macros. Include weights and quantities when you can.
+          Tap the mic and describe what you ate. I'll do the math.
         </p>
       </div>
 
-      <div className="flex flex-col items-center my-8">
+      <div className="flex flex-col items-center my-6">
         <div className="relative">
           {voice.listening && (
             <span className="absolute inset-0 rounded-full bg-primary/30 animate-mic-pulse" />
           )}
           <button
             onClick={handleMicTap}
-            disabled={analyzing}
+            disabled={analyzing || voice.transcribing}
             aria-label={voice.listening ? "Stop recording" : "Start recording"}
             className={cn(
               "relative w-24 h-24 rounded-full flex items-center justify-center transition-all shadow-card",
               voice.listening
                 ? "bg-destructive text-destructive-foreground"
-                : "bg-primary text-primary-foreground hover:scale-105 active:scale-95"
+                : "bg-primary text-primary-foreground hover:scale-105 active:scale-95",
+              (analyzing || voice.transcribing) && "opacity-60"
             )}
           >
-            <Mic size={36} />
+            {voice.transcribing ? (
+              <Loader2 size={36} className="animate-spin" />
+            ) : voice.listening ? (
+              <Square size={32} />
+            ) : (
+              <Mic size={36} />
+            )}
           </button>
         </div>
-        <p className="text-xs text-muted-foreground mt-4">
-          {voice.listening ? "Tap again to stop" : voice.supported ? "Tap to start recording" : "Voice not supported — type below"}
+        <p className="text-xs text-muted-foreground mt-4 min-h-[1em]">
+          {voice.listening
+            ? "Recording… tap to stop"
+            : voice.transcribing
+            ? "Transcribing your audio…"
+            : voice.supported
+            ? "Tap to start recording"
+            : "Voice not supported — type below"}
         </p>
       </div>
 
-      {(voice.listening || voice.transcript) && (
-        <div
-          className={cn(
-            "nouri-card p-4 mb-4 transition-colors",
-            voice.listening && "border-primary"
-          )}
-        >
-          <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
-            {voice.listening ? "Listening…" : "Transcript"}
-          </div>
-          <p className="text-sm leading-relaxed text-foreground min-h-[1.5em]">
-            {voice.transcript || "…"}
-          </p>
-        </div>
-      )}
-
       {voice.error && (
         <div className="text-xs text-destructive mb-4 text-center">{voice.error}</div>
+      )}
+
+      {chat.length > 0 && (
+        <div className="space-y-2 mb-4">
+          {chat.map((m) => (
+            <div
+              key={m.id}
+              className={cn(
+                "flex",
+                m.role === "user" ? "justify-end" : "justify-start"
+              )}
+            >
+              <div
+                className={cn(
+                  "max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed",
+                  m.role === "user"
+                    ? "bg-primary text-primary-foreground rounded-br-sm"
+                    : "bg-surface border border-border text-foreground rounded-bl-sm"
+                )}
+              >
+                {m.role === "assistant" && m.pending ? (
+                  <span className="inline-flex items-center gap-2 text-muted-foreground">
+                    <Loader2 size={14} className="animate-spin" />
+                    {m.text}
+                  </span>
+                ) : (
+                  <span dangerouslySetInnerHTML={{ __html: renderInline(m.text) }} />
+                )}
+              </div>
+            </div>
+          ))}
+          <div ref={chatEndRef} />
+        </div>
       )}
 
       <div className="flex items-center gap-3 my-5">
@@ -141,43 +223,51 @@ export function LogScreen({ onLogged }: LogScreenProps) {
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="e.g. This morning I had 100g of rice, 150g of grilled chicken breast, one tablespoon of olive oil, and two handfuls of spinach"
-        className="min-h-[110px] text-[15px] leading-relaxed bg-surface"
+        placeholder="e.g. 100g rice, 150g grilled chicken, a tablespoon of olive oil"
+        className="min-h-[90px] text-[15px] leading-relaxed bg-surface"
+        onKeyDown={(e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+            e.preventDefault();
+            handleSubmitText();
+          }
+        }}
       />
 
       <Button
-        onClick={() => handleAnalyze()}
-        disabled={analyzing || !text.trim()}
+        onClick={handleSubmitText}
+        disabled={busy || !text.trim()}
         className="w-full h-12 mt-3 text-base"
       >
         {analyzing ? (
           <>
             <Loader2 className="mr-2 animate-spin" size={18} />
-            Nouri is calculating your macros…
+            Calculating macros…
           </>
         ) : (
           <>
-            Analyse meal <Send size={16} className="ml-2" />
+            Send <Send size={16} className="ml-2" />
           </>
         )}
       </Button>
 
-      <div className="mt-8">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">
-          Try an example
-        </p>
-        <div className="space-y-2">
-          {examples.map((ex, i) => (
-            <button
-              key={i}
-              onClick={() => setText(ex)}
-              className="w-full text-left text-sm leading-relaxed nouri-card p-3 hover:border-primary/50 transition-colors"
-            >
-              {ex}
-            </button>
-          ))}
+      {chat.length === 0 && (
+        <div className="mt-8">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">
+            Try an example
+          </p>
+          <div className="space-y-2">
+            {examples.map((ex, i) => (
+              <button
+                key={i}
+                onClick={() => setText(ex)}
+                className="w-full text-left text-sm leading-relaxed nouri-card p-3 hover:border-primary/50 transition-colors"
+              >
+                {ex}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {analyzed && (
         <AnalyzedMealSheet
@@ -188,4 +278,13 @@ export function LogScreen({ onLogged }: LogScreenProps) {
       )}
     </div>
   );
+}
+
+// minimal **bold** -> <strong>
+function renderInline(s: string): string {
+  const escaped = s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
