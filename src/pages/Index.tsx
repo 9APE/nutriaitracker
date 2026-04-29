@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { storage, type Goals, type Meal, DEFAULT_GOALS } from "@/lib/nouri-storage";
+import { storage, type Goals, type Meal, DEFAULT_GOALS, todayISO } from "@/lib/nouri-storage";
 import { Onboarding, type BodyStats } from "@/components/nouri/Onboarding";
 import { TabBar, type TabKey } from "@/components/nouri/TabBar";
 import { NouriHeader } from "@/components/nouri/NouriHeader";
@@ -20,6 +20,9 @@ import {
   type UserProfile,
 } from "@/components/nouri/ProfileChatOnboarding";
 import { reconcileStreakOnAppOpen, consumePendingMessage } from "@/lib/nouri-streak";
+import { awardMealXP, checkDailyGoalAwards } from "@/lib/nouri-xp";
+import { XPFloater } from "@/components/nouri/XPFloater";
+import { XPScreen } from "@/components/nouri/XPScreen";
 
 const MIGRATED_KEY = "nouri:migrated";
 
@@ -35,6 +38,7 @@ const Index = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [logPrefill, setLogPrefill] = useState<string | undefined>(undefined);
+  const [showXP, setShowXP] = useState(false);
 
   // Reconcile streak (spend a freeze if a day was missed) on app open
   useEffect(() => {
@@ -178,6 +182,21 @@ const Index = () => {
     // Optimistic add
     setMeals((prev) => [m, ...prev]);
     setTab("today");
+
+    // Award XP: meal log, then check daily goal milestones
+    awardMealXP();
+    const todayKey = todayISO();
+    const totalsToday = [m, ...meals.filter((x) => x.date === todayKey)].reduce(
+      (a, x) => ({
+        calories: a.calories + x.calories,
+        protein: a.protein + x.protein,
+        carbs: a.carbs + x.carbs,
+        fat: a.fat + x.fat,
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+    checkDailyGoalAwards(totalsToday, goals);
+
     try {
       const saved = await cloud.addMeal(user.id, {
         meal_name: m.meal_name,
@@ -308,6 +327,7 @@ const Index = () => {
               setLogPrefill(name);
               setTab("log");
             }}
+            onOpenXP={() => setShowXP(true)}
           />
         )}
         {tab === "log" && (
@@ -321,6 +341,8 @@ const Index = () => {
         {tab === "insights" && <InsightsScreen meals={meals} goals={goals} />}
       </main>
       <TabBar active={tab} onChange={setTab} />
+      <XPFloater />
+      {showXP && <XPScreen onClose={() => setShowXP(false)} />}
     </div>
   );
 };

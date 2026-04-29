@@ -6,6 +6,7 @@ import { RemainingBanner } from "@/components/nouri/RemainingBanner";
 import type { Goals, Meal } from "@/lib/nouri-storage";
 import { todayISO } from "@/lib/nouri-storage";
 import { getStreak, getFreezes } from "@/lib/nouri-streak";
+import { getTotalXP, getLevelInfo } from "@/lib/nouri-xp";
 import { Mic } from "lucide-react";
 
 interface TodayScreenProps {
@@ -14,9 +15,10 @@ interface TodayScreenProps {
   onDeleteMeal: (id: string) => void;
   onGoLog: () => void;
   onPickSuggestion?: (mealName: string) => void;
+  onOpenXP?: () => void;
 }
 
-export function TodayScreen({ goals, meals, onDeleteMeal, onGoLog, onPickSuggestion }: TodayScreenProps) {
+export function TodayScreen({ goals, meals, onDeleteMeal, onGoLog, onPickSuggestion, onOpenXP }: TodayScreenProps) {
   const today = todayISO();
   const todayMeals = meals.filter((m) => m.date === today);
   const sum = todayMeals.reduce(
@@ -40,15 +42,22 @@ export function TodayScreen({ goals, meals, onDeleteMeal, onGoLog, onPickSuggest
 
   const [streak, setStreak] = useState(() => getStreak());
   const [freezes, setFreezesState] = useState(() => getFreezes());
+  const [xp, setXp] = useState(() => getTotalXP());
   useEffect(() => {
     const refresh = () => {
       setStreak(getStreak());
       setFreezesState(getFreezes());
+      setXp(getTotalXP());
     };
     refresh();
     window.addEventListener("streak:updated", refresh);
-    return () => window.removeEventListener("streak:updated", refresh);
+    window.addEventListener("xp:awarded", refresh);
+    return () => {
+      window.removeEventListener("streak:updated", refresh);
+      window.removeEventListener("xp:awarded", refresh);
+    };
   }, [meals]);
+  const levelInfo = getLevelInfo(xp);
 
   const streakActive =
     streak.count > 0 &&
@@ -67,12 +76,22 @@ export function TodayScreen({ goals, meals, onDeleteMeal, onGoLog, onPickSuggest
         <div className="flex items-center justify-between gap-3">
           <h1 className="font-serif text-2xl font-medium">{dateLabel}</h1>
           <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={onOpenXP}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap transition-transform active:scale-95 hover:brightness-105"
+              style={{ backgroundColor: "#FFF8E1", borderColor: "#F0C24A", color: "#7A5800" }}
+              title={`Level ${levelInfo.level} • ${xp} XP`}
+              aria-label="View your XP and level"
+            >
+              Lvl {levelInfo.level} ⭐
+            </button>
             <span
               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap"
               style={{ backgroundColor: "#EAF4EE", borderColor: "#5BB882", color: "#1F6B43" }}
               title="Daily logging streak"
             >
-              {streakActive ? `🔥 ${streak.count}` : "🔥 Start your streak!"}
+              {streakActive ? `🔥 ${streak.count}` : "🔥 Start"}
             </span>
             {freezes > 0 && (
               <span
