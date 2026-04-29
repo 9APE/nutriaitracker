@@ -221,9 +221,17 @@ const Index = () => {
       <ProfileChatOnboarding
         initial={userProfile}
         onClose={editingProfile ? () => setEditingProfile(false) : undefined}
-        onDone={(p) => {
+        onDone={async ({ profile: p, goals: g }) => {
           setUserProfile(p);
           setEditingProfile(false);
+          if (user) {
+            try {
+              await cloud.upsertGoals(user.id, g);
+              setGoals(g);
+            } catch (e: any) {
+              toast.error(e?.message || "Couldn't save goals");
+            }
+          }
           toast.success("Profile saved 🌿");
         }}
       />

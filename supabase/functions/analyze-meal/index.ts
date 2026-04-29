@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { text, profile, goals, eatenToday } = body ?? {};
+    const { text, profile, goals, eatenToday, warnings } = body ?? {};
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       return new Response(
@@ -109,13 +109,17 @@ Deno.serve(async (req) => {
       },
       meals: Array.isArray(eatenToday?.meals) ? eatenToday.meals : [],
     };
+    const safeWarnings: string[] = Array.isArray(warnings) ? warnings.map(String) : [];
 
-    const system = buildSystemPrompt({
+    let system = buildSystemPrompt({
       profile: profile && typeof profile === "object" ? profile : null,
       goals: safeGoals,
       eatenToday: safeEaten,
       today,
     });
+    if (safeWarnings.length > 0) {
+      system += `\n\nImportant things to watch for this user:\n${safeWarnings.map((w) => `- ${w}`).join("\n")}`;
+    }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

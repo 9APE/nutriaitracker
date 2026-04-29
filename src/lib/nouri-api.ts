@@ -36,15 +36,27 @@ function buildEatenToday() {
   };
 }
 
+function readUserWarnings(): string[] {
+  try {
+    const raw = localStorage.getItem("userWarnings");
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function analyzeMeal(
   text: string
 ): Promise<Omit<Meal, "id" | "created_at"> & { tip?: string }> {
   const profile = readUserProfile();
   const goals = storage.getGoals();
   const eatenToday = buildEatenToday();
+  const warnings = readUserWarnings();
 
   const { data, error } = await supabase.functions.invoke("analyze-meal", {
-    body: { text, profile, goals, eatenToday },
+    body: { text, profile, goals, eatenToday, warnings },
   });
 
   if (error) {
