@@ -32,6 +32,8 @@ const Index = () => {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [tab, setTab] = useState<TabKey>("today");
   const [notifKey, setNotifKey] = useState(0);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => loadUserProfile());
+  const [editingProfile, setEditingProfile] = useState(false);
 
   // Load user data on auth
   useEffect(() => {
