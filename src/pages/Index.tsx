@@ -38,6 +38,7 @@ const Index = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [logPrefill, setLogPrefill] = useState<string | undefined>(undefined);
+  const [showXP, setShowXP] = useState(false);
 
   // Reconcile streak (spend a freeze if a day was missed) on app open
   useEffect(() => {
@@ -326,6 +327,7 @@ const Index = () => {
               setLogPrefill(name);
               setTab("log");
             }}
+            onOpenXP={() => setShowXP(true)}
           />
         )}
         {tab === "log" && (
@@ -339,6 +341,8 @@ const Index = () => {
         {tab === "insights" && <InsightsScreen meals={meals} goals={goals} />}
       </main>
       <TabBar active={tab} onChange={setTab} />
+      <XPFloater />
+      {showXP && <XPScreen onClose={() => setShowXP(false)} />}
     </div>
   );
 };
