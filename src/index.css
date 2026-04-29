@@ -142,4 +142,26 @@
   .xp-floater {
     animation: nouri-xp-floater 1.6s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
+
+  /* Goal celebration confetti */
+  @keyframes nouri-confetto-fall {
+    0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(var(--rot, 360deg)); opacity: 0.9; }
+  }
+  .celebration-confetto {
+    position: absolute;
+    top: -10vh;
+    border-radius: 2px;
+    animation: nouri-confetto-fall linear forwards;
+  }
+  @keyframes nouri-celebration-pop {
+    0% { opacity: 0; transform: scale(0.7) translateY(-8px); }
+    20% { opacity: 1; transform: scale(1.05) translateY(0); }
+    40% { transform: scale(1) translateY(0); }
+    85% { opacity: 1; }
+    100% { opacity: 0; transform: scale(0.95) translateY(-4px); }
+  }
+  .celebration-card {
+    animation: nouri-celebration-pop 2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
 }
