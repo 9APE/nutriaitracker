@@ -100,6 +100,18 @@ const Index = () => {
         setGoals(g ?? DEFAULT_GOALS);
         setMeals(ms);
 
+        // Hydrate the chat-onboarding profile from the cloud (per-user)
+        if (prof?.user_profile_json) {
+          setUserProfile(prof.user_profile_json as UserProfile);
+        } else {
+          setUserProfile(null);
+        }
+        if (prof?.user_warnings_json && Array.isArray(prof.user_warnings_json)) {
+          try {
+            localStorage.setItem("userWarnings", JSON.stringify(prof.user_warnings_json));
+          } catch {}
+        }
+
         // Trigger onboarding if profile has no body stats yet
         const hasStats = !!(prof?.age || prof?.weight_kg || prof?.height_cm || prof?.activity_level);
         setNeedsOnboarding(!hasStats);
