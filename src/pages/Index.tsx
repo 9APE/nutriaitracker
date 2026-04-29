@@ -34,6 +34,7 @@ const Index = () => {
   const [notifKey, setNotifKey] = useState(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => loadUserProfile());
   const [editingProfile, setEditingProfile] = useState(false);
+  const [logPrefill, setLogPrefill] = useState<string | undefined>(undefined);
 
   // Load user data on auth
   useEffect(() => {
@@ -269,9 +270,19 @@ const Index = () => {
             meals={meals}
             onDeleteMeal={handleDeleteMeal}
             onGoLog={() => setTab("log")}
+            onPickSuggestion={(name) => {
+              setLogPrefill(name);
+              setTab("log");
+            }}
           />
         )}
-        {tab === "log" && <LogScreen onLogged={handleAddMeal} />}
+        {tab === "log" && (
+          <LogScreen
+            onLogged={handleAddMeal}
+            prefillText={logPrefill}
+            onPrefillConsumed={() => setLogPrefill(undefined)}
+          />
+        )}
         {tab === "history" && <HistoryScreen meals={meals} onDelete={handleDeleteMeal} />}
         {tab === "insights" && <InsightsScreen meals={meals} goals={goals} />}
       </main>
