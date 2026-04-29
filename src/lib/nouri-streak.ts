@@ -131,5 +131,7 @@ export function recordMealLogged(): StreakData {
   next = maybeAwardFreeze(next);
   setStreak(next);
   window.dispatchEvent(new CustomEvent("streak:updated"));
+  // Lazy import to avoid cycles
+  import("./nouri-xp").then(({ checkStreakMilestone }) => checkStreakMilestone(next.count));
   return next;
 }
