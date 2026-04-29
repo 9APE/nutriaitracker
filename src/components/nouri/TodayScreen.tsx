@@ -7,6 +7,7 @@ import type { Goals, Meal } from "@/lib/nouri-storage";
 import { todayISO } from "@/lib/nouri-storage";
 import { getStreak, getFreezes } from "@/lib/nouri-streak";
 import { getTotalXP, getLevelInfo } from "@/lib/nouri-xp";
+import { isCheckinDue } from "@/components/nouri/WeeklyCheckin";
 import { Mic } from "lucide-react";
 
 interface TodayScreenProps {
@@ -16,9 +17,18 @@ interface TodayScreenProps {
   onGoLog: () => void;
   onPickSuggestion?: (mealName: string) => void;
   onOpenXP?: () => void;
+  onStartCheckin?: () => void;
 }
 
-export function TodayScreen({ goals, meals, onDeleteMeal, onGoLog, onPickSuggestion, onOpenXP }: TodayScreenProps) {
+export function TodayScreen({
+  goals,
+  meals,
+  onDeleteMeal,
+  onGoLog,
+  onPickSuggestion,
+  onOpenXP,
+  onStartCheckin,
+}: TodayScreenProps) {
   const today = todayISO();
   const todayMeals = meals.filter((m) => m.date === today);
   const sum = todayMeals.reduce(
