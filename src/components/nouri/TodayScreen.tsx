@@ -7,6 +7,7 @@ import type { Goals, Meal } from "@/lib/nouri-storage";
 import { todayISO } from "@/lib/nouri-storage";
 import { getStreak, getFreezes } from "@/lib/nouri-streak";
 import { getTotalXP, getLevelInfo } from "@/lib/nouri-xp";
+import { isCheckinDue } from "@/components/nouri/WeeklyCheckin";
 import { Mic } from "lucide-react";
 
 interface TodayScreenProps {
@@ -16,9 +17,18 @@ interface TodayScreenProps {
   onGoLog: () => void;
   onPickSuggestion?: (mealName: string) => void;
   onOpenXP?: () => void;
+  onStartCheckin?: () => void;
 }
 
-export function TodayScreen({ goals, meals, onDeleteMeal, onGoLog, onPickSuggestion, onOpenXP }: TodayScreenProps) {
+export function TodayScreen({
+  goals,
+  meals,
+  onDeleteMeal,
+  onGoLog,
+  onPickSuggestion,
+  onOpenXP,
+  onStartCheckin,
+}: TodayScreenProps) {
   const today = todayISO();
   const todayMeals = meals.filter((m) => m.date === today);
   const sum = todayMeals.reduce(
@@ -105,6 +115,31 @@ export function TodayScreen({ goals, meals, onDeleteMeal, onGoLog, onPickSuggest
           </div>
         </div>
       </div>
+
+      {isCheckinDue(localStorage.getItem("nouri:signupDate")) && onStartCheckin && (
+        <button
+          type="button"
+          onClick={onStartCheckin}
+          className="w-full text-left rounded-2xl border p-4 flex items-center gap-3 transition-transform active:scale-[0.99]"
+          style={{ backgroundColor: "#EAF4EE", borderColor: "#5BB882" }}
+        >
+          <span className="text-2xl shrink-0">🌿</span>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium" style={{ color: "#1F6B43" }}>
+              Time for your weekly check-in
+            </div>
+            <div className="text-xs mt-0.5" style={{ color: "#1F6B43", opacity: 0.8 }}>
+              A quick chat with Nouri to fine-tune your goals.
+            </div>
+          </div>
+          <span
+            className="text-xs font-medium px-3 py-1.5 rounded-full text-white shrink-0"
+            style={{ backgroundColor: "#5BB882" }}
+          >
+            Let's go
+          </span>
+        </button>
+      )}
 
       <section className="nouri-card p-6">
         <div className="flex items-end justify-between mb-1">

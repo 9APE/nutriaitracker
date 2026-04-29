@@ -23,6 +23,7 @@ import { reconcileStreakOnAppOpen, consumePendingMessage } from "@/lib/nouri-str
 import { awardMealXP, checkDailyGoalAwards } from "@/lib/nouri-xp";
 import { XPFloater } from "@/components/nouri/XPFloater";
 import { XPScreen } from "@/components/nouri/XPScreen";
+import { WeeklyCheckin } from "@/components/nouri/WeeklyCheckin";
 
 const MIGRATED_KEY = "nouri:migrated";
 
@@ -39,6 +40,7 @@ const Index = () => {
   const [editingProfile, setEditingProfile] = useState(false);
   const [logPrefill, setLogPrefill] = useState<string | undefined>(undefined);
   const [showXP, setShowXP] = useState(false);
+  const [showCheckin, setShowCheckin] = useState(false);
 
   // Reconcile streak (spend a freeze if a day was missed) on app open
   useEffect(() => {
@@ -50,6 +52,10 @@ const Index = () => {
       });
     } else if (pending?.kind === "streak-ended") {
       toast("Your streak ended — but you can start again today! 🔥", { duration: 6000 });
+    }
+    // Record signup date once for weekly check-in cadence
+    if (!localStorage.getItem("nouri:signupDate")) {
+      localStorage.setItem("nouri:signupDate", todayISO());
     }
   }, []);
 
@@ -328,6 +334,7 @@ const Index = () => {
               setTab("log");
             }}
             onOpenXP={() => setShowXP(true)}
+            onStartCheckin={() => setShowCheckin(true)}
           />
         )}
         {tab === "log" && (
@@ -343,6 +350,23 @@ const Index = () => {
       <TabBar active={tab} onChange={setTab} />
       <XPFloater />
       {showXP && <XPScreen onClose={() => setShowXP(false)} />}
+      {showCheckin && (
+        <WeeklyCheckin
+          goals={goals}
+          meals={meals}
+          onClose={() => setShowCheckin(false)}
+          onGoalsUpdated={async (g) => {
+            setGoals(g);
+            if (user) {
+              try {
+                await cloud.upsertGoals(user.id, g);
+              } catch (e: any) {
+                toast.error(e?.message || "Couldn't save updated goals");
+              }
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
