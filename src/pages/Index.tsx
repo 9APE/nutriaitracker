@@ -17,7 +17,6 @@ import { toast } from "sonner";
 import { Loader2, UserCog } from "lucide-react";
 import {
   ProfileChatOnboarding,
-  loadUserProfile,
   type UserProfile,
 } from "@/components/nouri/ProfileChatOnboarding";
 
@@ -32,7 +31,7 @@ const Index = () => {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [tab, setTab] = useState<TabKey>("today");
   const [notifKey, setNotifKey] = useState(0);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => loadUserProfile());
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [logPrefill, setLogPrefill] = useState<string | undefined>(undefined);
 
@@ -100,6 +99,18 @@ const Index = () => {
         setProfile(prof);
         setGoals(g ?? DEFAULT_GOALS);
         setMeals(ms);
+
+        // Hydrate the chat-onboarding profile from the cloud (per-user)
+        if (prof?.user_profile_json) {
+          setUserProfile(prof.user_profile_json as UserProfile);
+        } else {
+          setUserProfile(null);
+        }
+        if (prof?.user_warnings_json && Array.isArray(prof.user_warnings_json)) {
+          try {
+            localStorage.setItem("userWarnings", JSON.stringify(prof.user_warnings_json));
+          } catch {}
+        }
 
         // Trigger onboarding if profile has no body stats yet
         const hasStats = !!(prof?.age || prof?.weight_kg || prof?.height_cm || prof?.activity_level);
@@ -222,13 +233,22 @@ const Index = () => {
       <ProfileChatOnboarding
         initial={userProfile}
         onClose={editingProfile ? () => setEditingProfile(false) : undefined}
-        onDone={async ({ profile: p, goals: g }) => {
+        onDone={async ({ profile: p, goals: g, warnings }) => {
           setUserProfile(p);
           setEditingProfile(false);
           if (user) {
             try {
               await cloud.upsertGoals(user.id, g);
+              await cloud.updateProfile(user.id, {
+                user_profile_json: p,
+                user_warnings_json: warnings ?? [],
+              } as any);
               setGoals(g);
+              setProfile((prev) =>
+                prev
+                  ? ({ ...prev, user_profile_json: p, user_warnings_json: warnings ?? [] } as Profile)
+                  : prev
+              );
             } catch (e: any) {
               toast.error(e?.message || "Couldn't save goals");
             }

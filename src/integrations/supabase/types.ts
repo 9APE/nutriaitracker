@@ -89,6 +89,8 @@ export type Database = {
           height_cm: number | null
           id: string
           updated_at: string
+          user_profile_json: Json | null
+          user_warnings_json: Json | null
           weight_kg: number | null
         }
         Insert: {
@@ -99,6 +101,8 @@ export type Database = {
           height_cm?: number | null
           id: string
           updated_at?: string
+          user_profile_json?: Json | null
+          user_warnings_json?: Json | null
           weight_kg?: number | null
         }
         Update: {
@@ -109,6 +113,8 @@ export type Database = {
           height_cm?: number | null
           id?: string
           updated_at?: string
+          user_profile_json?: Json | null
+          user_warnings_json?: Json | null
           weight_kg?: number | null
         }
         Relationships: []
