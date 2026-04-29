@@ -18,6 +18,8 @@ const examples = [
 
 interface LogScreenProps {
   onLogged: (m: Meal) => void;
+  prefillText?: string;
+  onPrefillConsumed?: () => void;
 }
 
 type ChatMsg =
@@ -40,7 +42,7 @@ async function analyzeWithRetry(text: string, attempts = 2): Promise<Awaited<Ret
   throw lastErr;
 }
 
-export function LogScreen({ onLogged }: LogScreenProps) {
+export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScreenProps) {
   const voice = useVoice();
   const [text, setText] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
@@ -51,6 +53,14 @@ export function LogScreen({ onLogged }: LogScreenProps) {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [chat, analyzing, voice.transcribing]);
+
+  useEffect(() => {
+    if (prefillText) {
+      setText(prefillText);
+      onPrefillConsumed?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillText]);
 
   const pushAssistant = (text: string, pending = false) => {
     const id = uid();

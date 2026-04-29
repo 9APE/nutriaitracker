@@ -1,5 +1,6 @@
 import { MacroBar } from "@/components/nouri/MacroBar";
 import { MealCard } from "@/components/nouri/MealCard";
+import { NouriRecommends } from "@/components/nouri/NouriRecommends";
 import type { Goals, Meal } from "@/lib/nouri-storage";
 import { todayISO } from "@/lib/nouri-storage";
 import { Mic } from "lucide-react";
@@ -9,9 +10,10 @@ interface TodayScreenProps {
   meals: Meal[];
   onDeleteMeal: (id: string) => void;
   onGoLog: () => void;
+  onPickSuggestion?: (mealName: string) => void;
 }
 
-export function TodayScreen({ goals, meals, onDeleteMeal, onGoLog }: TodayScreenProps) {
+export function TodayScreen({ goals, meals, onDeleteMeal, onGoLog, onPickSuggestion }: TodayScreenProps) {
   const today = todayISO();
   const todayMeals = meals.filter((m) => m.date === today);
   const sum = todayMeals.reduce(
@@ -94,6 +96,12 @@ export function TodayScreen({ goals, meals, onDeleteMeal, onGoLog }: TodayScreen
           </div>
         )}
       </section>
+
+      <NouriRecommends
+        goals={goals}
+        meals={meals}
+        onPick={(name) => onPickSuggestion?.(name)}
+      />
     </div>
   );
 }
