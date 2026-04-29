@@ -19,6 +19,7 @@ import {
   ProfileChatOnboarding,
   type UserProfile,
 } from "@/components/nouri/ProfileChatOnboarding";
+import { reconcileStreakOnAppOpen, consumePendingMessage } from "@/lib/nouri-streak";
 
 const MIGRATED_KEY = "nouri:migrated";
 
@@ -34,6 +35,19 @@ const Index = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [logPrefill, setLogPrefill] = useState<string | undefined>(undefined);
+
+  // Reconcile streak (spend a freeze if a day was missed) on app open
+  useEffect(() => {
+    reconcileStreakOnAppOpen();
+    const pending = consumePendingMessage();
+    if (pending?.kind === "freeze-used") {
+      toast("🛡️ Streak freeze used! Your 🔥 streak is safe. Log today to keep it going.", {
+        duration: 6000,
+      });
+    } else if (pending?.kind === "streak-ended") {
+      toast("Your streak ended — but you can start again today! 🔥", { duration: 6000 });
+    }
+  }, []);
 
   // Load user data on auth
   useEffect(() => {
