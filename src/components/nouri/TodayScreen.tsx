@@ -5,7 +5,7 @@ import { NouriRecommends } from "@/components/nouri/NouriRecommends";
 import { RemainingBanner } from "@/components/nouri/RemainingBanner";
 import type { Goals, Meal } from "@/lib/nouri-storage";
 import { todayISO } from "@/lib/nouri-storage";
-import { getStreak } from "@/lib/nouri-streak";
+import { getStreak, getFreezes } from "@/lib/nouri-streak";
 import { Mic } from "lucide-react";
 
 interface TodayScreenProps {
@@ -39,8 +39,12 @@ export function TodayScreen({ goals, meals, onDeleteMeal, onGoLog, onPickSuggest
   });
 
   const [streak, setStreak] = useState(() => getStreak());
+  const [freezes, setFreezesState] = useState(() => getFreezes());
   useEffect(() => {
-    const refresh = () => setStreak(getStreak());
+    const refresh = () => {
+      setStreak(getStreak());
+      setFreezesState(getFreezes());
+    };
     refresh();
     window.addEventListener("streak:updated", refresh);
     return () => window.removeEventListener("streak:updated", refresh);
@@ -62,13 +66,24 @@ export function TodayScreen({ goals, meals, onDeleteMeal, onGoLog, onPickSuggest
         <p className="text-xs uppercase tracking-wider text-muted-foreground">Today</p>
         <div className="flex items-center justify-between gap-3">
           <h1 className="font-serif text-2xl font-medium">{dateLabel}</h1>
-          <span
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap"
-            style={{ backgroundColor: "#EAF4EE", borderColor: "#5BB882", color: "#1F6B43" }}
-            title="Daily logging streak"
-          >
-            {streakActive ? `🔥 ${streak.count}` : "🔥 Start your streak!"}
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap"
+              style={{ backgroundColor: "#EAF4EE", borderColor: "#5BB882", color: "#1F6B43" }}
+              title="Daily logging streak"
+            >
+              {streakActive ? `🔥 ${streak.count}` : "🔥 Start your streak!"}
+            </span>
+            {freezes > 0 && (
+              <span
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap"
+                style={{ backgroundColor: "#E8F1FB", borderColor: "#5B8FCC", color: "#1F4A82" }}
+                title="Streak freezes available"
+              >
+                🛡️ {freezes}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

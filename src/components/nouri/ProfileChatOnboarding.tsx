@@ -356,6 +356,12 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
             </button>
           )}
         </div>
+        {onClose && (
+          <p className="max-w-md mx-auto mt-2 text-xs text-muted-foreground flex items-center gap-1.5">
+            <span>🛡️</span>
+            <span>Earn a freeze by logging 7 days in a row.</span>
+          </p>
+        )}
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-6">
