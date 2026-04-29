@@ -40,6 +40,7 @@ const Index = () => {
   const [editingProfile, setEditingProfile] = useState(false);
   const [logPrefill, setLogPrefill] = useState<string | undefined>(undefined);
   const [showXP, setShowXP] = useState(false);
+  const [showCheckin, setShowCheckin] = useState(false);
 
   // Reconcile streak (spend a freeze if a day was missed) on app open
   useEffect(() => {
@@ -333,6 +334,7 @@ const Index = () => {
               setTab("log");
             }}
             onOpenXP={() => setShowXP(true)}
+            onStartCheckin={() => setShowCheckin(true)}
           />
         )}
         {tab === "log" && (
@@ -348,6 +350,23 @@ const Index = () => {
       <TabBar active={tab} onChange={setTab} />
       <XPFloater />
       {showXP && <XPScreen onClose={() => setShowXP(false)} />}
+      {showCheckin && (
+        <WeeklyCheckin
+          goals={goals}
+          meals={meals}
+          onClose={() => setShowCheckin(false)}
+          onGoalsUpdated={async (g) => {
+            setGoals(g);
+            if (user) {
+              try {
+                await cloud.upsertGoals(user.id, g);
+              } catch (e: any) {
+                toast.error(e?.message || "Couldn't save updated goals");
+              }
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
