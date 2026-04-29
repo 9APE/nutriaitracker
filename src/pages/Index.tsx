@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { storage, type Goals, type Meal, DEFAULT_GOALS } from "@/lib/nouri-storage";
+import { storage, type Goals, type Meal, DEFAULT_GOALS, todayISO } from "@/lib/nouri-storage";
 import { Onboarding, type BodyStats } from "@/components/nouri/Onboarding";
 import { TabBar, type TabKey } from "@/components/nouri/TabBar";
 import { NouriHeader } from "@/components/nouri/NouriHeader";
