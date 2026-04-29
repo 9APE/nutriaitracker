@@ -1,6 +1,7 @@
 import { MacroBar } from "@/components/nouri/MacroBar";
 import { MealCard } from "@/components/nouri/MealCard";
 import { NouriRecommends } from "@/components/nouri/NouriRecommends";
+import { RemainingBanner } from "@/components/nouri/RemainingBanner";
 import type { Goals, Meal } from "@/lib/nouri-storage";
 import { todayISO } from "@/lib/nouri-storage";
 import { Mic } from "lucide-react";
@@ -73,6 +74,11 @@ export function TodayScreen({ goals, meals, onDeleteMeal, onGoLog, onPickSuggest
         <MacroBar label="Carbs" emoji="🌾" current={sum.carbs} goal={goals.carbs} color="carbs" />
         <MacroBar label="Fat" emoji="🫒" current={sum.fat} goal={goals.fat} color="fat" />
       </section>
+
+      <RemainingBanner
+        remainingProtein={goals.protein - sum.protein}
+        remainingCalories={goals.calories - sum.calories}
+      />
 
       <button
         onClick={onGoLog}
