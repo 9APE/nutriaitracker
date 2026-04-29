@@ -54,6 +54,14 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
     chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [chat, analyzing, voice.transcribing]);
 
+  useEffect(() => {
+    if (prefillText) {
+      setText(prefillText);
+      onPrefillConsumed?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillText]);
+
   const pushAssistant = (text: string, pending = false) => {
     const id = uid();
     setChat((c) => [...c, { id, role: "assistant", text, pending }]);
