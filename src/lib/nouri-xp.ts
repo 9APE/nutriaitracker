@@ -170,6 +170,7 @@ export function checkDailyGoalAwards(
     day.allMacrosHit = true;
     changed = true;
     award(50, "all-macros");
+    window.dispatchEvent(new CustomEvent("goals:all-hit"));
   }
   if (changed) {
     awards[today] = day;
