@@ -178,6 +178,21 @@ const Index = () => {
     // Optimistic add
     setMeals((prev) => [m, ...prev]);
     setTab("today");
+
+    // Award XP: meal log, then check daily goal milestones
+    awardMealXP();
+    const todayKey = todayISO();
+    const totalsToday = [m, ...meals.filter((x) => x.date === todayKey)].reduce(
+      (a, x) => ({
+        calories: a.calories + x.calories,
+        protein: a.protein + x.protein,
+        carbs: a.carbs + x.carbs,
+        fat: a.fat + x.fat,
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+    checkDailyGoalAwards(totalsToday, goals);
+
     try {
       const saved = await cloud.addMeal(user.id, {
         meal_name: m.meal_name,
