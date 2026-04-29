@@ -165,7 +165,11 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
       return;
     }
     setText("");
-    await runAnalyze(t);
+    if (pendingClarify) {
+      await handleClarifyAnswer(t);
+    } else {
+      await runAnalyze(t);
+    }
   };
 
   const confirmMeal = () => {
