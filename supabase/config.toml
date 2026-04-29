@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.suggest-meals]
 verify_jwt = false
+
+[functions.onboarding-chat]
+verify_jwt = false
