@@ -350,6 +350,7 @@ const Index = () => {
       </main>
       <TabBar active={tab} onChange={setTab} />
       <XPFloater />
+      <GoalCelebration />
       {showXP && <XPScreen onClose={() => setShowXP(false)} />}
       {showCheckin && (
         <WeeklyCheckin
