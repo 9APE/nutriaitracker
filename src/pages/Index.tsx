@@ -14,7 +14,12 @@ import { notifStore } from "@/lib/nouri-suggestions";
 import { useAuth } from "@/lib/auth-context";
 import { cloud, type Profile } from "@/lib/nouri-cloud";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, UserCog } from "lucide-react";
+import {
+  ProfileChatOnboarding,
+  loadUserProfile,
+  type UserProfile,
+} from "@/components/nouri/ProfileChatOnboarding";
 
 const MIGRATED_KEY = "nouri:migrated";
 
