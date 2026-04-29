@@ -51,6 +51,10 @@ const Index = () => {
     } else if (pending?.kind === "streak-ended") {
       toast("Your streak ended — but you can start again today! 🔥", { duration: 6000 });
     }
+    // Record signup date once for weekly check-in cadence
+    if (!localStorage.getItem("nouri:signupDate")) {
+      localStorage.setItem("nouri:signupDate", todayISO());
+    }
   }, []);
 
   // Load user data on auth
