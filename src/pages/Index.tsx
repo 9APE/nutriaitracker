@@ -20,6 +20,9 @@ import {
   type UserProfile,
 } from "@/components/nouri/ProfileChatOnboarding";
 import { reconcileStreakOnAppOpen, consumePendingMessage } from "@/lib/nouri-streak";
+import { awardMealXP, checkDailyGoalAwards } from "@/lib/nouri-xp";
+import { XPFloater } from "@/components/nouri/XPFloater";
+import { XPScreen } from "@/components/nouri/XPScreen";
 
 const MIGRATED_KEY = "nouri:migrated";
 
