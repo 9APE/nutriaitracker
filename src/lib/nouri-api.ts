@@ -47,23 +47,40 @@ function readUserWarnings(): string[] {
   }
 }
 
+export type AnalyzedMeal = Omit<Meal, "id" | "created_at"> & { tip?: string };
+export type Clarification = { type: "clarification"; question: string; options: string[] };
+export type AnalyzeResult =
+  | { kind: "meal"; meal: AnalyzedMeal }
+  | { kind: "clarification"; clarification: Clarification };
+
 export async function analyzeMeal(
-  text: string
-): Promise<Omit<Meal, "id" | "created_at"> & { tip?: string }> {
+  text: string,
+  opts?: { alreadyClarified?: boolean }
+): Promise<AnalyzeResult> {
   const profile = readUserProfile();
   const goals = storage.getGoals();
   const eatenToday = buildEatenToday();
   const warnings = readUserWarnings();
 
   const { data, error } = await supabase.functions.invoke("analyze-meal", {
-    body: { text, profile, goals, eatenToday, warnings },
+    body: {
+      text,
+      profile,
+      goals,
+      eatenToday,
+      warnings,
+      alreadyClarified: !!opts?.alreadyClarified,
+    },
   });
 
   if (error) {
     throw new Error(error.message || "Failed to analyze meal");
   }
+  if (data?.clarification) {
+    return { kind: "clarification", clarification: data.clarification };
+  }
   if (!data?.meal) {
     throw new Error(data?.error || "No meal returned");
   }
-  return data.meal;
+  return { kind: "meal", meal: data.meal };
 }

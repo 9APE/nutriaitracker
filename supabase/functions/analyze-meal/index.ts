@@ -65,7 +65,15 @@ Remaining today: ${remaining.protein}g protein, ${remaining.calories} kcal
 
 Today's date is ${opts.today}.
 
-When the user describes a meal, estimate accurate macros based on the quantities given. Return ONLY valid JSON: {meal_name, type, calories, protein, carbs, fat, date, tip} where 'type' is one of Breakfast/Lunch/Dinner/Snack, 'date' is YYYY-MM-DD (default to today), and 'tip' is one short personalized sentence — either confirming this fits their goals, flagging a concern, or suggesting a small adjustment. Keep the tip friendly and concise.`;
+When the user describes a meal, first check if they gave specific quantities (grams, cups, pieces, handfuls etc).
+
+If quantities ARE specific enough: parse normally and return ONLY valid JSON: {meal_name, type, calories, protein, carbs, fat, date, tip} where 'type' is one of Breakfast/Lunch/Dinner/Snack, 'date' is YYYY-MM-DD (default to today), and 'tip' is one short personalized sentence — either confirming this fits their goals, flagging a concern, or suggesting a small adjustment. Keep the tip friendly and concise.
+
+If quantities are TOO vague (e.g. 'I had chicken and rice', 'I had pasta', 'I had a salad'): do NOT estimate yet. Instead return ONLY valid JSON: {"type": "clarification", "question": "one short friendly question asking for the most important missing quantity", "options": ["option 1", "option 2", "option 3"]}. Always offer 2-3 short tappable options so the user doesn't have to think. Examples of question + options:
+- question: "How much chicken roughly?" options: ["Small (~100g)", "Medium (~150g)", "Large (200g+)"]
+- question: "Was it a small bowl of pasta or a big one?" options: ["Small bowl (~80g dry)", "Medium (~120g dry)", "Big bowl (~180g dry)"]
+
+Ask only ONE question, for the single most impactful missing info. If the user has already been asked once and answers vaguely again, make a reasonable estimate and proceed with the normal meal JSON — never ask twice.`;
 }
 
 Deno.serve(async (req) => {
@@ -83,7 +91,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { text, profile, goals, eatenToday, warnings } = body ?? {};
+    const { text, profile, goals, eatenToday, warnings, alreadyClarified } = body ?? {};
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       return new Response(
@@ -119,6 +127,9 @@ Deno.serve(async (req) => {
     });
     if (safeWarnings.length > 0) {
       system += `\n\nImportant things to watch for this user:\n${safeWarnings.map((w) => `- ${w}`).join("\n")}`;
+    }
+    if (alreadyClarified) {
+      system += `\n\nYou already asked the user one clarifying question. Do NOT ask again — make a reasonable estimate now and return the normal meal JSON.`;
     }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -163,6 +174,19 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "Failed to parse AI response", raw }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    if (parsed?.type === "clarification" && !alreadyClarified) {
+      const clarification = {
+        type: "clarification" as const,
+        question: String(parsed.question ?? "Could you give me a rough quantity?"),
+        options: Array.isArray(parsed.options)
+          ? parsed.options.slice(0, 3).map(String)
+          : [],
+      };
+      return new Response(JSON.stringify({ clarification }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const meal = {
