@@ -14,7 +14,12 @@ import { notifStore } from "@/lib/nouri-suggestions";
 import { useAuth } from "@/lib/auth-context";
 import { cloud, type Profile } from "@/lib/nouri-cloud";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, UserCog } from "lucide-react";
+import {
+  ProfileChatOnboarding,
+  loadUserProfile,
+  type UserProfile,
+} from "@/components/nouri/ProfileChatOnboarding";
 
 const MIGRATED_KEY = "nouri:migrated";
 
@@ -27,6 +32,8 @@ const Index = () => {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [tab, setTab] = useState<TabKey>("today");
   const [notifKey, setNotifKey] = useState(0);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => loadUserProfile());
+  const [editingProfile, setEditingProfile] = useState(false);
 
   // Load user data on auth
   useEffect(() => {
@@ -208,17 +215,43 @@ const Index = () => {
     );
   }
 
+  // First-launch chat onboarding (or editing profile)
+  if (!userProfile || editingProfile) {
+    return (
+      <ProfileChatOnboarding
+        initial={userProfile}
+        onClose={editingProfile ? () => setEditingProfile(false) : undefined}
+        onDone={(p) => {
+          setUserProfile(p);
+          setEditingProfile(false);
+          toast.success("Profile saved 🌿");
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <NouriHeader
         onSignOut={handleSignOut}
         rightSlot={
-          <NotificationBell
-            goals={goals}
-            meals={meals}
-            onAddMeal={handleAddMeal}
-            refreshKey={notifKey}
-          />
+          <>
+            <button
+              onClick={() => setEditingProfile(true)}
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-muted transition-colors"
+              aria-label="Edit profile"
+              title="Edit profile"
+            >
+              <UserCog size={13} />
+              Profile
+            </button>
+            <NotificationBell
+              goals={goals}
+              meals={meals}
+              onAddMeal={handleAddMeal}
+              refreshKey={notifKey}
+            />
+          </>
         }
       />
       <main>
