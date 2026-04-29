@@ -233,13 +233,22 @@ const Index = () => {
       <ProfileChatOnboarding
         initial={userProfile}
         onClose={editingProfile ? () => setEditingProfile(false) : undefined}
-        onDone={async ({ profile: p, goals: g }) => {
+        onDone={async ({ profile: p, goals: g, warnings }) => {
           setUserProfile(p);
           setEditingProfile(false);
           if (user) {
             try {
               await cloud.upsertGoals(user.id, g);
+              await cloud.updateProfile(user.id, {
+                user_profile_json: p,
+                user_warnings_json: warnings ?? [],
+              } as any);
               setGoals(g);
+              setProfile((prev) =>
+                prev
+                  ? ({ ...prev, user_profile_json: p, user_warnings_json: warnings ?? [] } as Profile)
+                  : prev
+              );
             } catch (e: any) {
               toast.error(e?.message || "Couldn't save goals");
             }
