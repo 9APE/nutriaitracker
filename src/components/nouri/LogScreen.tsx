@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useVoice } from "@/hooks/useVoice";
 import { analyzeMeal } from "@/lib/nouri-api";
 import type { Meal } from "@/lib/nouri-storage";
+import { recordMealLogged } from "@/lib/nouri-streak";
 import { AnalyzedMealSheet } from "./AnalyzedMealSheet";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -180,6 +181,7 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
       created_at: Date.now(),
     };
     onLogged(meal);
+    recordMealLogged();
     setAnalyzed(null);
     pushAssistant(`Logged **${meal.meal_name}** ✓ Anything else?`);
     voice.reset();
