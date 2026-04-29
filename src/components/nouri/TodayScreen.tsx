@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react";
 import { MacroBar } from "@/components/nouri/MacroBar";
 import { MealCard } from "@/components/nouri/MealCard";
 import { NouriRecommends } from "@/components/nouri/NouriRecommends";
 import { RemainingBanner } from "@/components/nouri/RemainingBanner";
 import type { Goals, Meal } from "@/lib/nouri-storage";
 import { todayISO } from "@/lib/nouri-storage";
+import { getStreak } from "@/lib/nouri-streak";
 import { Mic } from "lucide-react";
 
 interface TodayScreenProps {
@@ -36,11 +38,38 @@ export function TodayScreen({ goals, meals, onDeleteMeal, onGoLog, onPickSuggest
     day: "numeric",
   });
 
+  const [streak, setStreak] = useState(() => getStreak());
+  useEffect(() => {
+    const refresh = () => setStreak(getStreak());
+    refresh();
+    window.addEventListener("streak:updated", refresh);
+    return () => window.removeEventListener("streak:updated", refresh);
+  }, [meals]);
+
+  const streakActive =
+    streak.count > 0 &&
+    (streak.lastLogDate === today ||
+      streak.lastLogDate ===
+        (() => {
+          const d = new Date();
+          d.setDate(d.getDate() - 1);
+          return d.toISOString().slice(0, 10);
+        })());
+
   return (
     <div className="px-5 pt-4 pb-28 max-w-md mx-auto space-y-5">
       <div>
         <p className="text-xs uppercase tracking-wider text-muted-foreground">Today</p>
-        <h1 className="font-serif text-2xl font-medium">{dateLabel}</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="font-serif text-2xl font-medium">{dateLabel}</h1>
+          <span
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap"
+            style={{ backgroundColor: "#EAF4EE", borderColor: "#5BB882", color: "#1F6B43" }}
+            title="Daily logging streak"
+          >
+            {streakActive ? `🔥 ${streak.count}` : "🔥 Start your streak!"}
+          </span>
+        </div>
       </div>
 
       <section className="nouri-card p-6">
