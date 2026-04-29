@@ -23,6 +23,7 @@ import { reconcileStreakOnAppOpen, consumePendingMessage } from "@/lib/nouri-str
 import { awardMealXP, checkDailyGoalAwards } from "@/lib/nouri-xp";
 import { XPFloater } from "@/components/nouri/XPFloater";
 import { XPScreen } from "@/components/nouri/XPScreen";
+import { WeeklyCheckin } from "@/components/nouri/WeeklyCheckin";
 
 const MIGRATED_KEY = "nouri:migrated";
 
