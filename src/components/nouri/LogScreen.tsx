@@ -24,15 +24,26 @@ interface LogScreenProps {
 
 type ChatMsg =
   | { id: string; role: "user"; text: string }
-  | { id: string; role: "assistant"; text: string; pending?: boolean };
+  | {
+      id: string;
+      role: "assistant";
+      text: string;
+      pending?: boolean;
+      options?: string[];
+      optionsConsumed?: boolean;
+    };
 
 const uid = () => crypto.randomUUID();
 
-async function analyzeWithRetry(text: string, attempts = 2): Promise<Awaited<ReturnType<typeof analyzeMeal>>> {
+async function analyzeWithRetry(
+  text: string,
+  attempts = 2,
+  opts?: { alreadyClarified?: boolean }
+): Promise<Awaited<ReturnType<typeof analyzeMeal>>> {
   let lastErr: any;
   for (let i = 0; i < attempts; i++) {
     try {
-      return await analyzeMeal(text);
+      return await analyzeMeal(text, opts);
     } catch (e) {
       lastErr = e;
       // brief backoff before retry
@@ -48,6 +59,7 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzed, setAnalyzed] = useState<Omit<Meal, "id" | "created_at"> | null>(null);
   const [chat, setChat] = useState<ChatMsg[]>([]);
+  const [pendingClarify, setPendingClarify] = useState<{ original: string; messageId: string } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,7 +83,14 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
     setChat((c) => c.map((m) => (m.id === id ? { ...m, text, pending } : m)));
   };
 
-  const runAnalyze = async (input: string) => {
+  const consumeOptions = (id: string) => {
+    setChat((c) => c.map((m) => (m.id === id && m.role === "assistant" ? { ...m, optionsConsumed: true } : m)));
+  };
+
+  const runAnalyze = async (
+    input: string,
+    opts?: { alreadyClarified?: boolean; originalForClarify?: string }
+  ) => {
     const payload = input.trim();
     if (!payload) {
       pushAssistant("I didn't catch that — could you try again or type your meal below?");
@@ -79,17 +98,32 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
     }
 
     setChat((c) => [...c, { id: uid(), role: "user", text: payload }]);
-    const thinkingId = pushAssistant("Calculating macros…", true);
+    const thinkingId = pushAssistant("Thinking…", true);
 
     setAnalyzing(true);
     try {
-      const meal = await analyzeWithRetry(payload, 2);
-      updateAssistant(
-        thinkingId,
-        `Got it — **${meal.meal_name}** (${meal.type}). About **${meal.calories} kcal**, ${meal.protein}g protein, ${meal.carbs}g carbs, ${meal.fat}g fat. Tap **Log it** to save.`,
-        false
-      );
-      setAnalyzed(meal);
+      const result = await analyzeWithRetry(payload, 2, { alreadyClarified: opts?.alreadyClarified });
+
+      if (result.kind === "clarification") {
+        const { question, options } = result.clarification;
+        setChat((c) =>
+          c.map((m) =>
+            m.id === thinkingId && m.role === "assistant"
+              ? { ...m, text: question, pending: false, options }
+              : m
+          )
+        );
+        setPendingClarify({ original: payload, messageId: thinkingId });
+      } else {
+        const meal = result.meal;
+        updateAssistant(
+          thinkingId,
+          `Got it — **${meal.meal_name}** (${meal.type}). About **${meal.calories} kcal**, ${meal.protein}g protein, ${meal.carbs}g carbs, ${meal.fat}g fat. Tap **Log it** to save.`,
+          false
+        );
+        setAnalyzed(meal);
+        setPendingClarify(null);
+      }
     } catch (e: any) {
       updateAssistant(
         thinkingId,
@@ -100,6 +134,15 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
     } finally {
       setAnalyzing(false);
     }
+  };
+
+  const handleClarifyAnswer = async (answer: string) => {
+    if (!pendingClarify) return;
+    const { original, messageId } = pendingClarify;
+    consumeOptions(messageId);
+    setPendingClarify(null);
+    const combined = `${original} — ${answer}`;
+    await runAnalyze(combined, { alreadyClarified: true });
   };
 
   const handleMicTap = async () => {
