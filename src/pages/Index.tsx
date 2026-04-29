@@ -215,17 +215,43 @@ const Index = () => {
     );
   }
 
+  // First-launch chat onboarding (or editing profile)
+  if (!userProfile || editingProfile) {
+    return (
+      <ProfileChatOnboarding
+        initial={userProfile}
+        onClose={editingProfile ? () => setEditingProfile(false) : undefined}
+        onDone={(p) => {
+          setUserProfile(p);
+          setEditingProfile(false);
+          toast.success("Profile saved 🌿");
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <NouriHeader
         onSignOut={handleSignOut}
         rightSlot={
-          <NotificationBell
-            goals={goals}
-            meals={meals}
-            onAddMeal={handleAddMeal}
-            refreshKey={notifKey}
-          />
+          <>
+            <button
+              onClick={() => setEditingProfile(true)}
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-muted transition-colors"
+              aria-label="Edit profile"
+              title="Edit profile"
+            >
+              <UserCog size={13} />
+              Profile
+            </button>
+            <NotificationBell
+              goals={goals}
+              meals={meals}
+              onAddMeal={handleAddMeal}
+              refreshKey={notifKey}
+            />
+          </>
         }
       />
       <main>
