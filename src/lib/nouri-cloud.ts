@@ -8,6 +8,8 @@ export interface Profile {
   weight_kg: number | null;
   height_cm: number | null;
   activity_level: string | null;
+  user_profile_json: any | null;
+  user_warnings_json: any | null;
 }
 
 export const cloud = {

@@ -17,7 +17,6 @@ import { toast } from "sonner";
 import { Loader2, UserCog } from "lucide-react";
 import {
   ProfileChatOnboarding,
-  loadUserProfile,
   type UserProfile,
 } from "@/components/nouri/ProfileChatOnboarding";
 
@@ -32,7 +31,7 @@ const Index = () => {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [tab, setTab] = useState<TabKey>("today");
   const [notifKey, setNotifKey] = useState(0);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => loadUserProfile());
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [logPrefill, setLogPrefill] = useState<string | undefined>(undefined);
 
