@@ -237,30 +237,48 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
       {chat.length > 0 && (
         <div className="space-y-2 mb-4">
           {chat.map((m) => (
-            <div
-              key={m.id}
-              className={cn(
-                "flex",
-                m.role === "user" ? "justify-end" : "justify-start"
-              )}
-            >
+            <div key={m.id}>
               <div
                 className={cn(
-                  "max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed",
-                  m.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-br-sm"
-                    : "bg-surface border border-border text-foreground rounded-bl-sm"
+                  "flex",
+                  m.role === "user" ? "justify-end" : "justify-start"
                 )}
               >
-                {m.role === "assistant" && m.pending ? (
-                  <span className="inline-flex items-center gap-2 text-muted-foreground">
-                    <Loader2 size={14} className="animate-spin" />
-                    {m.text}
-                  </span>
-                ) : (
-                  <span dangerouslySetInnerHTML={{ __html: renderInline(m.text) }} />
-                )}
+                <div
+                  className={cn(
+                    "max-w-[85%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed",
+                    m.role === "user"
+                      ? "bg-primary text-primary-foreground rounded-br-sm"
+                      : "bg-surface border border-border text-foreground rounded-bl-sm"
+                  )}
+                >
+                  {m.role === "assistant" && m.pending ? (
+                    <span className="inline-flex items-center gap-2 text-muted-foreground">
+                      <Loader2 size={14} className="animate-spin" />
+                      {m.text}
+                    </span>
+                  ) : (
+                    <span dangerouslySetInnerHTML={{ __html: renderInline(m.text) }} />
+                  )}
+                </div>
               </div>
+              {m.role === "assistant" &&
+                m.options &&
+                m.options.length > 0 &&
+                !m.optionsConsumed && (
+                  <div className="flex flex-wrap gap-2 mt-2 ml-1">
+                    {m.options.map((opt, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleClarifyAnswer(opt)}
+                        disabled={analyzing}
+                        className="text-xs px-3 py-1.5 rounded-full border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                )}
             </div>
           ))}
           <div ref={chatEndRef} />
