@@ -3,7 +3,7 @@ import { mealTypeEmoji } from "@/lib/nouri-storage";
 import type { Meal } from "@/lib/nouri-storage";
 
 interface AnalyzedMealSheetProps {
-  meal: Omit<Meal, "id" | "created_at">;
+  meal: Omit<Meal, "id" | "created_at"> & { tip?: string };
   onRetry: () => void;
   onConfirm: () => void;
 }
@@ -25,12 +25,19 @@ export function AnalyzedMealSheet({ meal, onRetry, onConfirm }: AnalyzedMealShee
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-4">
           <Chip label="Calories" value={`${meal.calories}`} unit="kcal" tone="calories" />
           <Chip label="Protein" value={`${meal.protein}`} unit="g" tone="protein" />
           <Chip label="Carbs" value={`${meal.carbs}`} unit="g" tone="carbs" />
           <Chip label="Fat" value={`${meal.fat}`} unit="g" tone="fat" />
         </div>
+
+        {meal.tip && (
+          <div className="rounded-2xl bg-primary-soft border border-primary/20 px-4 py-3 mb-5 text-sm leading-relaxed text-foreground">
+            <span className="mr-1">💡</span>
+            {meal.tip}
+          </div>
+        )}
 
         <div className="flex gap-3">
           <Button variant="outline" className="flex-1 h-12" onClick={onRetry}>
