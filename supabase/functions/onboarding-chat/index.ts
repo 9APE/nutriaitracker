@@ -45,9 +45,24 @@ Once you have collected ALL of the above information, end the conversation with 
 [PROFILE_COMPLETE]
 {"name": "", "age": 0, "height": "", "weight": "", "sex": "", "goals": "", "conditions": [], "restrictions": [], "activityLevel": "", "dislikes": [], "allergies": []}`;
 
-const GOALS_SYSTEM = (profileJson: string) => `You are a certified nutritionist AI. Based on the user profile below, calculate their personalised daily nutrition targets using the Mifflin-St Jeor equation for BMR, adjusted for their activity level and goals. Consider medical conditions carefully (e.g. lower carbs and sugar for diabetics, higher protein for muscle building, caloric deficit for weight loss, caloric surplus for bulking).
+const GOALS_SYSTEM = (profileJson: string) => `You are a clinical nutritionist. Based on the user profile below, calculate precise personalized daily nutrition targets using the Mifflin-St Jeor equation for BMR adjusted for activity level and goals. Factor in height, weight, age, sex, training frequency, and health conditions for every single value — not generic population averages.
 
 User profile: ${profileJson}
+
+Personalization rules:
+- Calories: use Mifflin-St Jeor BMR x activity multiplier, then adjust for goal (deficit -15 to -20% for weight loss, surplus +10 to +15% for muscle gain)
+- Protein: 1.6-2.2g per kg bodyweight for muscle gain or active users, 1.2-1.6g for weight loss, 0.8g for sedentary
+- Sodium: lower limit (1500mg) for hypertension, standard (2300mg) for healthy users
+- Iron: higher target for females (18mg), standard for males (8mg), higher for athletes (up to 20mg)
+- Calcium: higher for users over 50 (1200mg), standard for adults (1000mg)
+- Vitamin D: higher for users in low-sunlight regions or with deficiency noted in conditions (15-25µg)
+- Fiber: scale with calorie intake — approximately 14g per 1000 kcal
+- Sugar max: lower (25g) for diabetics or weight loss goals, standard (50g) for others
+- Saturated fat: scale to 10% of total daily calories (in grams = calories*0.10/9)
+- Cholesterol max: 200mg for high cholesterol, 300mg otherwise
+- Potassium: 3500-4700mg adjusted for activity
+- Vitamin C: 75mg female / 90mg male, +35mg if smoker
+- Vitamin A: 700µg female / 900µg male
 
 Return ONLY a valid JSON object with no extra text:
 
@@ -56,8 +71,29 @@ Return ONLY a valid JSON object with no extra text:
   "protein": number,
   "carbs": number,
   "fat": number,
-  "reasoning": "2-3 sentences explaining why these numbers were chosen",
-  "warnings": ["list of things to avoid based on their conditions and goals"]
+  "fiber": number,
+  "sugar_max": number,
+  "saturated_fat_max": number,
+  "sodium_max": number,
+  "cholesterol_max": number,
+  "potassium": number,
+  "calcium": number,
+  "iron": number,
+  "vitamin_c": number,
+  "vitamin_d": number,
+  "vitamin_a": number,
+  "reasoning": {
+    "calories": "one sentence explaining the calorie target",
+    "protein": "one sentence explaining the protein target",
+    "carbs": "one sentence explaining the carb target",
+    "fat": "one sentence explaining the fat target",
+    "fiber": "one sentence explaining the fiber target",
+    "sodium_max": "one sentence explaining the sodium limit",
+    "iron": "one sentence explaining the iron target",
+    "calcium": "one sentence explaining the calcium target",
+    "vitamin_d": "one sentence explaining the vitamin D target"
+  },
+  "warnings": ["list of things to watch based on conditions and goals"]
 }`;
 
 async function callClaude(apiKey: string, system: string, messages: any[]) {
@@ -158,12 +194,32 @@ Deno.serve(async (req) => {
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const plan = {
+      const numOrUndef = (v: any) => {
+        const n = Number(v);
+        return isFinite(n) ? Math.round(n) : undefined;
+      };
+      const plan: Record<string, any> = {
         calories: Math.round(Number(parsed.calories) || 0),
         protein: Math.round(Number(parsed.protein) || 0),
         carbs: Math.round(Number(parsed.carbs) || 0),
         fat: Math.round(Number(parsed.fat) || 0),
-        reasoning: typeof parsed.reasoning === "string" ? parsed.reasoning : "",
+        fiber: numOrUndef(parsed.fiber),
+        sugar_max: numOrUndef(parsed.sugar_max),
+        saturated_fat_max: numOrUndef(parsed.saturated_fat_max),
+        sodium_max: numOrUndef(parsed.sodium_max),
+        cholesterol_max: numOrUndef(parsed.cholesterol_max),
+        potassium: numOrUndef(parsed.potassium),
+        calcium: numOrUndef(parsed.calcium),
+        iron: numOrUndef(parsed.iron),
+        vitamin_c: numOrUndef(parsed.vitamin_c),
+        vitamin_d: numOrUndef(parsed.vitamin_d),
+        vitamin_a: numOrUndef(parsed.vitamin_a),
+        reasoning:
+          parsed.reasoning && typeof parsed.reasoning === "object"
+            ? parsed.reasoning
+            : typeof parsed.reasoning === "string"
+            ? { calories: parsed.reasoning }
+            : {},
         warnings: Array.isArray(parsed.warnings) ? parsed.warnings.map(String) : [],
       };
       return new Response(JSON.stringify({ plan }), {

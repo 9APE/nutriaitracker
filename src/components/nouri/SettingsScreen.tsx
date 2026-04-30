@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, ChevronRight, Monitor, Sun, Moon, UserCog } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, ChevronRight, Monitor, Sun, Moon, UserCog, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
   LANGUAGES,
@@ -17,6 +17,7 @@ import {
 import { EditProfileSheet } from "@/components/nouri/EditProfileSheet";
 import type { UserProfile } from "@/components/nouri/ProfileChatOnboarding";
 import type { Goals } from "@/lib/nouri-storage";
+import { loadUserGoals, onGoalsChange, type ExtendedGoals } from "@/lib/nouri-goals";
 
 interface Props {
   onClose: () => void;
@@ -62,6 +63,25 @@ export function SettingsScreen({
     { value: "dark", label: t("themeDark", lang), Icon: Moon },
   ];
 
+  const [extGoals, setExtGoals] = useState<ExtendedGoals | null>(() => loadUserGoals());
+  useEffect(() => {
+    const refresh = () => setExtGoals(loadUserGoals());
+    return onGoalsChange(refresh);
+  }, []);
+  const reasoning = extGoals?.reasoning;
+  const reasoningEntries = reasoning
+    ? (Object.entries(reasoning).filter(
+        ([, v]) => typeof v === "string" && (v as string).trim(),
+      ) as [string, string][])
+    : [];
+  const REASON_LABELS: Record<string, string> = {
+    calories: "Calories", protein: "Protein", carbs: "Carbs", fat: "Fat",
+    fiber: "Fiber", sodium_max: "Sodium limit", sugar_max: "Sugar limit",
+    saturated_fat_max: "Saturated fat limit", cholesterol_max: "Cholesterol limit",
+    potassium: "Potassium", calcium: "Calcium", iron: "Iron",
+    vitamin_c: "Vitamin C", vitamin_d: "Vitamin D", vitamin_a: "Vitamin A",
+  };
+
   const handlePick = (code: LangCode) => {
     setLanguage(code);
     setPicking(false);
@@ -106,6 +126,28 @@ export function SettingsScreen({
               </div>
               <ChevronRight size={18} className="text-muted-foreground" />
             </button>
+          )}
+
+          {!picking && reasoningEntries.length > 0 && (
+            <section className="rounded-2xl border border-border bg-card px-4 py-3.5">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={16} className="text-primary" />
+                <div className="text-sm font-medium">Why these goals?</div>
+              </div>
+              <p className="text-[11px] text-muted-foreground mb-3 leading-relaxed">
+                Personalised by AI based on your profile, conditions and activity.
+              </p>
+              <ul className="space-y-2">
+                {reasoningEntries.map(([key, val]) => (
+                  <li key={key} className="text-xs leading-relaxed">
+                    <span className="font-medium text-foreground">
+                      {REASON_LABELS[key] ?? key}:
+                    </span>{" "}
+                    <span className="text-muted-foreground">{val}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
 
           {!picking ? (

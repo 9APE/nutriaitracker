@@ -17,14 +17,26 @@ interface CheckinResult {
   protein: number;
   carbs: number;
   fat: number;
+  fiber?: number;
+  sugar_max?: number;
+  saturated_fat_max?: number;
+  sodium_max?: number;
+  cholesterol_max?: number;
+  potassium?: number;
+  calcium?: number;
+  iron?: number;
+  vitamin_c?: number;
+  vitamin_d?: number;
+  vitamin_a?: number;
   summary: string;
 }
 
 interface Props {
   goals: Goals;
   meals: Meal[];
+  profile?: any;
   onClose: () => void;
-  onGoalsUpdated: (g: Goals) => void;
+  onGoalsUpdated: (g: Goals, full?: CheckinResult) => void;
 }
 
 function computeAverages(meals: Meal[]) {
@@ -64,7 +76,7 @@ function TypingDots() {
   );
 }
 
-export function WeeklyCheckin({ goals, meals, onClose, onGoalsUpdated }: Props) {
+export function WeeklyCheckin({ goals, meals, profile, onClose, onGoalsUpdated }: Props) {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [waiting, setWaiting] = useState(false);
@@ -95,6 +107,7 @@ export function WeeklyCheckin({ goals, meals, onClose, onGoalsUpdated }: Props) 
       const { data, error } = await supabase.functions.invoke("weekly-checkin", {
         body: {
           goals,
+          profile,
           avgProtein,
           avgCalories,
           messages: history,
@@ -118,7 +131,7 @@ export function WeeklyCheckin({ goals, meals, onClose, onGoalsUpdated }: Props) 
           carbs: r.carbs,
           fat: r.fat,
         };
-        onGoalsUpdated(newGoals);
+        onGoalsUpdated(newGoals, r);
         localStorage.setItem(LAST_CHECKIN_KEY, todayISO());
         maybeAwardWeeklyCheckin();
       }

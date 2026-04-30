@@ -28,6 +28,15 @@ import {
 } from "@/lib/nouri-training";
 import { Dumbbell } from "lucide-react";
 import { useLanguage, t, getLocale } from "@/lib/nouri-i18n";
+import {
+  loadUserGoals,
+  loadTodayGoals,
+  saveTodayGoals,
+  computeTodayGoals,
+  onGoalsChange,
+  type ExtendedGoals,
+} from "@/lib/nouri-goals";
+import { goalForMetric } from "@/lib/nouri-dashboard-layout";
 
 interface TodayScreenProps {
   goals: Goals;
@@ -200,9 +209,16 @@ function MacroDetailCard({
   );
 }
 
-function MicroCard({ metric, current }: { metric: Metric; current: number }) {
+function MicroCard({
+  metric,
+  current,
+  goal,
+}: {
+  metric: Metric;
+  current: number;
+  goal: number;
+}) {
   const meta = METRIC_META[metric];
-  const goal = meta.defaultGoal;
   const pct = goal > 0 ? Math.min(100, (current / goal) * 100) : 0;
   const hasValue = current > 0;
   return (
@@ -284,12 +300,33 @@ export function TodayScreen({
 
   const [training, setTraining] = useState<TrainingEntry | null>(() => getTodayTraining());
   const [trainingSheetOpen, setTrainingSheetOpen] = useState(false);
+  const [effective, setEffective] = useState<ExtendedGoals>(
+    () => loadTodayGoals() ?? loadUserGoals() ?? { ...goals },
+  );
+
+  // Recompute today's adjusted goals whenever training changes (Part 2)
   useEffect(() => {
-    const refresh = () => setTraining(getTodayTraining());
-    refresh();
-    window.addEventListener("training:updated", refresh);
-    return () => window.removeEventListener("training:updated", refresh);
-  }, []);
+    const recompute = () => {
+      const t = getTodayTraining();
+      setTraining(t);
+      const base = loadUserGoals() ?? { ...goals };
+      if (t) {
+        const adjusted = computeTodayGoals(base, t.type);
+        saveTodayGoals(adjusted);
+        setEffective(adjusted);
+      } else {
+        const today = loadTodayGoals();
+        setEffective(today ?? base);
+      }
+    };
+    recompute();
+    window.addEventListener("training:updated", recompute);
+    const off = onGoalsChange(recompute);
+    return () => {
+      window.removeEventListener("training:updated", recompute);
+      off();
+    };
+  }, [goals]);
 
   // Personalized layout still loaded for AI banner / fiber goal
   const [layout, setLayout] = useState<DashboardLayout>(() => getStoredLayout() ?? DEFAULT_LAYOUT);
@@ -304,9 +341,16 @@ export function TodayScreen({
   }, []);
 
   const burned = trainingBurn(training);
-  const displayedProteinGoal = goals.protein + (training ? TRAINING_PROTEIN_BONUS : 0);
-  const remaining = Math.max(0, goals.calories - sum.calories);
-  const calPct = (sum.calories / goals.calories) * 100;
+  // Effective goals are training-aware; fall back to base if no extended goals exist yet
+  const eGoals = {
+    calories: effective.calories || goals.calories,
+    protein: effective.protein || goals.protein,
+    carbs: effective.carbs || goals.carbs,
+    fat: effective.fat || goals.fat,
+  };
+  const displayedProteinGoal = eGoals.protein;
+  const remaining = Math.max(0, eGoals.calories - sum.calories);
+  const calPct = (sum.calories / eGoals.calories) * 100;
 
   // Week strip — Monday-first
   const weekDays = useMemo(() => {
@@ -333,17 +377,17 @@ export function TodayScreen({
   // Personalized tip — derived locally; replace with Claude later if wired
   const tip = useMemo(() => {
     const remP = Math.max(0, displayedProteinGoal - sum.protein);
-    const remC = Math.max(0, goals.calories - sum.calories);
+    const remC = Math.max(0, eGoals.calories - sum.calories);
     if (remP <= 0 && remC <= 0)
       return "You've hit your goals for the day — well done. Stay light tonight.";
     if (sum.calories === 0)
-      return `Fresh start. ${Math.round(goals.calories)} kcal and ${Math.round(displayedProteinGoal)}g protein to go.`;
+      return `Fresh start. ${Math.round(eGoals.calories)} kcal and ${Math.round(displayedProteinGoal)}g protein to go.`;
     if (remP > 30)
       return `You need ${Math.round(remP)}g more protein and ${Math.round(remC)} kcal today. Make dinner count!`;
     if (remC < 300)
       return `Almost there — only ${Math.round(remC)} kcal left. Keep it light.`;
     return `${Math.round(remC)} kcal and ${Math.round(remP)}g protein remaining. You're on track.`;
-  }, [sum, goals, displayedProteinGoal]);
+  }, [sum, eGoals, displayedProteinGoal]);
 
   const streakActive =
     streak.count > 0 &&
@@ -355,8 +399,8 @@ export function TodayScreen({
           return d.toISOString().slice(0, 10);
         })());
 
-  // Fiber goal (rough default if not in goals): 14g per 1000 kcal
-  const fiberGoal = Math.round((goals.calories / 1000) * 14);
+  // Fiber + other micro goals come from personalised extended goals (Claude); fallback to defaults
+  const fiberGoal = goalForMetric("fiber", eGoals as Goals);
   // Real fiber comes from AI-estimated micros on each meal
   const fiberCurrent = totalForMetric("fiber", meals);
 
@@ -455,7 +499,7 @@ export function TodayScreen({
           </div>
           <div className="flex flex-col items-center px-2">
             <div className="font-mono-data text-xl font-bold tabular-nums text-foreground">
-              {Math.round(goals.calories).toLocaleString()}
+              {Math.round(eGoals.calories).toLocaleString()}
             </div>
             <div className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">
               Goal
@@ -485,17 +529,39 @@ export function TodayScreen({
           <MacroChip
             label="Carbs"
             current={sum.carbs}
-            goal={goals.carbs}
+            goal={eGoals.carbs}
             colorVar="--macro-carbs"
           />
           <MacroChip
             label="Fat"
             current={sum.fat}
-            goal={goals.fat}
+            goal={eGoals.fat}
             colorVar="--macro-fat"
           />
         </div>
       </section>
+
+      {/* Training day banner — Part 2 */}
+      {training && (
+        <div
+          className="rounded-2xl border p-3 flex items-center gap-3"
+          style={{
+            backgroundColor: "hsl(var(--macro-carbs) / 0.10)",
+            borderColor: "hsl(var(--macro-carbs) / 0.35)",
+          }}
+        >
+          <span
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+            style={{ backgroundColor: "hsl(var(--macro-carbs) / 0.18)" }}
+            aria-hidden
+          >
+            <Dumbbell size={16} style={{ color: "hsl(var(--macro-carbs))" }} />
+          </span>
+          <p className="text-xs leading-relaxed text-foreground/90">
+            Training day targets active — goals adjusted for recovery.
+          </p>
+        </div>
+      )}
 
       {/* SECTION 4 — NOURI TIP BANNER */}
       <div
@@ -579,14 +645,14 @@ export function TodayScreen({
         <MacroDetailCard
           label="Carbs"
           current={sum.carbs}
-          goal={goals.carbs}
+          goal={eGoals.carbs}
           unit="g"
           colorVar="--macro-carbs"
         />
         <MacroDetailCard
           label="Fat"
           current={sum.fat}
-          goal={goals.fat}
+          goal={eGoals.fat}
           unit="g"
           colorVar="--macro-fat"
         />
@@ -610,7 +676,12 @@ export function TodayScreen({
           </div>
           <div className="grid grid-cols-3 gap-2">
             {layout.small.map((m) => (
-              <MicroCard key={m} metric={m} current={totalForMetric(m, meals)} />
+              <MicroCard
+                key={m}
+                metric={m}
+                current={totalForMetric(m, meals)}
+                goal={goalForMetric(m, eGoals as Goals)}
+              />
             ))}
           </div>
         </section>

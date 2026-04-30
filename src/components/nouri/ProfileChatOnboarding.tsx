@@ -30,7 +30,18 @@ export interface PlanResult {
   protein: number;
   carbs: number;
   fat: number;
-  reasoning: string;
+  fiber?: number;
+  sugar_max?: number;
+  saturated_fat_max?: number;
+  sodium_max?: number;
+  cholesterol_max?: number;
+  potassium?: number;
+  calcium?: number;
+  iron?: number;
+  vitamin_c?: number;
+  vitamin_d?: number;
+  vitamin_a?: number;
+  reasoning: string | Record<string, string>;
   warnings: string[];
 }
 
@@ -96,7 +107,12 @@ type Phase = "chat" | "plan-loading" | "plan-show" | "plan-adjust";
 
 interface Props {
   initial?: UserProfile | null;
-  onDone: (data: { profile: UserProfile; goals: Goals; warnings: string[] }) => void;
+  onDone: (data: {
+    profile: UserProfile;
+    goals: Goals;
+    warnings: string[];
+    plan?: PlanResult;
+  }) => void;
   onClose?: () => void;
 }
 
@@ -206,7 +222,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
   const acceptPlan = () => {
     if (!profile || !plan || !adjusted) return;
     saveUserWarnings(plan.warnings);
-    onDone({ profile, goals: adjusted, warnings: plan.warnings });
+    onDone({ profile, goals: adjusted, warnings: plan.warnings, plan });
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -247,8 +263,11 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
             </div>
 
             <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 flex gap-3">
-              
-              <p className="text-sm leading-relaxed text-foreground">{plan.reasoning}</p>
+              <p className="text-sm leading-relaxed text-foreground">
+                {typeof plan.reasoning === "string"
+                  ? plan.reasoning
+                  : Object.values(plan.reasoning ?? {}).filter(Boolean).slice(0, 2).join(" ")}
+              </p>
             </div>
 
             {plan.warnings.length > 0 && (

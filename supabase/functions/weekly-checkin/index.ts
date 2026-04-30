@@ -14,26 +14,36 @@ interface Goals {
   fat: number;
 }
 
-function buildSystem(goals: Goals, avgProtein: number, avgCalories: number) {
-  return `You are Nouri, a warm and supportive nutrition assistant. The user has been tracking for a week. Current goals: ${JSON.stringify(goals)}. Their average protein this week: ${Math.round(avgProtein)}g, average calories: ${Math.round(avgCalories)} kcal.
+function buildSystem(
+  goals: Goals,
+  avgProtein: number,
+  avgCalories: number,
+  profile: any,
+) {
+  return `You are Nouri, a warm and supportive nutrition assistant AND a clinical nutritionist. The user has been tracking for a week.
+
+Current daily goals: ${JSON.stringify(goals)}
+User profile: ${JSON.stringify(profile ?? {})}
+Average protein this week: ${Math.round(avgProtein)}g
+Average calories this week: ${Math.round(avgCalories)} kcal
 
 Have a short friendly check-in. Ask ONE question at a time, wait for their reply before the next. Keep each message to 1-3 sentences.
 
 Cover these in order:
 1. How are they feeling this week overall?
 2. Did the calorie and protein targets feel too high, too low, or about right?
-3. Any changes to their activity or goals?
+3. Any changes to their activity, training frequency, or goals?
 
-Based on their answers, adjust the targets:
-- "too high" => reduce that macro by 5-10%
-- "too low" => increase by 5-10%
-- "about right" => keep the same
-Keep carbs and fat proportional to calories unless the user said otherwise.
+After all 3 answers:
+- Re-run a full personalized recalculation using Mifflin-St Jeor (BMR x activity multiplier, goal-adjusted) for ALL macros and micronutrients
+- If user said "too high" reduce that macro by 5-10%; "too low" increase by 5-10%; "about right" keep within 2%
+- Keep carbs and fat proportional to calories unless the user said otherwise
+- Personalize micronutrients to their profile (sex, age, conditions): Sodium 1500mg if hypertension else 2300mg; Iron 18mg female / 8mg male / up to 20mg athlete; Calcium 1200mg if 50+ else 1000mg; Vitamin D 15-25µg; Fiber 14g per 1000 kcal; Sugar max 25g if diabetic/weight-loss else 50g; Saturated fat = 10% of calories / 9; Cholesterol 200mg if high cholesterol else 300mg
 
-When you have all 3 answers, send your final message ending with EXACTLY this marker on its own line followed by a JSON object:
+When ready, send your final message ending with EXACTLY this marker on its own line followed by a JSON object:
 
 [CHECKIN_COMPLETE]
-{"calories": <number>, "protein": <number>, "carbs": <number>, "fat": <number>, "summary": "<one encouraging sentence>"}
+{"calories": <number>, "protein": <number>, "carbs": <number>, "fat": <number>, "fiber": <number>, "sugar_max": <number>, "saturated_fat_max": <number>, "sodium_max": <number>, "cholesterol_max": <number>, "potassium": <number>, "calcium": <number>, "iron": <number>, "vitamin_c": <number>, "vitamin_d": <number>, "vitamin_a": <number>, "summary": "<one encouraging sentence summarizing the new protein and calorie targets>"}
 
 Do not include the marker or JSON before all 3 questions are answered.`;
 }
@@ -95,10 +105,11 @@ Deno.serve(async (req) => {
     const messages =
       history.length === 0 ? [{ role: "user", content: "Hi" }] : history;
 
+    const profile = body?.profile ?? null;
     const lang = resolveLanguage(body?.language, body?.languageName);
     const text = await callClaude(
       ANTHROPIC_API_KEY,
-      buildSystem(goals, avgProtein, avgCalories) + lang.suffix,
+      buildSystem(goals, avgProtein, avgCalories, profile) + lang.suffix,
       messages
     );
 
@@ -109,11 +120,26 @@ Deno.serve(async (req) => {
       const after = text.slice(idx + "[CHECKIN_COMPLETE]".length);
       const parsed = extractJson(after);
       if (parsed) {
+        const numOrUndef = (v: any) => {
+          const n = Number(v);
+          return isFinite(n) ? Math.round(n) : undefined;
+        };
         result = {
           calories: Math.round(Number(parsed.calories) || goals.calories),
           protein: Math.round(Number(parsed.protein) || goals.protein),
           carbs: Math.round(Number(parsed.carbs) || goals.carbs),
           fat: Math.round(Number(parsed.fat) || goals.fat),
+          fiber: numOrUndef(parsed.fiber),
+          sugar_max: numOrUndef(parsed.sugar_max),
+          saturated_fat_max: numOrUndef(parsed.saturated_fat_max),
+          sodium_max: numOrUndef(parsed.sodium_max),
+          cholesterol_max: numOrUndef(parsed.cholesterol_max),
+          potassium: numOrUndef(parsed.potassium),
+          calcium: numOrUndef(parsed.calcium),
+          iron: numOrUndef(parsed.iron),
+          vitamin_c: numOrUndef(parsed.vitamin_c),
+          vitamin_d: numOrUndef(parsed.vitamin_d),
+          vitamin_a: numOrUndef(parsed.vitamin_a),
           summary: typeof parsed.summary === "string" ? parsed.summary : "Great work this week!",
         };
         visible = text.slice(0, idx).trim();

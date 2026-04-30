@@ -32,6 +32,7 @@ import { SettingsScreen } from "@/components/nouri/SettingsScreen";
 import { getLanguage, getLanguageMeta, useLanguage, t } from "@/lib/nouri-i18n";
 import { Settings as SettingsIcon } from "lucide-react";
 import { generateLayout, saveLayout, getStoredLayout } from "@/lib/nouri-dashboard-layout";
+import { saveUserGoals, parseWeightToKg, type ExtendedGoals } from "@/lib/nouri-goals";
 
 const MIGRATED_KEY = "nouri:migrated";
 
@@ -312,9 +313,36 @@ const Index = () => {
       <ProfileChatOnboarding
         initial={userProfile}
         onClose={editingProfile ? () => setEditingProfile(false) : undefined}
-        onDone={async ({ profile: p, goals: g, warnings }) => {
+        onDone={async ({ profile: p, goals: g, warnings, plan }) => {
           setUserProfile(p);
           setEditingProfile(false);
+          // Persist the FULL extended goals (macros + micros + reasoning) locally.
+          const ext: ExtendedGoals = {
+            calories: g.calories,
+            protein: g.protein,
+            carbs: g.carbs,
+            fat: g.fat,
+            fiber: plan?.fiber,
+            sugar_max: plan?.sugar_max,
+            saturated_fat_max: plan?.saturated_fat_max,
+            sodium_max: plan?.sodium_max,
+            cholesterol_max: plan?.cholesterol_max,
+            potassium: plan?.potassium,
+            calcium: plan?.calcium,
+            iron: plan?.iron,
+            vitamin_c: plan?.vitamin_c,
+            vitamin_d: plan?.vitamin_d,
+            vitamin_a: plan?.vitamin_a,
+            reasoning:
+              plan?.reasoning && typeof plan.reasoning === "object"
+                ? plan.reasoning
+                : plan?.reasoning
+                ? { calories: String(plan.reasoning) }
+                : undefined,
+            bodyweight_kg: parseWeightToKg(p.weight),
+            calibrated_at: new Date().toISOString(),
+          };
+          saveUserGoals(ext);
           if (user) {
             try {
               await cloud.upsertGoals(user.id, g);
@@ -449,9 +477,33 @@ const Index = () => {
         <WeeklyCheckin
           goals={goals}
           meals={meals}
+          profile={userProfile}
           onClose={() => setShowCheckin(false)}
-          onGoalsUpdated={async (g) => {
+          onGoalsUpdated={async (g, full) => {
             setGoals(g);
+            // Persist full extended goals from the recalibration
+            const prev = (await import("@/lib/nouri-goals")).loadUserGoals();
+            const ext: ExtendedGoals = {
+              ...(prev ?? { calories: g.calories, protein: g.protein, carbs: g.carbs, fat: g.fat }),
+              calories: g.calories,
+              protein: g.protein,
+              carbs: g.carbs,
+              fat: g.fat,
+              fiber: full?.fiber ?? prev?.fiber,
+              sugar_max: full?.sugar_max ?? prev?.sugar_max,
+              saturated_fat_max: full?.saturated_fat_max ?? prev?.saturated_fat_max,
+              sodium_max: full?.sodium_max ?? prev?.sodium_max,
+              cholesterol_max: full?.cholesterol_max ?? prev?.cholesterol_max,
+              potassium: full?.potassium ?? prev?.potassium,
+              calcium: full?.calcium ?? prev?.calcium,
+              iron: full?.iron ?? prev?.iron,
+              vitamin_c: full?.vitamin_c ?? prev?.vitamin_c,
+              vitamin_d: full?.vitamin_d ?? prev?.vitamin_d,
+              vitamin_a: full?.vitamin_a ?? prev?.vitamin_a,
+              calibrated_at: new Date().toISOString(),
+            };
+            saveUserGoals(ext);
+            if (full?.summary) toast.success(full.summary);
             if (user) {
               try {
                 await cloud.upsertGoals(user.id, g);
