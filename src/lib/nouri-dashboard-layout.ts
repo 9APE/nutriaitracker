@@ -102,12 +102,35 @@ export function totalForMetric(metric: Metric, meals: Meal[]): number {
 }
 
 export function goalForMetric(metric: Metric, goals: Goals): number {
+  // Prefer personalised extended goals (from Claude) when available, including
+  // training-day adjustments. Falls back to the base macro Goals or generic defaults.
+  let ext: any = null;
+  try {
+    // Lazy-required to avoid circular imports
+    const today = localStorage.getItem("todayGoalsDate");
+    const isFresh = today ? today === new Date().toISOString().slice(0, 10) : false;
+    const raw = isFresh
+      ? localStorage.getItem("todayGoals")
+      : localStorage.getItem("userGoals");
+    if (raw) ext = JSON.parse(raw);
+  } catch {}
+
   switch (metric) {
-    case "calories": return goals.calories;
-    case "protein":  return goals.protein;
-    case "carbs":    return goals.carbs;
-    case "fat":      return goals.fat;
-    default:         return METRIC_META[metric].defaultGoal;
+    case "calories":      return ext?.calories ?? goals.calories;
+    case "protein":       return ext?.protein  ?? goals.protein;
+    case "carbs":         return ext?.carbs    ?? goals.carbs;
+    case "fat":           return ext?.fat      ?? goals.fat;
+    case "fiber":         return ext?.fiber             ?? METRIC_META.fiber.defaultGoal;
+    case "sugar":         return ext?.sugar_max         ?? METRIC_META.sugar.defaultGoal;
+    case "saturated_fat": return ext?.saturated_fat_max ?? METRIC_META.saturated_fat.defaultGoal;
+    case "sodium":        return ext?.sodium_max        ?? METRIC_META.sodium.defaultGoal;
+    case "cholesterol":   return ext?.cholesterol_max   ?? METRIC_META.cholesterol.defaultGoal;
+    case "potassium":     return ext?.potassium         ?? METRIC_META.potassium.defaultGoal;
+    case "calcium":       return ext?.calcium           ?? METRIC_META.calcium.defaultGoal;
+    case "iron":          return ext?.iron              ?? METRIC_META.iron.defaultGoal;
+    case "vitamin_c":     return ext?.vitamin_c         ?? METRIC_META.vitamin_c.defaultGoal;
+    case "vitamin_d":     return ext?.vitamin_d         ?? METRIC_META.vitamin_d.defaultGoal;
+    default:              return METRIC_META[metric].defaultGoal;
   }
 }
 
