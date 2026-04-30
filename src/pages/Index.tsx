@@ -31,6 +31,7 @@ import { LanguageSelect } from "@/components/nouri/LanguageSelect";
 import { SettingsScreen } from "@/components/nouri/SettingsScreen";
 import { getLanguage, getLanguageMeta, useLanguage, t } from "@/lib/nouri-i18n";
 import { Settings as SettingsIcon } from "lucide-react";
+import { generateLayout, saveLayout, getStoredLayout } from "@/lib/nouri-dashboard-layout";
 
 const MIGRATED_KEY = "nouri:migrated";
 
@@ -167,6 +168,24 @@ const Index = () => {
       cancelled = true;
     };
   }, [user]);
+
+  // Auto-generate dashboard layout once if missing for an existing user
+  useEffect(() => {
+    if (!userProfile) return;
+    if (getStoredLayout()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const layout = await generateLayout({ profile: userProfile, goals });
+        if (!cancelled) saveLayout(layout);
+      } catch (e) {
+        console.error("initial layout generation failed", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userProfile]);
 
   useAutoSuggestions({
     goals,
@@ -313,6 +332,13 @@ const Index = () => {
               toast.error(e?.message || "Couldn't save goals");
             }
           }
+          // Generate AI personalized dashboard layout for the new/updated profile
+          try {
+            const layout = await generateLayout({ profile: p, goals: g });
+            saveLayout(layout);
+          } catch (e) {
+            console.error("layout generation failed", e);
+          }
           toast.success("Profile saved");
         }}
       />
@@ -362,6 +388,7 @@ const Index = () => {
           <TodayScreen
             goals={goals}
             meals={meals}
+            userProfile={userProfile}
             onDeleteMeal={handleDeleteMeal}
             onGoLog={() => setTab("log")}
             onPickSuggestion={(name) => {
@@ -430,6 +457,17 @@ const Index = () => {
               } catch (e: any) {
                 toast.error(e?.message || "Couldn't save updated goals");
               }
+            }
+            // Re-run AI dashboard layout after weekly check-in (goals/conditions may have shifted)
+            try {
+              const layout = await generateLayout({
+                profile: userProfile,
+                goals: g,
+                currentLayout: getStoredLayout(),
+              });
+              saveLayout(layout);
+            } catch (e) {
+              console.error("layout regeneration failed", e);
             }
           }}
         />
