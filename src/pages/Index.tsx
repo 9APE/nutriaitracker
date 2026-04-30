@@ -147,7 +147,10 @@ const Index = () => {
         console.error(e);
         toast.error(e?.message || "Failed to load your data");
       } finally {
-        if (!cancelled) setBootstrapping(false);
+        if (!cancelled) {
+          setBootstrapping(false);
+          if (shouldShowWeeklyReport()) setShowWeeklyReport(true);
+        }
       }
     })();
 
@@ -355,6 +358,14 @@ const Index = () => {
       <XPFloater />
       <GoalCelebration />
       {showXP && <XPScreen onClose={() => setShowXP(false)} />}
+      {showWeeklyReport && !needsOnboarding && (
+        <WeeklyReport
+          name={userProfile?.name?.split(" ")[0] || "friend"}
+          meals={meals}
+          goals={goals}
+          onClose={() => setShowWeeklyReport(false)}
+        />
+      )}
       {showCheckin && (
         <WeeklyCheckin
           goals={goals}
