@@ -130,7 +130,7 @@ export function goalForMetric(metric: Metric, goals: Goals): number {
     case "iron":          return ext?.iron              ?? METRIC_META.iron.defaultGoal;
     case "vitamin_c":     return ext?.vitamin_c         ?? METRIC_META.vitamin_c.defaultGoal;
     case "vitamin_d":     return ext?.vitamin_d         ?? METRIC_META.vitamin_d.defaultGoal;
-    default:              return METRIC_META[metric].defaultGoal;
+    default:              return METRIC_META[metric as Metric].defaultGoal;
   }
 }
 
