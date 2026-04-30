@@ -56,8 +56,9 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
     setLoading(true);
     setError(null);
     try {
+      const { getLanguage } = await import("@/lib/nouri-i18n");
       const { data, error: err } = await supabase.functions.invoke("recommend-meals", {
-        body: { remaining, profile: readUserProfile() },
+        body: { remaining, profile: readUserProfile(), language: getLanguage() ?? "en" },
       });
       if (err) throw new Error(err.message || "Failed to load suggestions");
       const list: Suggestion[] = data?.suggestions ?? [];

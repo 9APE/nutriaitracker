@@ -26,9 +26,11 @@ export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps)
     let cancelled = false;
     (async () => {
       try {
+        const { getLanguage } = await import("@/lib/nouri-i18n");
         const { data, error } = await supabase.functions.invoke("weekly-report", {
           body: {
             name,
+            language: getLanguage() ?? "en",
             stats: {
               ...stats,
               proteinGoal: goals.protein,

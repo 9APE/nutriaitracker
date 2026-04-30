@@ -91,12 +91,14 @@ export function WeeklyCheckin({ goals, meals, onClose, onGoalsUpdated }: Props) 
   async function send(history: ChatMsg[]) {
     setWaiting(true);
     try {
+      const { getLanguage } = await import("@/lib/nouri-i18n");
       const { data, error } = await supabase.functions.invoke("weekly-checkin", {
         body: {
           goals,
           avgProtein,
           avgCalories,
           messages: history,
+          language: getLanguage() ?? "en",
         },
       });
       if (error) throw new Error(error.message);

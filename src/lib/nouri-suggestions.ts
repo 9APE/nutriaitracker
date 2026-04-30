@@ -103,8 +103,9 @@ export async function fetchSuggestions(
     { calories: 0, protein: 0, carbs: 0, fat: 0, names: [] as string[] }
   );
 
+  const { getLanguage } = await import("@/lib/nouri-i18n");
   const { data, error } = await supabase.functions.invoke("suggest-meals", {
-    body: { goals, eatenToday, mealType },
+    body: { goals, eatenToday, mealType, language: getLanguage() ?? "en" },
   });
   if (error) throw new Error(error.message || "Failed to suggest meals");
   if (!data?.suggestions) throw new Error(data?.error || "No suggestions returned");
