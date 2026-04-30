@@ -7,7 +7,10 @@ import {
   DEFAULT_LAYOUT,
   getStoredLayout,
   onLayoutChange,
+  METRIC_META,
+  isTracked,
   type DashboardLayout,
+  type Metric,
 } from "@/lib/nouri-dashboard-layout";
 import { Check, Flame, Mic, Sliders } from "lucide-react";
 import type { Goals, Meal, MealType } from "@/lib/nouri-storage";
@@ -191,6 +194,36 @@ function MacroDetailCard({
         <div
           className="h-full rounded-full transition-all duration-700"
           style={{ width: `${pct}%`, backgroundColor: color }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function MicroCard({ metric }: { metric: Metric }) {
+  const meta = METRIC_META[metric];
+  const tracked = isTracked(metric);
+  return (
+    <div className="rounded-2xl border border-border bg-card p-3 flex flex-col gap-1">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+        {meta.label}
+      </div>
+      <div className="flex items-baseline gap-1">
+        <span
+          className="font-mono-data text-base font-semibold tabular-nums"
+          style={{ color: tracked ? meta.color : "hsl(var(--muted-foreground))" }}
+        >
+          {tracked ? "0" : "—"}
+        </span>
+        <span className="font-mono-data text-[10px] text-muted-foreground">
+          /{Math.round(meta.defaultGoal)}
+          {meta.unit}
+        </span>
+      </div>
+      <div className="h-1 rounded-full bg-muted overflow-hidden mt-1">
+        <div
+          className="h-full rounded-full"
+          style={{ width: "0%", backgroundColor: meta.color }}
         />
       </div>
     </div>
@@ -563,6 +596,23 @@ export function TodayScreen({
           colorVar="--macro-protein"
         />
       </section>
+
+      {/* SECTION 5b — MICRONUTRIENTS */}
+      {layout.small.length > 0 && (
+        <section className="space-y-2">
+          <div className="flex items-baseline justify-between px-1">
+            <h2 className="text-base font-semibold text-foreground">Micronutrients</h2>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              Daily targets
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {layout.small.map((m) => (
+              <MicroCard key={m} metric={m} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* SECTION 6 — LOG MEAL BUTTON */}
       <button
