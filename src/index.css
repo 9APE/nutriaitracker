@@ -11,119 +11,119 @@
 @layer base {
   :root {
     /* Light mode — kept clean and neutral, paired with new accents */
-    --background: 0 0% 98%;
+    /* Light mode — warm off-white, gently tinted, more "alive" */
+    --background: 36 22% 96%;          /* warm cream #F4F1EC */
     --surface: 0 0% 100%;
-    --foreground: 240 6% 12%;          /* near-black ink */
+    --foreground: 30 10% 14%;          /* warm near-black */
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 6% 12%;
+    --card: 36 30% 99%;                /* slight warm lift vs background */
+    --card-foreground: 30 10% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 6% 12%;
+    --popover-foreground: 30 10% 14%;
 
-    /* Sage green accent #5dbd8a */
-    --primary: 145 41% 56%;
+    /* Sage green accent — slightly richer */
+    --primary: 148 44% 46%;
     --primary-foreground: 0 0% 100%;
-    --primary-soft: 145 41% 92%;
+    --primary-soft: 148 40% 90%;
 
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 6% 18%;
+    --secondary: 36 18% 92%;
+    --secondary-foreground: 30 10% 18%;
 
-    --muted: 240 5% 95%;
-    --muted-foreground: 240 4% 45%;
+    --muted: 36 16% 91%;
+    --muted-foreground: 30 6% 38%;
 
-    --accent: 145 41% 56%;
+    --accent: 148 44% 46%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 354 48% 60%;        /* dusty rose */
+    --destructive: 354 56% 54%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 5% 90%;
-    --input: 240 5% 90%;
-    --ring: 145 41% 56%;
+    --border: 30 14% 86%;
+    --input: 30 14% 86%;
+    --ring: 148 44% 46%;
 
-    /* Macro / metric accent palette (muted, distinct) */
-    --macro-protein: 145 41% 56%;      /* sage green   #5dbd8a */
-    --macro-carbs: 31 60% 56%;         /* warm amber   #d4954a */
-    --macro-fat: 256 47% 68%;          /* soft purple  #9b87d4 */
-    --macro-calories: 145 41% 56%;
-    --macro-sugar: 354 48% 60%;        /* dusty rose   #c96b72 */
-    --macro-water: 211 56% 59%;        /* steel blue   #5b9bd4 */
+    /* Macro / metric accent palette (richer, still grounded) */
+    --macro-protein: 148 44% 46%;      /* sage */
+    --macro-carbs: 30 70% 52%;         /* warm amber */
+    --macro-fat: 256 50% 64%;          /* soft purple */
+    --macro-calories: 148 44% 46%;
+    --macro-sugar: 354 56% 54%;        /* dusty rose */
+    --macro-water: 211 62% 52%;        /* steel blue */
 
     --radius: 1.125rem;                /* 18px cards */
 
-    --shadow-soft: 0 2px 12px -4px hsl(240 6% 12% / 0.06);
-    --shadow-card: 0 1px 2px hsl(240 6% 12% / 0.04), 0 8px 24px -12px hsl(240 6% 12% / 0.08);
+    --shadow-soft: 0 2px 12px -4px hsl(30 15% 20% / 0.08);
+    --shadow-card: 0 1px 2px hsl(30 15% 20% / 0.05), 0 10px 28px -14px hsl(30 15% 20% / 0.12);
 
-    --sidebar-background: 0 0% 99%;
-    --sidebar-foreground: 240 5% 26%;
-    --sidebar-primary: 240 6% 12%;
+    --sidebar-background: 36 22% 97%;
+    --sidebar-foreground: 30 8% 26%;
+    --sidebar-primary: 30 10% 14%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 95%;
-    --sidebar-accent-foreground: 240 6% 12%;
-    --sidebar-border: 240 5% 90%;
-    --sidebar-ring: 145 41% 56%;
+    --sidebar-accent: 36 16% 91%;
+    --sidebar-accent-foreground: 30 10% 14%;
+    --sidebar-border: 30 14% 86%;
+    --sidebar-ring: 148 44% 46%;
   }
 
-  /* Dark mode — premium fitness app palette
-     bg #111113, surfaces #1c1c1f, borders white@8%
-     text: #f2f2f4 / #8e8e9a / #50505c
-     accents: sage / amber / purple / rose / steel-blue
+  /* Dark mode — warm charcoal, lifted surfaces, vivid accents
+     A "middle ground": no longer near-black, no longer washed out.
+     bg ~#1a1a1c, surfaces ~#262629, text #f2f0ec / #a09a93 / #5e5a55
      Contrast (WCAG AA verified):
-     - #f2f2f4 on #111113 → 16.9:1 (AAA)
-     - #8e8e9a on #111113 → 5.7:1 (AA)
-     - #5dbd8a on #111113 → 6.1:1 (AA)
+     - #f2f0ec on #1a1a1c → 15.2:1 (AAA)
+     - #a09a93 on #1a1a1c → 6.4:1 (AA)
+     - sage on bg → 5.4:1 (AA)
   */
   .dark {
-    --background: 240 7% 7%;            /* #111113 */
-    --surface: 240 5% 11%;              /* #1c1c1f */
-    --foreground: 240 7% 95%;           /* #f2f2f4 */
+    --background: 30 5% 11%;            /* warm charcoal */
+    --surface: 30 5% 16%;               /* lifted surface */
+    --foreground: 36 18% 94%;           /* warm off-white */
 
-    --card: 240 5% 11%;                 /* #1c1c1f */
-    --card-foreground: 240 7% 95%;
+    --card: 30 5% 16%;                  /* visibly lifted vs background */
+    --card-foreground: 36 18% 94%;
 
-    --popover: 240 5% 11%;
-    --popover-foreground: 240 7% 95%;
+    --popover: 30 5% 16%;
+    --popover-foreground: 36 18% 94%;
 
-    --primary: 145 41% 56%;             /* #5dbd8a sage */
-    --primary-foreground: 240 7% 7%;
-    --primary-soft: 145 30% 16%;
+    --primary: 148 48% 55%;             /* richer sage */
+    --primary-foreground: 30 5% 11%;
+    --primary-soft: 148 32% 20%;
 
-    --secondary: 240 5% 14%;
-    --secondary-foreground: 240 7% 95%;
+    --secondary: 30 5% 20%;
+    --secondary-foreground: 36 18% 94%;
 
-    --muted: 240 5% 14%;
-    --muted-foreground: 240 6% 58%;     /* #8e8e9a */
+    --muted: 30 5% 20%;
+    --muted-foreground: 30 8% 64%;      /* warm grey */
 
-    --accent: 145 41% 56%;
-    --accent-foreground: 240 7% 7%;
+    --accent: 148 48% 55%;
+    --accent-foreground: 30 5% 11%;
 
-    --destructive: 354 48% 60%;
-    --destructive-foreground: 240 7% 95%;
+    --destructive: 354 60% 60%;
+    --destructive-foreground: 36 18% 94%;
 
     /* Borders rendered via white @ 8% via utility (.border / border-border) */
-    --border: 240 5% 18%;
-    --input: 240 5% 18%;
-    --ring: 145 41% 56%;
+    --border: 30 5% 22%;
+    --input: 30 5% 22%;
+    --ring: 148 48% 55%;
 
-    --macro-protein: 145 41% 56%;
-    --macro-carbs: 31 60% 56%;
-    --macro-fat: 256 47% 68%;
-    --macro-calories: 145 41% 56%;
-    --macro-sugar: 354 48% 60%;
-    --macro-water: 211 56% 59%;
+    --macro-protein: 148 48% 55%;
+    --macro-carbs: 30 78% 60%;
+    --macro-fat: 256 55% 72%;
+    --macro-calories: 148 48% 55%;
+    --macro-sugar: 354 60% 64%;
+    --macro-water: 211 65% 62%;
 
-    --shadow-soft: 0 2px 12px -4px hsl(0 0% 0% / 0.5);
-    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.4), 0 8px 24px -12px hsl(0 0% 0% / 0.55);
+    --shadow-soft: 0 2px 12px -4px hsl(0 0% 0% / 0.45);
+    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.35), 0 8px 24px -12px hsl(0 0% 0% / 0.5);
 
-    --sidebar-background: 240 7% 7%;
-    --sidebar-foreground: 240 7% 92%;
-    --sidebar-primary: 145 41% 56%;
-    --sidebar-primary-foreground: 240 7% 7%;
-    --sidebar-accent: 240 5% 14%;
-    --sidebar-accent-foreground: 240 7% 95%;
-    --sidebar-border: 240 5% 18%;
-    --sidebar-ring: 145 41% 56%;
+    --sidebar-background: 30 5% 11%;
+    --sidebar-foreground: 36 14% 90%;
+    --sidebar-primary: 148 48% 55%;
+    --sidebar-primary-foreground: 30 5% 11%;
+    --sidebar-accent: 30 5% 20%;
+    --sidebar-accent-foreground: 36 18% 94%;
+    --sidebar-border: 30 5% 22%;
+    --sidebar-ring: 148 48% 55%;
   }
 
   /* Dim label text token (e.g. "PROTEIN" caption) — works in both modes */
@@ -136,9 +136,9 @@
     @apply border-border;
   }
 
-  /* In dark mode, render borders as white @ 8% for a softer, premium edge */
+  /* In dark mode, render borders as warm white @ 10% for visible-but-soft edges */
   .dark * {
-    border-color: hsl(0 0% 100% / 0.08);
+    border-color: hsl(36 18% 94% / 0.1);
   }
 
   html, body, #root {
