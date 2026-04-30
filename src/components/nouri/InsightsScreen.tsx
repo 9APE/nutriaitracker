@@ -1,5 +1,6 @@
 import type { Goals, Meal } from "@/lib/nouri-storage";
 import { Check } from "lucide-react";
+import { useLanguage, t, getLocale, type LangCode } from "@/lib/nouri-i18n";
 
 interface InsightsScreenProps {
   meals: Meal[];
@@ -18,6 +19,7 @@ function last7Days(): string[] {
 }
 
 export function InsightsScreen({ meals, goals }: InsightsScreenProps) {
+  const lang = useLanguage();
   const days = last7Days();
   const today = days[days.length - 1];
 
@@ -41,25 +43,25 @@ export function InsightsScreen({ meals, goals }: InsightsScreenProps) {
 
   return (
     <div className="px-5 pt-4 pb-28 max-w-md mx-auto space-y-5">
-      <h1 className="font-serif text-2xl font-medium">Insights</h1>
+      <h1 className="font-serif text-2xl font-medium">{t("insightsTitle", lang)}</h1>
 
       <div className="grid grid-cols-2 gap-3">
         <StatCard
-          label="Avg Protein / day"
-          value={`${Math.round(avgProt)}g`}
+          label={t("avgProteinDay", lang)}
+          value={`${Math.round(avgProt)}${t("gShort", lang)}`}
           tone="protein"
         />
         <StatCard
-          label="Avg Calories / day"
+          label={t("avgCaloriesDay", lang)}
           value={`${Math.round(avgCal)}`}
-          unit="kcal"
+          unit={t("kcalShort", lang)}
           tone="calories"
         />
       </div>
 
       <ChartCard
-        title="Calories — last 7 days"
-        goalLine={`Goal · ${goals.calories} kcal`}
+        title={t("caloriesLast7", lang)}
+        goalLine={`${t("goalDot", lang)} · ${goals.calories} ${t("kcalShort", lang)}`}
       >
         <BarChart
           data={byDay}
@@ -68,12 +70,13 @@ export function InsightsScreen({ meals, goals }: InsightsScreenProps) {
           today={today}
           colorClass="bg-macro-calories"
           formatValue={(v) => `${Math.round(v)}`}
+          lang={lang}
         />
       </ChartCard>
 
       <ChartCard
-        title="Protein — last 7 days"
-        goalLine={`Goal · ${goals.protein}g`}
+        title={t("proteinLast7", lang)}
+        goalLine={`${t("goalDot", lang)} · ${goals.protein}${t("gShort", lang)}`}
       >
         <BarChart
           data={byDay}
@@ -83,6 +86,7 @@ export function InsightsScreen({ meals, goals }: InsightsScreenProps) {
           colorClass="bg-macro-protein"
           formatValue={(v) => `${Math.round(v)}`}
           checkMark={(d) => d.protein >= goals.protein}
+          lang={lang}
         />
       </ChartCard>
     </div>
@@ -138,9 +142,11 @@ interface BarChartProps {
   colorClass: string;
   formatValue: (v: number) => string;
   checkMark?: (d: BarChartProps["data"][number]) => boolean;
+  lang: LangCode;
 }
 
-function BarChart({ data, accessor, max, today, colorClass, formatValue, checkMark }: BarChartProps) {
+function BarChart({ data, accessor, max, today, colorClass, formatValue, checkMark, lang }: BarChartProps) {
+  const locale = getLocale(lang);
   return (
     <div className="flex items-end justify-between gap-2 h-32">
       {data.map((d) => {
@@ -148,9 +154,9 @@ function BarChart({ data, accessor, max, today, colorClass, formatValue, checkMa
         const h = max > 0 ? (val / max) * 100 : 0;
         const isToday = d.date === today;
         const showCheck = checkMark?.(d);
-        const dayLabel = new Date(d.date + "T00:00:00").toLocaleDateString(undefined, {
-          weekday: "short",
-        }).slice(0, 2);
+        const dayLabel = new Date(d.date + "T00:00:00")
+          .toLocaleDateString(locale, { weekday: "short" })
+          .slice(0, 2);
 
         return (
           <div key={d.date} className="flex-1 flex flex-col items-center gap-1.5">
