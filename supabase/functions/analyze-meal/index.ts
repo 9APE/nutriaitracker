@@ -93,8 +93,8 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { text, profile, goals, eatenToday, warnings, alreadyClarified, language } = body ?? {};
-    const lang = resolveLanguage(language);
+    const { text, profile, goals, eatenToday, warnings, alreadyClarified, language, languageName } = body ?? {};
+    const lang = resolveLanguage(language, languageName);
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       return new Response(
@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     };
     const safeWarnings: string[] = Array.isArray(warnings) ? warnings.map(String) : [];
 
-    let system = lang.prefix + buildSystemPrompt({
+    let system = buildSystemPrompt({
       profile: profile && typeof profile === "object" ? profile : null,
       goals: safeGoals,
       eatenToday: safeEaten,
@@ -134,6 +134,7 @@ Deno.serve(async (req) => {
     if (alreadyClarified) {
       system += `\n\nYou already asked the user one clarifying question. Do NOT ask again — make a reasonable estimate now and return the normal meal JSON.`;
     }
+    system += lang.suffix;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

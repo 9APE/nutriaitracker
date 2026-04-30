@@ -95,10 +95,10 @@ Deno.serve(async (req) => {
     const messages =
       history.length === 0 ? [{ role: "user", content: "Hi" }] : history;
 
-    const lang = resolveLanguage(body?.language);
+    const lang = resolveLanguage(body?.language, body?.languageName);
     const text = await callClaude(
       ANTHROPIC_API_KEY,
-      lang.prefix + buildSystem(goals, avgProtein, avgCalories),
+      buildSystem(goals, avgProtein, avgCalories) + lang.suffix,
       messages
     );
 

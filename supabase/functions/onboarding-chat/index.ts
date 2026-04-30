@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const mode = body?.mode ?? "chat";
-    const lang = resolveLanguage(body?.language);
+    const lang = resolveLanguage(body?.language, body?.languageName);
 
     if (mode === "chat") {
       const history = Array.isArray(body?.messages) ? body.messages : [];
@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
           ? [{ role: "user", content: "Hi" }]
           : history;
 
-      const text = await callClaude(ANTHROPIC_API_KEY, lang.prefix + CHAT_SYSTEM, messages);
+      const text = await callClaude(ANTHROPIC_API_KEY, CHAT_SYSTEM + lang.suffix, messages);
 
       // Detect completion marker
       const completeIdx = text.indexOf("[PROFILE_COMPLETE]");
@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
       }
       const text = await callClaude(
         ANTHROPIC_API_KEY,
-        lang.prefix + GOALS_SYSTEM(JSON.stringify(profile)),
+        GOALS_SYSTEM(JSON.stringify(profile)) + lang.suffix,
         [{ role: "user", content: "Calculate the targets now." }]
       );
       const parsed = extractJson(text);

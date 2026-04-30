@@ -27,8 +27,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { remaining, profile, language } = await req.json();
-    const lang = resolveLanguage(language);
+    const { remaining, profile, language, languageName } = await req.json();
+    const lang = resolveLanguage(language, languageName);
     if (!remaining) {
       return new Response(
         JSON.stringify({ error: "remaining is required" }),
@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
         max_tokens: 800,
-        system: lang.prefix.trim(),
+        system: lang.suffix.trim(),
         messages: [{ role: "user", content: userMessage }],
       }),
     });

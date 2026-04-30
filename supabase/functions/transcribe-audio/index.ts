@@ -8,7 +8,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are a transcription engine. Transcribe the user's spoken meal description verbatim into plain text. Only return the transcript, no commentary, no quotes, no markdown. If the audio is silent or unintelligible, return an empty string.`;
+const BASE_SYSTEM = `You are a transcription engine. Transcribe the user's spoken meal description verbatim into plain text. Only return the transcript, no commentary, no quotes, no markdown. If the audio is silent or unintelligible, return an empty string.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -27,6 +27,12 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => null);
     const audio: string | undefined = body?.audio;
     const mimeType: string = body?.mime_type || "audio/webm";
+    const languageName: string =
+      typeof body?.languageName === "string" && body.languageName.trim()
+        ? body.languageName.trim()
+        : "English";
+    const locale: string =
+      typeof body?.locale === "string" && body.locale.trim() ? body.locale.trim() : "en-US";
 
     if (!audio || typeof audio !== "string" || audio.length < 100) {
       return new Response(
@@ -43,6 +49,10 @@ Deno.serve(async (req) => {
     cleanAudio = cleanAudio.replace(/\s/g, "");
     const format = mimeType.includes("mp4") ? "mp4" : mimeType.includes("mpeg") ? "mp3" : mimeType.includes("ogg") ? "ogg" : "webm";
 
+    const SYSTEM_PROMPT =
+      BASE_SYSTEM +
+      `\n\nThe user is speaking in ${languageName} (${locale}). Transcribe in ${languageName} only — preserve the original language exactly as spoken; do not translate.`;
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -56,7 +66,7 @@ Deno.serve(async (req) => {
           {
             role: "user",
             content: [
-              { type: "text", text: "Transcribe this meal description." },
+              { type: "text", text: `Transcribe this meal description in ${languageName}.` },
               { type: "input_audio", input_audio: { data: cleanAudio, format } },
             ],
           },
