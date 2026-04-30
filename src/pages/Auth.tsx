@@ -17,6 +17,9 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [staySignedIn, setStaySignedIn] = useState<boolean>(
+    () => localStorage.getItem("nouri.staySignedIn") !== "false"
+  );
   const [busy, setBusy] = useState(false);
 
   if (loading) {
@@ -36,6 +39,11 @@ const Auth = () => {
       return;
     }
     setBusy(true);
+    // Persist the preference BEFORE the auth call so the next reload picks
+    // the correct storage (localStorage vs sessionStorage).
+    const prevPref = localStorage.getItem("nouri.staySignedIn") !== "false";
+    localStorage.setItem("nouri.staySignedIn", staySignedIn ? "true" : "false");
+    const prefChanged = prevPref !== staySignedIn;
     try {
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
@@ -48,12 +56,20 @@ const Auth = () => {
         });
         if (error) throw error;
         toast.success("Welcome to Nouri 🌿");
-        navigate("/");
+        if (prefChanged) {
+          window.location.replace("/");
+        } else {
+          navigate("/");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Signed in");
-        navigate("/");
+        if (prefChanged) {
+          window.location.replace("/");
+        } else {
+          navigate("/");
+        }
       }
     } catch (err: any) {
       const msg = err?.message || "Something went wrong";
@@ -128,6 +144,16 @@ const Auth = () => {
                 required
               />
             </div>
+
+            <label className="flex items-center gap-2 mt-1 cursor-pointer select-none text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={staySignedIn}
+                onChange={(e) => setStaySignedIn(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-primary"
+              />
+              <span>Stay signed in on this device</span>
+            </label>
 
             <Button type="submit" disabled={busy} className="w-full h-12 text-base mt-2">
               {busy ? (
