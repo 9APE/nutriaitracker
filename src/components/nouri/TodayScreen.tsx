@@ -104,6 +104,24 @@ export function TodayScreen({
     return () => window.removeEventListener("training:updated", refresh);
   }, []);
 
+  // Personalized dashboard layout (AI-decided)
+  const [layout, setLayout] = useState<DashboardLayout>(() => getStoredLayout() ?? DEFAULT_LAYOUT);
+  const [showSmall, setShowSmall] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  useEffect(() => {
+    const refresh = () => {
+      const stored = getStoredLayout();
+      if (stored) setLayout(stored);
+    };
+    refresh();
+    return onLayoutChange(refresh);
+  }, []);
+
+  const metricVal = useMemo(
+    () => (m: any) => totalForMetric(m, meals),
+    [meals]
+  );
+
   // Apply training bonus to displayed protein goal only (not persisted)
   const displayedGoals: Goals = training
     ? { ...goals, protein: goals.protein + TRAINING_PROTEIN_BONUS }
