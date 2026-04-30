@@ -8,10 +8,27 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// "Stay signed in" preference — when false we use sessionStorage so the
+// session ends when the browser tab closes. Default = true (persist forever
+// + auto-refresh tokens).
+const STAY_SIGNED_IN_KEY = "nouri.staySignedIn";
+const staySignedIn =
+  typeof window === "undefined"
+    ? true
+    : window.localStorage.getItem(STAY_SIGNED_IN_KEY) !== "false";
+
+const authStorage =
+  typeof window === "undefined"
+    ? undefined
+    : staySignedIn
+    ? window.localStorage
+    : window.sessionStorage;
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: authStorage,
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: true,
   }
 });
