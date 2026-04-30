@@ -8,7 +8,7 @@ import {
   getStoredLayout,
   onLayoutChange,
   METRIC_META,
-  isTracked,
+  totalForMetric,
   type DashboardLayout,
   type Metric,
 } from "@/lib/nouri-dashboard-layout";
@@ -200,9 +200,11 @@ function MacroDetailCard({
   );
 }
 
-function MicroCard({ metric }: { metric: Metric }) {
+function MicroCard({ metric, current }: { metric: Metric; current: number }) {
   const meta = METRIC_META[metric];
-  const tracked = isTracked(metric);
+  const goal = meta.defaultGoal;
+  const pct = goal > 0 ? Math.min(100, (current / goal) * 100) : 0;
+  const hasValue = current > 0;
   return (
     <div className="rounded-2xl border border-border bg-card p-3 flex flex-col gap-1">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
@@ -211,19 +213,19 @@ function MicroCard({ metric }: { metric: Metric }) {
       <div className="flex items-baseline gap-1">
         <span
           className="font-mono-data text-base font-semibold tabular-nums"
-          style={{ color: tracked ? meta.color : "hsl(var(--muted-foreground))" }}
+          style={{ color: hasValue ? meta.color : "hsl(var(--muted-foreground))" }}
         >
-          {tracked ? "0" : "—"}
+          {hasValue ? Math.round(current) : "0"}
         </span>
         <span className="font-mono-data text-[10px] text-muted-foreground">
-          /{Math.round(meta.defaultGoal)}
+          /{Math.round(goal)}
           {meta.unit}
         </span>
       </div>
       <div className="h-1 rounded-full bg-muted overflow-hidden mt-1">
         <div
-          className="h-full rounded-full"
-          style={{ width: "0%", backgroundColor: meta.color }}
+          className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${pct}%`, backgroundColor: meta.color }}
         />
       </div>
     </div>
