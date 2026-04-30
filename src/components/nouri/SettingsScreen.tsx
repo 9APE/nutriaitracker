@@ -128,6 +128,28 @@ export function SettingsScreen({
             </button>
           )}
 
+          {!picking && reasoningEntries.length > 0 && (
+            <section className="rounded-2xl border border-border bg-card px-4 py-3.5">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={16} className="text-primary" />
+                <div className="text-sm font-medium">Why these goals?</div>
+              </div>
+              <p className="text-[11px] text-muted-foreground mb-3 leading-relaxed">
+                Personalised by AI based on your profile, conditions and activity.
+              </p>
+              <ul className="space-y-2">
+                {reasoningEntries.map(([key, val]) => (
+                  <li key={key} className="text-xs leading-relaxed">
+                    <span className="font-medium text-foreground">
+                      {REASON_LABELS[key] ?? key}:
+                    </span>{" "}
+                    <span className="text-muted-foreground">{val}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {!picking ? (
             <button
               onClick={() => setPicking(true)}
