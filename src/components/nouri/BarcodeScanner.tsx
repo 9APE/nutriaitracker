@@ -1,22 +1,41 @@
-import { useEffect, useRef, useState } from "react";
-import { X, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { X, Loader2, Camera, RotateCcw } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 
 interface Props {
   onDetected: (barcode: string) => void;
   onClose: () => void;
+  /** User chose "Add from photo" instead — give them a label image to OCR. */
+  onPhotoCaptured: (file: File) => void;
 }
 
-export function BarcodeScanner({ onDetected, onClose }: Props) {
+const SCAN_TIMEOUT_MS = 5000;
+
+export function BarcodeScanner({ onDetected, onClose, onPhotoCaptured }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<{ stop: () => void } | null>(null);
   const detectedRef = useRef(false);
+  const timeoutRef = useRef<number | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(true);
+  const [timedOut, setTimedOut] = useState(false);
+  const [restartKey, setRestartKey] = useState(0);
+
+  const clearTimeoutSafe = () => {
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
+    detectedRef.current = false;
+    setTimedOut(false);
+    setStarting(true);
+    setError(null);
 
     const hints = new Map();
     hints.set(DecodeHintType.POSSIBLE_FORMATS, [
@@ -34,12 +53,13 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
       try {
         if (!videoRef.current) return;
         const controls = await reader.decodeFromVideoDevice(
-          undefined, // pick default (back camera on mobile when available)
+          undefined,
           videoRef.current,
           (result, _err, ctrl) => {
             if (cancelled || detectedRef.current) return;
             if (result) {
               detectedRef.current = true;
+              clearTimeoutSafe();
               ctrl.stop();
               onDetected(result.getText());
             }
@@ -51,6 +71,13 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
         }
         controlsRef.current = controls;
         setStarting(false);
+
+        // Start the 5-second no-detection timer
+        timeoutRef.current = window.setTimeout(() => {
+          if (cancelled || detectedRef.current) return;
+          controls.stop();
+          setTimedOut(true);
+        }, SCAN_TIMEOUT_MS);
       } catch (e: any) {
         if (cancelled) return;
         setStarting(false);
@@ -66,9 +93,26 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
 
     return () => {
       cancelled = true;
+      clearTimeoutSafe();
       controlsRef.current?.stop();
     };
-  }, [onDetected]);
+  }, [onDetected, restartKey]);
+
+  const handleTryAgain = useCallback(() => {
+    setRestartKey((k) => k + 1);
+  }, []);
+
+  const handleAddFromPhoto = useCallback(() => {
+    photoInputRef.current?.click();
+  }, []);
+
+  const handlePhotoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-pick
+    if (!file) return;
+    controlsRef.current?.stop();
+    onPhotoCaptured(file);
+  };
 
   return (
     <div className="fixed inset-0 z-[60] bg-black flex flex-col">
@@ -92,7 +136,7 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
         />
 
         {/* Reticle */}
-        {!error && (
+        {!error && !timedOut && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="relative w-64 h-40">
               <div className="absolute inset-0 border-2 border-white/70 rounded-2xl" />
@@ -101,7 +145,7 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
           </div>
         )}
 
-        {starting && !error && (
+        {starting && !error && !timedOut && (
           <div className="absolute inset-x-0 bottom-24 flex items-center justify-center text-white/90 gap-2 text-sm">
             <Loader2 size={16} className="animate-spin" />
             Starting camera…
@@ -121,13 +165,49 @@ export function BarcodeScanner({ onDetected, onClose }: Props) {
             </div>
           </div>
         )}
+
+        {/* "Product not recognized" overlay after 5s */}
+        {timedOut && !error && (
+          <div className="absolute inset-0 flex items-center justify-center px-6 bg-black/60">
+            <div className="w-full max-w-sm bg-background text-foreground rounded-2xl border border-border p-5 text-center shadow-card animate-bubble-in">
+              <h3 className="font-serif text-lg font-medium">Product not recognized</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                We couldn't read a barcode. Try again or take a photo of the nutrition label.
+              </p>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <button
+                  onClick={handleTryAgain}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-medium hover:border-primary/40 transition-colors"
+                >
+                  <RotateCcw size={16} /> Try again
+                </button>
+                <button
+                  onClick={handleAddFromPhoto}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground px-3 py-2.5 text-sm font-medium hover:opacity-95 transition-opacity"
+                >
+                  <Camera size={16} /> Add from photo
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {!error && (
+      {!error && !timedOut && (
         <p className="text-center text-xs text-white/70 py-4 px-6">
           Point your camera at a product barcode
         </p>
       )}
+
+      {/* Hidden file input opens the device camera in photo mode on mobile */}
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handlePhotoFile}
+      />
     </div>
   );
 }
