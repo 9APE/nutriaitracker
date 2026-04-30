@@ -93,8 +93,8 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { text, profile, goals, eatenToday, warnings, alreadyClarified, language } = body ?? {};
-    const lang = resolveLanguage(language);
+    const { text, profile, goals, eatenToday, warnings, alreadyClarified, language, languageName } = body ?? {};
+    const lang = resolveLanguage(language, languageName);
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       return new Response(

@@ -27,8 +27,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { remaining, profile, language } = await req.json();
-    const lang = resolveLanguage(language);
+    const { remaining, profile, language, languageName } = await req.json();
+    const lang = resolveLanguage(language, languageName);
     if (!remaining) {
       return new Response(
         JSON.stringify({ error: "remaining is required" }),

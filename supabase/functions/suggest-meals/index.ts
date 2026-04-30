@@ -39,8 +39,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { goals, eatenToday, mealType, language } = await req.json();
-    const lang = resolveLanguage(language);
+    const { goals, eatenToday, mealType, language, languageName } = await req.json();
+    const lang = resolveLanguage(language, languageName);
 
     if (!goals || !mealType) {
       return new Response(
