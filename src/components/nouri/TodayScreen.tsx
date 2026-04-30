@@ -8,6 +8,7 @@ import { todayISO } from "@/lib/nouri-storage";
 import { getStreak, getFreezes } from "@/lib/nouri-streak";
 import { getTotalXP, getLevelInfo } from "@/lib/nouri-xp";
 import { isCheckinDue } from "@/components/nouri/WeeklyCheckin";
+import { EveningNudge } from "@/components/nouri/EveningNudge";
 import { Mic } from "lucide-react";
 
 interface TodayScreenProps {
@@ -115,6 +116,8 @@ export function TodayScreen({
           </div>
         </div>
       </div>
+
+      <EveningNudge meals={meals} onGoLog={onGoLog} />
 
       {isCheckinDue(localStorage.getItem("nouri:signupDate")) && onStartCheckin && (
         <button
