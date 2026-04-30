@@ -363,6 +363,7 @@ const Index = () => {
           <TodayScreen
             goals={goals}
             meals={meals}
+            userProfile={userProfile}
             onDeleteMeal={handleDeleteMeal}
             onGoLog={() => setTab("log")}
             onPickSuggestion={(name) => {
