@@ -30,7 +30,18 @@ export interface PlanResult {
   protein: number;
   carbs: number;
   fat: number;
-  reasoning: string;
+  fiber?: number;
+  sugar_max?: number;
+  saturated_fat_max?: number;
+  sodium_max?: number;
+  cholesterol_max?: number;
+  potassium?: number;
+  calcium?: number;
+  iron?: number;
+  vitamin_c?: number;
+  vitamin_d?: number;
+  vitamin_a?: number;
+  reasoning: string | Record<string, string>;
   warnings: string[];
 }
 
