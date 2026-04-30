@@ -17,6 +17,9 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [staySignedIn, setStaySignedIn] = useState<boolean>(
+    () => localStorage.getItem("nouri.staySignedIn") !== "false"
+  );
   const [busy, setBusy] = useState(false);
 
   if (loading) {
