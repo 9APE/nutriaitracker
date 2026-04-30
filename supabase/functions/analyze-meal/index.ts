@@ -70,15 +70,17 @@ Today's date is ${opts.today}.
 
 When the user describes a meal, first check if they gave specific quantities (grams, cups, pieces, handfuls etc).
 
-If quantities ARE specific enough: parse normally and return ONLY valid JSON:
-{meal_name, type, calories, protein, carbs, fat, date, tip, micros}
+If quantities ARE specific enough: parse normally and return ONLY valid JSON with EVERY one of these keys present (no extras, no omissions):
+{meal_name, type, date, calories, protein, carbs, fat, fiber, sugar, saturated_fat, sodium, potassium, cholesterol, vitamin_c, vitamin_d, vitamin_a, calcium, iron, tip}
 where:
 - 'type' is one of Breakfast/Lunch/Dinner/Snack
 - 'date' is YYYY-MM-DD (default to today)
 - 'tip' is one short personalized sentence — either confirming this fits their goals, flagging a concern, or suggesting a small adjustment. Keep it friendly and concise.
-- 'micros' is an object with your best-effort estimates for the FULL meal (not per 100g) using these exact keys and units:
-  fiber (g), sugar (g), saturated_fat (g), sodium (mg), potassium (mg), cholesterol (mg), iron (mg), vitamin_c (mg), vitamin_d (µg), calcium (mg).
-  Always include 'micros'. If a value is genuinely negligible (e.g. vitamin C in plain butter), use 0. Use rounded whole numbers. Estimates are fine — they will be displayed as approximate daily totals.
+- All nutrient fields are numbers for the FULL meal (not per 100g) using these units:
+  calories (kcal), protein/carbs/fat/fiber/sugar/saturated_fat (g),
+  sodium/potassium/cholesterol/iron/vitamin_c/calcium (mg),
+  vitamin_d/vitamin_a (µg).
+  ALWAYS include every nutrient field. If a value is genuinely negligible (e.g. vitamin C in plain butter), use 0 — never omit. Use rounded whole numbers. Estimates are fine — they will be displayed as approximate daily totals.
 
 If quantities are TOO vague (e.g. 'I had chicken and rice', 'I had pasta', 'I had a salad'): do NOT estimate yet. Instead return ONLY valid JSON: {"type": "clarification", "question": "one short friendly question asking for the most important missing quantity", "options": ["option 1", "option 2", "option 3"]}. Always offer 2-3 short tappable options so the user doesn't have to think. Examples of question + options:
 - question: "How much chicken roughly?" options: ["Small (~100g)", "Medium (~150g)", "Large (200g+)"]
@@ -205,12 +207,17 @@ Deno.serve(async (req) => {
 
     const MICRO_KEYS = [
       "fiber", "sugar", "saturated_fat", "sodium", "potassium",
-      "cholesterol", "iron", "vitamin_c", "vitamin_d", "calcium",
+      "cholesterol", "iron", "vitamin_c", "vitamin_d", "vitamin_a", "calcium",
     ] as const;
-    const rawMicros = (parsed && typeof parsed.micros === "object" && parsed.micros) || {};
+    // Accept micros either as flat top-level fields (preferred new shape) or
+    // nested under `micros` (older shape). Build a normalised object either way.
+    const flatSource = parsed && typeof parsed === "object" ? parsed : {};
+    const nestedSource =
+      parsed && typeof parsed.micros === "object" && parsed.micros ? parsed.micros : {};
     const micros: Record<string, number> = {};
     for (const k of MICRO_KEYS) {
-      const v = Number((rawMicros as any)[k]);
+      const raw = (flatSource as any)[k] ?? (nestedSource as any)[k];
+      const v = Number(raw);
       if (Number.isFinite(v) && v >= 0) micros[k] = Math.round(v * 10) / 10;
     }
 
