@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, Loader2, Send, Square } from "lucide-react";
+import { Mic, Loader2, Send, Square, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useVoice } from "@/hooks/useVoice";
@@ -7,6 +7,8 @@ import { analyzeMeal } from "@/lib/nouri-api";
 import type { Meal } from "@/lib/nouri-storage";
 import { recordMealLogged } from "@/lib/nouri-streak";
 import { AnalyzedMealSheet } from "./AnalyzedMealSheet";
+import { BarcodeScanner } from "./BarcodeScanner";
+import { BarcodeProductSheet } from "./BarcodeProductSheet";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useLanguage, t } from "@/lib/nouri-i18n";
@@ -63,6 +65,8 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
   const [analyzed, setAnalyzed] = useState<Omit<Meal, "id" | "created_at"> | null>(null);
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [pendingClarify, setPendingClarify] = useState<{ original: string; messageId: string } | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -236,6 +240,15 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
             ? t("tapToRecord", lang)
             : t("voiceUnsupported", lang)}
         </p>
+
+        <button
+          onClick={() => setScannerOpen(true)}
+          disabled={busy}
+          className="mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-card hover:border-primary/40 hover:text-foreground px-4 py-2 text-sm text-muted-foreground transition-colors disabled:opacity-60"
+        >
+          <ScanLine size={16} />
+          Scan Barcode
+        </button>
       </div>
 
       {voice.error && (
@@ -353,6 +366,27 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
           meal={analyzed}
           onRetry={() => setAnalyzed(null)}
           onConfirm={confirmMeal}
+        />
+      )}
+
+      {scannerOpen && (
+        <BarcodeScanner
+          onClose={() => setScannerOpen(false)}
+          onDetected={(code) => {
+            setScannerOpen(false);
+            setScannedBarcode(code);
+          }}
+        />
+      )}
+
+      {scannedBarcode && (
+        <BarcodeProductSheet
+          barcode={scannedBarcode}
+          onClose={() => setScannedBarcode(null)}
+          onMealReady={(draft) => {
+            setScannedBarcode(null);
+            setAnalyzed(draft);
+          }}
         />
       )}
     </div>
