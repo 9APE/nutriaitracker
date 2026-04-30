@@ -64,6 +64,19 @@
     --sidebar-accent-foreground: 30 10% 14%;
     --sidebar-border: 30 14% 86%;
     --sidebar-ring: 148 44% 46%;
+
+    /* Themed accent surfaces — auto-flip in dark mode */
+    --tone-success-bg: 148 40% 92%;
+    --tone-success-border: 148 44% 60%;
+    --tone-success-fg: 148 50% 22%;
+
+    --tone-warm-bg: 36 50% 94%;
+    --tone-warm-border: 36 30% 78%;
+    --tone-warm-fg: 30 30% 22%;
+
+    --tone-gold-bg: 44 80% 92%;
+    --tone-gold-border: 40 70% 60%;
+    --tone-gold-fg: 36 60% 26%;
   }
 
   /* Dark mode — warm charcoal, lifted surfaces, vivid accents
@@ -124,6 +137,19 @@
     --sidebar-accent-foreground: 36 18% 94%;
     --sidebar-border: 30 5% 22%;
     --sidebar-ring: 148 48% 55%;
+
+    /* Themed accent surfaces — dark variants */
+    --tone-success-bg: 148 30% 18%;
+    --tone-success-border: 148 40% 38%;
+    --tone-success-fg: 148 45% 80%;
+
+    --tone-warm-bg: 30 12% 20%;
+    --tone-warm-border: 30 14% 32%;
+    --tone-warm-fg: 36 30% 86%;
+
+    --tone-gold-bg: 40 30% 20%;
+    --tone-gold-border: 40 45% 40%;
+    --tone-gold-fg: 44 70% 80%;
   }
 
   /* Dim label text token (e.g. "PROTEIN" caption) — works in both modes */

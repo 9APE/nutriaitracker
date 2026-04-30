@@ -114,9 +114,9 @@ export function GoalCelebration() {
         <div
           className="celebration-card rounded-2xl border-2 px-5 py-4 shadow-lg max-w-[90vw] text-center"
           style={{
-            backgroundColor: "#FFF8E1",
-            borderColor: "#F0C24A",
-            color: "#7A5800",
+            backgroundColor: "hsl(var(--tone-gold-bg))",
+            borderColor: "hsl(var(--tone-gold-border))",
+            color: "hsl(var(--tone-gold-fg))",
           }}
         >
           <div className="text-2xl font-medium">All goals hit, {name}</div>

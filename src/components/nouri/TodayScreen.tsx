@@ -8,7 +8,7 @@ import {
   getStoredLayout,
   onLayoutChange,
   METRIC_META,
-  isTracked,
+  totalForMetric,
   type DashboardLayout,
   type Metric,
 } from "@/lib/nouri-dashboard-layout";
@@ -200,9 +200,11 @@ function MacroDetailCard({
   );
 }
 
-function MicroCard({ metric }: { metric: Metric }) {
+function MicroCard({ metric, current }: { metric: Metric; current: number }) {
   const meta = METRIC_META[metric];
-  const tracked = isTracked(metric);
+  const goal = meta.defaultGoal;
+  const pct = goal > 0 ? Math.min(100, (current / goal) * 100) : 0;
+  const hasValue = current > 0;
   return (
     <div className="rounded-2xl border border-border bg-card p-3 flex flex-col gap-1">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
@@ -211,19 +213,19 @@ function MicroCard({ metric }: { metric: Metric }) {
       <div className="flex items-baseline gap-1">
         <span
           className="font-mono-data text-base font-semibold tabular-nums"
-          style={{ color: tracked ? meta.color : "hsl(var(--muted-foreground))" }}
+          style={{ color: hasValue ? meta.color : "hsl(var(--muted-foreground))" }}
         >
-          {tracked ? "0" : "—"}
+          {hasValue ? Math.round(current) : "0"}
         </span>
         <span className="font-mono-data text-[10px] text-muted-foreground">
-          /{Math.round(meta.defaultGoal)}
+          /{Math.round(goal)}
           {meta.unit}
         </span>
       </div>
       <div className="h-1 rounded-full bg-muted overflow-hidden mt-1">
         <div
-          className="h-full rounded-full"
-          style={{ width: "0%", backgroundColor: meta.color }}
+          className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${pct}%`, backgroundColor: meta.color }}
         />
       </div>
     </div>
@@ -355,8 +357,8 @@ export function TodayScreen({
 
   // Fiber goal (rough default if not in goals): 14g per 1000 kcal
   const fiberGoal = Math.round((goals.calories / 1000) * 14);
-  // We don't track fiber per meal; estimate from carbs (~10% of carb grams)
-  const fiberCurrent = Math.round(sum.carbs * 0.1);
+  // Real fiber comes from AI-estimated micros on each meal
+  const fiberCurrent = totalForMetric("fiber", meals);
 
   return (
     <div className="px-5 pt-4 pb-28 max-w-md mx-auto space-y-[14px]">
@@ -608,7 +610,7 @@ export function TodayScreen({
           </div>
           <div className="grid grid-cols-3 gap-2">
             {layout.small.map((m) => (
-              <MicroCard key={m} metric={m} />
+              <MicroCard key={m} metric={m} current={totalForMetric(m, meals)} />
             ))}
           </div>
         </section>

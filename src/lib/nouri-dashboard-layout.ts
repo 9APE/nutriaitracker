@@ -81,8 +81,9 @@ export const METRIC_META: Record<Metric, MetricMeta> = {
 };
 
 /**
- * Today's totals for any metric. We only track calories/protein/carbs/fat in meals,
- * everything else returns 0 and is shown as "—" in the UI.
+ * Today's totals for any metric. Macros (calories/protein/carbs/fat) are summed
+ * directly from each meal; everything else is summed from the optional
+ * `meal.micros` object that the AI / food-label flow attaches.
  */
 export function totalForMetric(metric: Metric, meals: Meal[]): number {
   const today = todayISO();
@@ -92,7 +93,11 @@ export function totalForMetric(metric: Metric, meals: Meal[]): number {
     case "protein":  return todays.reduce((a, m) => a + (m.protein || 0), 0);
     case "carbs":    return todays.reduce((a, m) => a + (m.carbs || 0), 0);
     case "fat":      return todays.reduce((a, m) => a + (m.fat || 0), 0);
-    default:         return 0;
+    default:
+      return todays.reduce(
+        (a, m) => a + (Number(m.micros?.[metric as keyof NonNullable<Meal["micros"]>]) || 0),
+        0,
+      );
   }
 }
 
@@ -107,7 +112,9 @@ export function goalForMetric(metric: Metric, goals: Goals): number {
 }
 
 export function isTracked(metric: Metric): boolean {
-  return metric === "calories" || metric === "protein" || metric === "carbs" || metric === "fat";
+  // Macros are always tracked; micros are tracked because every AI-logged meal
+  // and every barcode/label entry now carries a `micros` object.
+  return true;
 }
 
 // ── Edge function calls ────────────────────────────────────────────────────

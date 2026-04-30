@@ -70,7 +70,15 @@ Today's date is ${opts.today}.
 
 When the user describes a meal, first check if they gave specific quantities (grams, cups, pieces, handfuls etc).
 
-If quantities ARE specific enough: parse normally and return ONLY valid JSON: {meal_name, type, calories, protein, carbs, fat, date, tip} where 'type' is one of Breakfast/Lunch/Dinner/Snack, 'date' is YYYY-MM-DD (default to today), and 'tip' is one short personalized sentence — either confirming this fits their goals, flagging a concern, or suggesting a small adjustment. Keep the tip friendly and concise.
+If quantities ARE specific enough: parse normally and return ONLY valid JSON:
+{meal_name, type, calories, protein, carbs, fat, date, tip, micros}
+where:
+- 'type' is one of Breakfast/Lunch/Dinner/Snack
+- 'date' is YYYY-MM-DD (default to today)
+- 'tip' is one short personalized sentence — either confirming this fits their goals, flagging a concern, or suggesting a small adjustment. Keep it friendly and concise.
+- 'micros' is an object with your best-effort estimates for the FULL meal (not per 100g) using these exact keys and units:
+  fiber (g), sugar (g), saturated_fat (g), sodium (mg), potassium (mg), cholesterol (mg), iron (mg), vitamin_c (mg), vitamin_d (µg), calcium (mg).
+  Always include 'micros'. If a value is genuinely negligible (e.g. vitamin C in plain butter), use 0. Use rounded whole numbers. Estimates are fine — they will be displayed as approximate daily totals.
 
 If quantities are TOO vague (e.g. 'I had chicken and rice', 'I had pasta', 'I had a salad'): do NOT estimate yet. Instead return ONLY valid JSON: {"type": "clarification", "question": "one short friendly question asking for the most important missing quantity", "options": ["option 1", "option 2", "option 3"]}. Always offer 2-3 short tappable options so the user doesn't have to think. Examples of question + options:
 - question: "How much chicken roughly?" options: ["Small (~100g)", "Medium (~150g)", "Large (200g+)"]
@@ -195,6 +203,17 @@ Deno.serve(async (req) => {
       });
     }
 
+    const MICRO_KEYS = [
+      "fiber", "sugar", "saturated_fat", "sodium", "potassium",
+      "cholesterol", "iron", "vitamin_c", "vitamin_d", "calcium",
+    ] as const;
+    const rawMicros = (parsed && typeof parsed.micros === "object" && parsed.micros) || {};
+    const micros: Record<string, number> = {};
+    for (const k of MICRO_KEYS) {
+      const v = Number((rawMicros as any)[k]);
+      if (Number.isFinite(v) && v >= 0) micros[k] = Math.round(v * 10) / 10;
+    }
+
     const meal = {
       meal_name: String(parsed.meal_name ?? "Meal"),
       type: ["Breakfast", "Lunch", "Dinner", "Snack"].includes(parsed.type)
@@ -206,6 +225,7 @@ Deno.serve(async (req) => {
       fat: Math.round(Number(parsed.fat) || 0),
       date: typeof parsed.date === "string" ? parsed.date : today,
       tip: typeof parsed.tip === "string" ? parsed.tip : undefined,
+      micros,
     };
 
     return new Response(JSON.stringify({ meal }), {

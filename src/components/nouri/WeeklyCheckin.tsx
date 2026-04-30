@@ -185,12 +185,16 @@ export function WeeklyCheckin({ goals, meals, onClose, onGoalsUpdated }: Props) 
           {result && (
             <div
               className="rounded-2xl border p-4 mt-4 animate-bubble-in"
-              style={{ backgroundColor: "#EAF4EE", borderColor: "#5BB882" }}
+              style={{
+                backgroundColor: "hsl(var(--tone-success-bg))",
+                borderColor: "hsl(var(--tone-success-border))",
+                color: "hsl(var(--tone-success-fg))",
+              }}
             >
               <div className="flex items-start gap-3">
                 
                 <div className="space-y-3 flex-1">
-                  <p className="text-[15px] leading-relaxed text-foreground">
+                  <p className="text-[15px] leading-relaxed">
                     {result.summary}
                   </p>
                   <div className="grid grid-cols-2 gap-2 text-xs">

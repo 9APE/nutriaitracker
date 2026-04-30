@@ -75,28 +75,27 @@ export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps)
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-4"
-      style={{ backgroundColor: "rgba(20, 30, 24, 0.55)" }}
+      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-4 bg-foreground/40 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label="Weekly report"
     >
-      <div
-        className="w-full max-w-md rounded-3xl p-6 my-6 shadow-xl"
-        style={{ backgroundColor: "#FBF8F1", border: "1px solid #E2D8C4" }}
-      >
+      <div className="w-full max-w-md rounded-3xl p-6 my-6 shadow-xl border border-border bg-card text-card-foreground">
         <div className="flex flex-col items-center text-center">
           <div
-            className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mb-3"
-            style={{ backgroundColor: "#EAF4EE", border: "2px solid #5BB882" }}
+            className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mb-3 border-2"
+            style={{
+              backgroundColor: "hsl(var(--tone-success-bg))",
+              borderColor: "hsl(var(--tone-success-border))",
+            }}
             aria-hidden
           >
-            
+            🌿
           </div>
           <p className="text-xs uppercase tracking-wider text-muted-foreground">
             Your week with Nouri
           </p>
-          <h2 className="font-serif text-2xl font-medium mt-1" style={{ color: "#1F3A28" }}>
+          <h2 className="font-serif text-2xl font-medium mt-1 text-foreground">
             Hey {name}, here's your week
           </h2>
         </div>
@@ -105,14 +104,10 @@ export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps)
           {statItems.map((s) => (
             <div
               key={s.label}
-              className="rounded-2xl p-3"
-              style={{ backgroundColor: "#F2EADB", border: "1px solid #E2D8C4" }}
+              className="rounded-2xl p-3 border border-border bg-muted/40"
             >
               <div className="min-w-0">
-                <div
-                  className="font-mono-data text-lg leading-none"
-                  style={{ color: "#1F3A28" }}
-                >
+                <div className="font-mono-data text-lg leading-none text-foreground">
                   {s.value}
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-1">{s.label}</div>
@@ -122,21 +117,22 @@ export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps)
         </div>
 
         <div
-          className="rounded-2xl p-4 mt-5"
-          style={{ backgroundColor: "#EAF4EE", border: "1px solid #5BB882" }}
+          className="rounded-2xl p-4 mt-5 border"
+          style={{
+            backgroundColor: "hsl(var(--tone-success-bg))",
+            borderColor: "hsl(var(--tone-success-border))",
+            color: "hsl(var(--tone-success-fg))",
+          }}
         >
           {loading ? (
-            <div className="flex items-center gap-2 text-sm" style={{ color: "#1F6B43" }}>
-              <span className="inline-block w-2 h-2 rounded-full bg-[#5BB882] animate-pulse" />
-              <span className="inline-block w-2 h-2 rounded-full bg-[#5BB882] animate-pulse [animation-delay:120ms]" />
-              <span className="inline-block w-2 h-2 rounded-full bg-[#5BB882] animate-pulse [animation-delay:240ms]" />
+            <div className="flex items-center gap-2 text-sm">
+              <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse [animation-delay:120ms]" />
+              <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse [animation-delay:240ms]" />
               <span className="ml-1">Nouri is writing your summary…</span>
             </div>
           ) : (
-            <p
-              className="text-sm leading-relaxed whitespace-pre-wrap"
-              style={{ color: "#1F3A28" }}
-            >
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">
               {summary}
             </p>
           )}
@@ -145,8 +141,7 @@ export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps)
         <button
           type="button"
           onClick={handleEnter}
-          className="w-full mt-5 rounded-full py-3 text-white font-medium transition-transform active:scale-[0.99]"
-          style={{ backgroundColor: "#5BB882" }}
+          className="w-full mt-5 rounded-full py-3 bg-primary text-primary-foreground font-medium transition-transform active:scale-[0.99]"
         >
           Let's go this week.
         </button>

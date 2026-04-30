@@ -37,6 +37,10 @@ export function PhotoLabelSheet({ file, barcode, onClose, onMealReady }: Props) 
     protein: "",
     carbs: "",
     fat: "",
+    fiber: "",
+    sugar: "",
+    saturated_fat: "",
+    sodium: "",
   });
 
   const [portion, setPortion] = useState<number>(100);
@@ -75,6 +79,10 @@ export function PhotoLabelSheet({ file, barcode, onClose, onMealReady }: Props) 
           protein: parsed.proteinPer100g != null ? String(parsed.proteinPer100g) : "",
           carbs: parsed.carbsPer100g != null ? String(parsed.carbsPer100g) : "",
           fat: parsed.fatPer100g != null ? String(parsed.fatPer100g) : "",
+          fiber: parsed.fiberPer100g != null ? String(parsed.fiberPer100g) : "",
+          sugar: parsed.sugarPer100g != null ? String(parsed.sugarPer100g) : "",
+          saturated_fat: parsed.saturatedFatPer100g != null ? String(parsed.saturatedFatPer100g) : "",
+          sodium: parsed.sodiumPer100g != null ? String(parsed.sodiumPer100g) : "",
         });
         setPhase("review");
       } catch (e: any) {
@@ -101,6 +109,11 @@ export function PhotoLabelSheet({ file, barcode, onClose, onMealReady }: Props) 
       toast.error("Add a name and calories per 100g");
       return;
     }
+    const microsPer100g: Record<string, number> = {};
+    for (const k of ["fiber", "sugar", "saturated_fat", "sodium"] as const) {
+      const v = parseFloat(form[k]);
+      if (Number.isFinite(v) && v >= 0) microsPer100g[k] = v;
+    }
     const product: FoodProduct = {
       barcode,
       name,
@@ -109,6 +122,7 @@ export function PhotoLabelSheet({ file, barcode, onClose, onMealReady }: Props) 
       proteinPer100g: Number.isFinite(parseFloat(form.protein)) ? parseFloat(form.protein) : 0,
       carbsPer100g: Number.isFinite(parseFloat(form.carbs)) ? parseFloat(form.carbs) : 0,
       fatPer100g: Number.isFinite(parseFloat(form.fat)) ? parseFloat(form.fat) : 0,
+      microsPer100g: Object.keys(microsPer100g).length ? microsPer100g : undefined,
       source: "custom",
     };
     saveCustomFood(product);
@@ -213,6 +227,37 @@ export function PhotoLabelSheet({ file, barcode, onClose, onMealReady }: Props) 
                   onChange={(v) => setForm((s) => ({ ...s, fat: v }))}
                 />
               </div>
+              <details className="rounded-xl border border-border bg-muted/30 px-3 py-2">
+                <summary className="text-xs font-medium text-muted-foreground cursor-pointer select-none">
+                  Micronutrients (optional)
+                </summary>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <Field
+                    label="Fiber / 100g (g)"
+                    type="number"
+                    value={form.fiber}
+                    onChange={(v) => setForm((s) => ({ ...s, fiber: v }))}
+                  />
+                  <Field
+                    label="Sugar / 100g (g)"
+                    type="number"
+                    value={form.sugar}
+                    onChange={(v) => setForm((s) => ({ ...s, sugar: v }))}
+                  />
+                  <Field
+                    label="Sat. fat / 100g (g)"
+                    type="number"
+                    value={form.saturated_fat}
+                    onChange={(v) => setForm((s) => ({ ...s, saturated_fat: v }))}
+                  />
+                  <Field
+                    label="Sodium / 100g (mg)"
+                    type="number"
+                    value={form.sodium}
+                    onChange={(v) => setForm((s) => ({ ...s, sodium: v }))}
+                  />
+                </div>
+              </details>
               <p className="text-[11px] text-muted-foreground font-mono-data">
                 Saved under barcode {barcode}
               </p>

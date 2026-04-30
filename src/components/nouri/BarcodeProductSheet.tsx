@@ -37,6 +37,10 @@ export function BarcodeProductSheet({ barcode, onClose, onMealReady }: Props) {
     protein: "",
     carbs: "",
     fat: "",
+    fiber: "",
+    sugar: "",
+    sodium: "",
+    saturated_fat: "",
   });
 
   useEffect(() => {
@@ -84,6 +88,17 @@ export function BarcodeProductSheet({ barcode, onClose, onMealReady }: Props) {
       toast.error("Add a name and calories per 100g");
       return;
     }
+    const microsPer100g: Record<string, number> = {};
+    const optional: Array<[keyof typeof manual, string]> = [
+      ["fiber", "fiber"],
+      ["sugar", "sugar"],
+      ["sodium", "sodium"],
+      ["saturated_fat", "saturated_fat"],
+    ];
+    for (const [field, key] of optional) {
+      const v = parseFloat(manual[field]);
+      if (Number.isFinite(v) && v >= 0) microsPer100g[key] = v;
+    }
     const newProduct: FoodProduct = {
       barcode,
       name,
@@ -91,6 +106,7 @@ export function BarcodeProductSheet({ barcode, onClose, onMealReady }: Props) {
       proteinPer100g: Number.isFinite(pr) ? pr : 0,
       carbsPer100g: Number.isFinite(cb) ? cb : 0,
       fatPer100g: Number.isFinite(ft) ? ft : 0,
+      microsPer100g: Object.keys(microsPer100g).length ? microsPer100g : undefined,
       source: "custom",
     };
     saveCustomFood(newProduct);
@@ -271,6 +287,39 @@ export function BarcodeProductSheet({ barcode, onClose, onMealReady }: Props) {
                     onChange={(v) => setManual((m) => ({ ...m, fat: v }))}
                   />
                 </div>
+
+                <details className="rounded-xl border border-border bg-muted/30 px-3 py-2">
+                  <summary className="text-xs font-medium text-muted-foreground cursor-pointer select-none">
+                    Add micronutrients (optional)
+                  </summary>
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <Field
+                      label="Fiber / 100g (g)"
+                      type="number"
+                      value={manual.fiber}
+                      onChange={(v) => setManual((m) => ({ ...m, fiber: v }))}
+                    />
+                    <Field
+                      label="Sugar / 100g (g)"
+                      type="number"
+                      value={manual.sugar}
+                      onChange={(v) => setManual((m) => ({ ...m, sugar: v }))}
+                    />
+                    <Field
+                      label="Sat. fat / 100g (g)"
+                      type="number"
+                      value={manual.saturated_fat}
+                      onChange={(v) => setManual((m) => ({ ...m, saturated_fat: v }))}
+                    />
+                    <Field
+                      label="Sodium / 100g (mg)"
+                      type="number"
+                      value={manual.sodium}
+                      onChange={(v) => setManual((m) => ({ ...m, sodium: v }))}
+                    />
+                  </div>
+                </details>
+
                 <p className="text-xs text-muted-foreground">
                   Saved to this device — next scan of this barcode will load instantly.
                 </p>
