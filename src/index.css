@@ -136,9 +136,9 @@
     @apply border-border;
   }
 
-  /* In dark mode, render borders as white @ 8% for a softer, premium edge */
+  /* In dark mode, render borders as warm white @ 10% for visible-but-soft edges */
   .dark * {
-    border-color: hsl(0 0% 100% / 0.08);
+    border-color: hsl(36 18% 94% / 0.1);
   }
 
   html, body, #root {
