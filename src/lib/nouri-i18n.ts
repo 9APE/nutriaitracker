@@ -87,6 +87,14 @@ export const UI_KEYS = [
   "typeAnswer", "listening", "describeMeal",
   // Section headers
   "yourGoals", "todaysMeals", "recommendations",
+  // Today screen / nutrition
+  "caloriesEaten", "remaining", "goal", "kcal", "protein", "carbs", "fat",
+  "logTraining", "trainingBumps", "trainingLogged", "logMealCta",
+  "nothingLoggedYet", "weeklyCheckinTitle", "weeklyCheckinSub", "letsGo",
+  // Remaining banner
+  "allGoalsHit", "proteinGoalHit", "calorieGoalHit", "needMore",
+  // Header
+  "signOutConfirm", "signedOut",
 ] as const;
 export type UIKey = (typeof UI_KEYS)[number];
 
