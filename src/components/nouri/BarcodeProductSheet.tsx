@@ -37,6 +37,10 @@ export function BarcodeProductSheet({ barcode, onClose, onMealReady }: Props) {
     protein: "",
     carbs: "",
     fat: "",
+    fiber: "",
+    sugar: "",
+    sodium: "",
+    saturated_fat: "",
   });
 
   useEffect(() => {
@@ -84,6 +88,17 @@ export function BarcodeProductSheet({ barcode, onClose, onMealReady }: Props) {
       toast.error("Add a name and calories per 100g");
       return;
     }
+    const microsPer100g: Record<string, number> = {};
+    const optional: Array<[keyof typeof manual, string]> = [
+      ["fiber", "fiber"],
+      ["sugar", "sugar"],
+      ["sodium", "sodium"],
+      ["saturated_fat", "saturated_fat"],
+    ];
+    for (const [field, key] of optional) {
+      const v = parseFloat(manual[field]);
+      if (Number.isFinite(v) && v >= 0) microsPer100g[key] = v;
+    }
     const newProduct: FoodProduct = {
       barcode,
       name,
@@ -91,6 +106,7 @@ export function BarcodeProductSheet({ barcode, onClose, onMealReady }: Props) {
       proteinPer100g: Number.isFinite(pr) ? pr : 0,
       carbsPer100g: Number.isFinite(cb) ? cb : 0,
       fatPer100g: Number.isFinite(ft) ? ft : 0,
+      microsPer100g: Object.keys(microsPer100g).length ? microsPer100g : undefined,
       source: "custom",
     };
     saveCustomFood(newProduct);
