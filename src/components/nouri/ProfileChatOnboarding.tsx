@@ -457,6 +457,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
           className="max-w-md mx-auto flex items-center gap-2"
         >
           <Input
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={voice.listening ? "Listening…" : "Type your answer…"}
