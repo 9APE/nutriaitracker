@@ -149,8 +149,6 @@ export function TodayScreen({
           style={{ backgroundColor: "#EAF4EE", borderColor: "#5BB882" }}
           role="status"
         >
-          <span className="text-xl shrink-0" aria-hidden>
-            {trainingEmoji(training.type)}
           </span>
           <p className="text-xs flex-1" style={{ color: "#1F6B43" }}>
             {t("trainingLogged", lang, { n: TRAINING_PROTEIN_BONUS })}

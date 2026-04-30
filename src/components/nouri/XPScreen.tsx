@@ -64,7 +64,6 @@ export function XPScreen({ onClose }: Props) {
                   key={s.id}
                   className="nouri-card p-4 flex items-start gap-3"
                 >
-                  <div className="text-2xl shrink-0">{s.emoji}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="text-sm font-medium text-foreground">{s.label}</span>

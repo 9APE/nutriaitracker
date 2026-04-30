@@ -16,7 +16,6 @@ export function AnalyzedMealSheet({ meal, onRetry, onConfirm }: AnalyzedMealShee
         <div className="w-10 h-1 rounded-full bg-border mx-auto mb-4 sm:hidden" />
 
         <div className="flex items-start gap-3 mb-5">
-          <div className="text-3xl">{mealTypeEmoji(meal.type)}</div>
           <div className="flex-1 min-w-0">
             <h3 className="font-serif text-xl font-medium leading-tight">{meal.meal_name}</h3>
             <p className="text-sm text-muted-foreground">
