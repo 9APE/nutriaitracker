@@ -12,6 +12,7 @@ import {
 
 interface Props {
   onClose: () => void;
+  initialPicking?: boolean;
 }
 
 const CONFIRMATIONS: Record<LangCode, (name: string) => string> = {
@@ -27,10 +28,10 @@ const CONFIRMATIONS: Record<LangCode, (name: string) => string> = {
   ja: (n) => `言語が更新されました！Nouri はこれから${n}で話します 🌍`,
 };
 
-export function SettingsScreen({ onClose }: Props) {
+export function SettingsScreen({ onClose, initialPicking = false }: Props) {
   const lang = useLanguage();
   const current = getLanguageMeta(lang);
-  const [picking, setPicking] = useState(false);
+  const [picking, setPicking] = useState(initialPicking);
 
   const handlePick = (code: LangCode) => {
     setLanguage(code);
