@@ -27,6 +27,10 @@ import { WeeklyCheckin } from "@/components/nouri/WeeklyCheckin";
 import { WeeklyReport } from "@/components/nouri/WeeklyReport";
 import { shouldShowWeeklyReport } from "@/lib/nouri-weekly-report";
 import { GoalCelebration } from "@/components/nouri/GoalCelebration";
+import { LanguageSelect } from "@/components/nouri/LanguageSelect";
+import { SettingsScreen } from "@/components/nouri/SettingsScreen";
+import { getLanguage } from "@/lib/nouri-i18n";
+import { Settings as SettingsIcon } from "lucide-react";
 
 const MIGRATED_KEY = "nouri:migrated";
 
@@ -45,6 +49,8 @@ const Index = () => {
   const [showXP, setShowXP] = useState(false);
   const [showCheckin, setShowCheckin] = useState(false);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [hasLanguage, setHasLanguage] = useState<boolean>(() => !!getLanguage());
 
   // Reconcile streak (spend a freeze if a day was missed) on app open
   useEffect(() => {
