@@ -90,6 +90,24 @@ export function SettingsScreen({
 
       <div className="flex-1 px-5 py-6 pb-[max(2rem,env(safe-area-inset-bottom))]">
         <div className="max-w-md mx-auto space-y-3">
+          {!picking && canEditProfile && (
+            <button
+              onClick={() => setEditingProfile(true)}
+              className="w-full flex items-center justify-between rounded-2xl border border-border bg-card hover:border-primary/40 px-4 py-3.5 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <UserCog size={18} className="text-muted-foreground" />
+                <div>
+                  <div className="text-sm font-medium">Edit profile</div>
+                  <div className="text-xs text-muted-foreground">
+                    Update conditions, diet, activity & preferences
+                  </div>
+                </div>
+              </div>
+              <ChevronRight size={18} className="text-muted-foreground" />
+            </button>
+          )}
+
           {!picking ? (
             <button
               onClick={() => setPicking(true)}
