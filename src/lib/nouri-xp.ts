@@ -101,6 +101,27 @@ export function getLevelInfo(xp: number): LevelInfo {
 }
 
 // ── Awarding ─────────────────────────────────────────────────────────────────
+const DAILY_XP_KEY = "xpDailyTotals";
+
+function readDailyXP(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(DAILY_XP_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return {};
+}
+
+export function getXPEarnedToday(): number {
+  return readDailyXP()[todayISO()] ?? 0;
+}
+
+function bumpDailyXP(amount: number) {
+  const map = readDailyXP();
+  const today = todayISO();
+  map[today] = (map[today] ?? 0) + amount;
+  localStorage.setItem(DAILY_XP_KEY, JSON.stringify(map));
+}
+
 function emitXPAward(amount: number, source: XPSourceId) {
   window.dispatchEvent(new CustomEvent("xp:awarded", { detail: { amount, source } }));
 }
@@ -108,6 +129,7 @@ function emitXPAward(amount: number, source: XPSourceId) {
 function award(amount: number, source: XPSourceId) {
   const next = getTotalXP() + amount;
   setTotalXP(next);
+  bumpDailyXP(amount);
   emitXPAward(amount, source);
 }
 
@@ -170,6 +192,7 @@ export function checkDailyGoalAwards(
     day.allMacrosHit = true;
     changed = true;
     award(50, "all-macros");
+    window.dispatchEvent(new CustomEvent("goals:all-hit"));
   }
   if (changed) {
     awards[today] = day;

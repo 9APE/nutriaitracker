@@ -24,6 +24,7 @@ import { awardMealXP, checkDailyGoalAwards } from "@/lib/nouri-xp";
 import { XPFloater } from "@/components/nouri/XPFloater";
 import { XPScreen } from "@/components/nouri/XPScreen";
 import { WeeklyCheckin } from "@/components/nouri/WeeklyCheckin";
+import { GoalCelebration } from "@/components/nouri/GoalCelebration";
 
 const MIGRATED_KEY = "nouri:migrated";
 
@@ -349,6 +350,7 @@ const Index = () => {
       </main>
       <TabBar active={tab} onChange={setTab} />
       <XPFloater />
+      <GoalCelebration />
       {showXP && <XPScreen onClose={() => setShowXP(false)} />}
       {showCheckin && (
         <WeeklyCheckin
