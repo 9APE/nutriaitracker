@@ -8,11 +8,12 @@ import {
   getStoredLayout,
   onLayoutChange,
   METRIC_META,
+  LIMIT_METRICS,
   totalForMetric,
   type DashboardLayout,
   type Metric,
 } from "@/lib/nouri-dashboard-layout";
-import { Check, Flame, Mic, Sliders } from "lucide-react";
+import { AlertTriangle, Check, Flame, Mic, Sliders } from "lucide-react";
 import type { Goals, Meal, MealType } from "@/lib/nouri-storage";
 import { todayISO } from "@/lib/nouri-storage";
 import { getStreak, getFreezes } from "@/lib/nouri-streak";
@@ -219,19 +220,44 @@ function MicroCard({
   goal: number;
 }) {
   const meta = METRIC_META[metric];
+  const isLimit = LIMIT_METRICS.has(metric);
   const pct = goal > 0 ? Math.min(100, (current / goal) * 100) : 0;
-  const hasValue = current > 0;
+  const reached = !isLimit && goal > 0 && current >= goal;
+  const overLimit = isLimit && current > goal;
+  const amber = "hsl(38 92% 50%)";
+  const red = "hsl(var(--destructive))";
+  const green = "hsl(142 70% 42%)";
+  const barColor = overLimit ? red : isLimit ? amber : reached ? green : meta.color;
+  const valueColor = overLimit
+    ? red
+    : current > 0
+      ? isLimit
+        ? amber
+        : reached
+          ? green
+          : meta.color
+      : "hsl(var(--muted-foreground))";
   return (
-    <div className="rounded-2xl border border-border bg-card p-3 flex flex-col gap-1">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
-        {meta.label}
+    <div
+      className="rounded-2xl border p-3 flex flex-col gap-1"
+      style={{
+        backgroundColor: overLimit ? "hsl(var(--destructive) / 0.10)" : "hsl(var(--card))",
+        borderColor: overLimit ? "hsl(var(--destructive) / 0.40)" : "hsl(var(--border))",
+      }}
+    >
+      <div className="flex items-center justify-between gap-1">
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+          {meta.label}
+        </div>
+        {overLimit && <AlertTriangle size={11} style={{ color: red }} aria-hidden />}
+        {reached && <Check size={11} style={{ color: green }} aria-hidden />}
       </div>
       <div className="flex items-baseline gap-1">
         <span
           className="font-mono-data text-base font-semibold tabular-nums"
-          style={{ color: hasValue ? meta.color : "hsl(var(--muted-foreground))" }}
+          style={{ color: valueColor }}
         >
-          {hasValue ? Math.round(current) : "0"}
+          {Math.round(current)}
         </span>
         <span className="font-mono-data text-[10px] text-muted-foreground">
           /{Math.round(goal)}
@@ -241,9 +267,14 @@ function MicroCard({
       <div className="h-1 rounded-full bg-muted overflow-hidden mt-1">
         <div
           className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${pct}%`, backgroundColor: meta.color }}
+          style={{ width: `${pct}%`, backgroundColor: barColor }}
         />
       </div>
+      {overLimit && (
+        <div className="text-[9px] uppercase tracking-wider mt-0.5" style={{ color: red }}>
+          Over limit
+        </div>
+      )}
     </div>
   );
 }
