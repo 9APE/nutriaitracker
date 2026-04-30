@@ -12,7 +12,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        serif: ['Lora', 'Georgia', 'serif'],
+        sans: ['DM Sans', 'Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Arial', 'sans-serif'],
+        serif: ['DM Sans', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['DM Mono', 'ui-monospace', 'monospace'],
       },
       colors: {
@@ -56,7 +57,10 @@ export default {
           carbs: "hsl(var(--macro-carbs))",
           fat: "hsl(var(--macro-fat))",
           calories: "hsl(var(--macro-calories))",
+          sugar: "hsl(var(--macro-sugar))",
+          water: "hsl(var(--macro-water))",
         },
+        "label-dim": "hsl(var(--label-dim))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

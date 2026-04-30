@@ -1,124 +1,134 @@
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap');
+/* Fonts loaded via <link> in index.html for faster paint */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Nouri design system — warm, minimal, approachable.
-   All colors MUST be HSL.
+/* Nouri design system — premium, neutral, confident.
+   All colors are HSL. Accent palette is muted, not neon.
 */
 
 @layer base {
   :root {
-    /* Warm whites + earthy tones */
-    --background: 39 30% 97%;          /* #F8F6F2 */
-    --surface: 0 0% 100%;              /* #FFFFFF */
-    --foreground: 30 12% 15%;          /* deep warm ink */
+    /* Light mode — kept clean and neutral, paired with new accents */
+    --background: 0 0% 98%;
+    --surface: 0 0% 100%;
+    --foreground: 240 6% 12%;          /* near-black ink */
 
     --card: 0 0% 100%;
-    --card-foreground: 30 12% 15%;
+    --card-foreground: 240 6% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 30 12% 15%;
+    --popover-foreground: 240 6% 12%;
 
-    /* Forest green accent #3A7D5C */
-    --primary: 148 36% 36%;
-    --primary-foreground: 39 30% 97%;
-    --primary-soft: 148 36% 92%;
-
-    --secondary: 35 22% 94%;
-    --secondary-foreground: 30 12% 20%;
-
-    --muted: 35 18% 93%;
-    --muted-foreground: 30 8% 45%;
-
-    --accent: 148 36% 36%;
-    --accent-foreground: 39 30% 97%;
-
-    --destructive: 8 60% 52%;
-    --destructive-foreground: 39 30% 97%;
-
-    /* Earthy borders #E8E3DB */
-    --border: 36 20% 88%;
-    --input: 36 20% 88%;
-    --ring: 148 36% 36%;
-
-    /* Macro colors */
-    --macro-protein: 8 65% 58%;
-    --macro-carbs: 38 75% 55%;
-    --macro-fat: 148 36% 45%;
-    --macro-calories: 148 36% 36%;
-
-    --radius: 1rem;
-
-    --shadow-soft: 0 2px 12px -4px hsl(30 15% 25% / 0.08);
-    --shadow-card: 0 1px 3px hsl(30 15% 25% / 0.04), 0 4px 16px -4px hsl(30 15% 25% / 0.06);
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  /* Dark mode palette
-     bg #121212, surfaces #1e1e1e, text #ffffff, borders #2a2a2a, accent #4a9d6f
-     All values are HSL to match the token system. WCAG AA verified:
-     - #ffffff on #121212 → 18.9:1 (AAA)
-     - muted text #b8b8b8 on #121212 → 10.4:1 (AAA)
-     - #4a9d6f on #121212 → 4.6:1 (AA)
-  */
-  .dark {
-    --background: 0 0% 7%;             /* #121212 */
-    --surface: 0 0% 12%;               /* #1e1e1e */
-    --foreground: 0 0% 100%;           /* #ffffff */
-
-    --card: 0 0% 12%;                  /* #1e1e1e */
-    --card-foreground: 0 0% 100%;
-
-    --popover: 0 0% 12%;
-    --popover-foreground: 0 0% 100%;
-
-    --primary: 148 36% 45%;            /* #4a9d6f */
+    /* Sage green accent #5dbd8a */
+    --primary: 145 41% 56%;
     --primary-foreground: 0 0% 100%;
-    --primary-soft: 148 30% 18%;
+    --primary-soft: 145 41% 92%;
 
-    --secondary: 0 0% 16%;
-    --secondary-foreground: 0 0% 96%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 18%;
 
-    --muted: 0 0% 16%;
-    --muted-foreground: 0 0% 72%;      /* #b8b8b8 — AAA on bg */
+    --muted: 240 5% 95%;
+    --muted-foreground: 240 4% 45%;
 
-    --accent: 148 36% 45%;             /* #4a9d6f */
+    --accent: 145 41% 56%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 8 65% 58%;
+    --destructive: 354 48% 60%;        /* dusty rose */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 16%;                /* #2a2a2a */
-    --input: 0 0% 16%;
-    --ring: 148 36% 45%;
+    --border: 240 5% 90%;
+    --input: 240 5% 90%;
+    --ring: 145 41% 56%;
 
-    --macro-protein: 8 70% 65%;
-    --macro-carbs: 38 80% 62%;
-    --macro-fat: 148 40% 55%;
-    --macro-calories: 148 36% 55%;
+    /* Macro / metric accent palette (muted, distinct) */
+    --macro-protein: 145 41% 56%;      /* sage green   #5dbd8a */
+    --macro-carbs: 31 60% 56%;         /* warm amber   #d4954a */
+    --macro-fat: 256 47% 68%;          /* soft purple  #9b87d4 */
+    --macro-calories: 145 41% 56%;
+    --macro-sugar: 354 48% 60%;        /* dusty rose   #c96b72 */
+    --macro-water: 211 56% 59%;        /* steel blue   #5b9bd4 */
 
-    --shadow-soft: 0 2px 12px -4px hsl(0 0% 0% / 0.4);
-    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.3), 0 4px 16px -4px hsl(0 0% 0% / 0.35);
+    --radius: 1.125rem;                /* 18px cards */
 
-    --sidebar-background: 0 0% 9%;
-    --sidebar-foreground: 0 0% 92%;
-    --sidebar-primary: 148 36% 45%;
+    --shadow-soft: 0 2px 12px -4px hsl(240 6% 12% / 0.06);
+    --shadow-card: 0 1px 2px hsl(240 6% 12% / 0.04), 0 8px 24px -12px hsl(240 6% 12% / 0.08);
+
+    --sidebar-background: 0 0% 99%;
+    --sidebar-foreground: 240 5% 26%;
+    --sidebar-primary: 240 6% 12%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 16%;
-    --sidebar-accent-foreground: 0 0% 96%;
-    --sidebar-border: 0 0% 16%;
-    --sidebar-ring: 148 36% 45%;
+    --sidebar-accent: 240 5% 95%;
+    --sidebar-accent-foreground: 240 6% 12%;
+    --sidebar-border: 240 5% 90%;
+    --sidebar-ring: 145 41% 56%;
   }
+
+  /* Dark mode — premium fitness app palette
+     bg #111113, surfaces #1c1c1f, borders white@8%
+     text: #f2f2f4 / #8e8e9a / #50505c
+     accents: sage / amber / purple / rose / steel-blue
+     Contrast (WCAG AA verified):
+     - #f2f2f4 on #111113 → 16.9:1 (AAA)
+     - #8e8e9a on #111113 → 5.7:1 (AA)
+     - #5dbd8a on #111113 → 6.1:1 (AA)
+  */
+  .dark {
+    --background: 240 7% 7%;            /* #111113 */
+    --surface: 240 5% 11%;              /* #1c1c1f */
+    --foreground: 240 7% 95%;           /* #f2f2f4 */
+
+    --card: 240 5% 11%;                 /* #1c1c1f */
+    --card-foreground: 240 7% 95%;
+
+    --popover: 240 5% 11%;
+    --popover-foreground: 240 7% 95%;
+
+    --primary: 145 41% 56%;             /* #5dbd8a sage */
+    --primary-foreground: 240 7% 7%;
+    --primary-soft: 145 30% 16%;
+
+    --secondary: 240 5% 14%;
+    --secondary-foreground: 240 7% 95%;
+
+    --muted: 240 5% 14%;
+    --muted-foreground: 240 6% 58%;     /* #8e8e9a */
+
+    --accent: 145 41% 56%;
+    --accent-foreground: 240 7% 7%;
+
+    --destructive: 354 48% 60%;
+    --destructive-foreground: 240 7% 95%;
+
+    /* Borders rendered via white @ 8% via utility (.border / border-border) */
+    --border: 240 5% 18%;
+    --input: 240 5% 18%;
+    --ring: 145 41% 56%;
+
+    --macro-protein: 145 41% 56%;
+    --macro-carbs: 31 60% 56%;
+    --macro-fat: 256 47% 68%;
+    --macro-calories: 145 41% 56%;
+    --macro-sugar: 354 48% 60%;
+    --macro-water: 211 56% 59%;
+
+    --shadow-soft: 0 2px 12px -4px hsl(0 0% 0% / 0.5);
+    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.4), 0 8px 24px -12px hsl(0 0% 0% / 0.55);
+
+    --sidebar-background: 240 7% 7%;
+    --sidebar-foreground: 240 7% 92%;
+    --sidebar-primary: 145 41% 56%;
+    --sidebar-primary-foreground: 240 7% 7%;
+    --sidebar-accent: 240 5% 14%;
+    --sidebar-accent-foreground: 240 7% 95%;
+    --sidebar-border: 240 5% 18%;
+    --sidebar-ring: 145 41% 56%;
+  }
+
+  /* Dim label text token (e.g. "PROTEIN" caption) — works in both modes */
+  :root  { --label-dim: 240 4% 60%; }
+  .dark  { --label-dim: 240 6% 36%; }   /* #50505c */
 }
 
 @layer base {
@@ -126,11 +136,17 @@
     @apply border-border;
   }
 
+  /* In dark mode, render borders as white @ 8% for a softer, premium edge */
+  .dark * {
+    border-color: hsl(0 0% 100% / 0.08);
+  }
+
   html, body, #root {
     @apply bg-background text-foreground;
-    font-family: 'Lora', Georgia, serif;
+    font-family: 'DM Sans', 'Inter', system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "ss01" on, "cv11" on;
   }
 
   .font-mono-data {
@@ -141,8 +157,43 @@
 
 @layer components {
   .nouri-card {
-    @apply bg-card rounded-2xl border border-border;
+    @apply bg-card rounded-[18px] border border-border;
     box-shadow: var(--shadow-card);
+  }
+
+  /* Hero calorie number — the headline metric on Today */
+  .nouri-calorie-hero {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 50px;
+    line-height: 1;
+    letter-spacing: -1.5px;
+    color: hsl(var(--foreground));
+    font-feature-settings: "tnum" on, "lnum" on;
+  }
+
+  /* Dim label caption — uppercase, tracked */
+  .nouri-label {
+    color: hsl(var(--label-dim));
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Premium progress bar: 5px tall, fully rounded, gradient fill */
+  .nouri-progress {
+    height: 5px;
+    width: 100%;
+    border-radius: 9999px;
+    background-color: hsl(var(--muted));
+    overflow: hidden;
+  }
+  .nouri-progress > .nouri-progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background-image: linear-gradient(90deg, hsl(var(--accent-color, var(--primary)) / 0.85), hsl(var(--accent-color, var(--primary))));
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
 
