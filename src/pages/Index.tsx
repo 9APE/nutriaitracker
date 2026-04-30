@@ -336,15 +336,7 @@ const Index = () => {
             >
               <span aria-hidden>{langMeta.flag}</span>
             </button>
-            <button
-              onClick={() => setEditingProfile(true)}
-              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-muted transition-colors"
-              aria-label="Edit profile"
-              title="Edit profile"
-            >
-              <UserCog size={13} />
-              {t("profile", currentLang)}
-            </button>
+            {/* Edit-profile moved to Settings → Edit profile (focused per-field sheet) */}
             <button
               onClick={() => {
                 setSettingsPickLang(false);
