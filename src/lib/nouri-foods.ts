@@ -118,6 +118,15 @@ export function buildMealFromProduct(
   type: MealType = "Snack",
 ) {
   const f = grams / 100;
+  let micros: MealMicros | undefined;
+  if (product.microsPer100g) {
+    micros = {};
+    for (const [k, v] of Object.entries(product.microsPer100g)) {
+      if (typeof v === "number" && Number.isFinite(v)) {
+        (micros as any)[k] = Math.round(v * f * 10) / 10;
+      }
+    }
+  }
   return {
     meal_name: product.brand ? `${product.name} (${product.brand})` : product.name,
     type,
@@ -126,6 +135,7 @@ export function buildMealFromProduct(
     carbs: Math.round(product.carbsPer100g * f),
     fat: Math.round(product.fatPer100g * f),
     date,
+    micros,
   };
 }
 
