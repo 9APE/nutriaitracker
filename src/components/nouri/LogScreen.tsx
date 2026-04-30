@@ -240,6 +240,15 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
             ? t("tapToRecord", lang)
             : t("voiceUnsupported", lang)}
         </p>
+
+        <button
+          onClick={() => setScannerOpen(true)}
+          disabled={busy}
+          className="mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-card hover:border-primary/40 hover:text-foreground px-4 py-2 text-sm text-muted-foreground transition-colors disabled:opacity-60"
+        >
+          <ScanLine size={16} />
+          Scan Barcode
+        </button>
       </div>
 
       {voice.error && (
