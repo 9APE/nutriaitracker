@@ -269,6 +269,15 @@ export function TodayScreen({
         meals={meals}
         onPick={(name) => onPickSuggestion?.(name)}
       />
+
+      <TrainingSheet
+        open={trainingSheetOpen}
+        onClose={() => setTrainingSheetOpen(false)}
+        onPick={(type) => {
+          saveTodayTraining(type);
+          setTrainingSheetOpen(false);
+        }}
+      />
     </div>
   );
 }
