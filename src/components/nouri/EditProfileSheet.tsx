@@ -138,6 +138,30 @@ export function EditProfileSheet({
       await cloud.upsertGoals(userId, goals);
       await cloud.updateProfile(userId, { user_warnings_json: warnings } as any);
       saveUserWarnings(warnings);
+      // Persist full extended goals locally (macros + micros + reasoning)
+      const { saveUserGoals, parseWeightToKg } = await import("@/lib/nouri-goals");
+      saveUserGoals({
+        ...goals,
+        fiber: plan.fiber,
+        sugar_max: plan.sugar_max,
+        saturated_fat_max: plan.saturated_fat_max,
+        sodium_max: plan.sodium_max,
+        cholesterol_max: plan.cholesterol_max,
+        potassium: plan.potassium,
+        calcium: plan.calcium,
+        iron: plan.iron,
+        vitamin_c: plan.vitamin_c,
+        vitamin_d: plan.vitamin_d,
+        vitamin_a: plan.vitamin_a,
+        reasoning:
+          plan.reasoning && typeof plan.reasoning === "object"
+            ? plan.reasoning
+            : plan.reasoning
+            ? { calories: String(plan.reasoning) }
+            : undefined,
+        bodyweight_kg: parseWeightToKg(profile.weight),
+        calibrated_at: new Date().toISOString(),
+      });
       onGoalsRecalculated(goals, warnings);
       toast.success("Goals recalculated ✓");
     } catch (e: any) {
