@@ -1,4 +1,6 @@
 // Analyze a meal description with Anthropic Claude using the user's personalized profile
+import { resolveLanguage } from "../_shared/language.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -91,7 +93,8 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { text, profile, goals, eatenToday, warnings, alreadyClarified } = body ?? {};
+    const { text, profile, goals, eatenToday, warnings, alreadyClarified, language } = body ?? {};
+    const lang = resolveLanguage(language);
 
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       return new Response(
@@ -119,7 +122,7 @@ Deno.serve(async (req) => {
     };
     const safeWarnings: string[] = Array.isArray(warnings) ? warnings.map(String) : [];
 
-    let system = buildSystemPrompt({
+    let system = lang.prefix + buildSystemPrompt({
       profile: profile && typeof profile === "object" ? profile : null,
       goals: safeGoals,
       eatenToday: safeEaten,
