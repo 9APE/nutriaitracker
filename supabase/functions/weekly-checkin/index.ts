@@ -105,10 +105,11 @@ Deno.serve(async (req) => {
     const messages =
       history.length === 0 ? [{ role: "user", content: "Hi" }] : history;
 
+    const profile = body?.profile ?? null;
     const lang = resolveLanguage(body?.language, body?.languageName);
     const text = await callClaude(
       ANTHROPIC_API_KEY,
-      buildSystem(goals, avgProtein, avgCalories) + lang.suffix,
+      buildSystem(goals, avgProtein, avgCalories, profile) + lang.suffix,
       messages
     );
 
@@ -119,11 +120,26 @@ Deno.serve(async (req) => {
       const after = text.slice(idx + "[CHECKIN_COMPLETE]".length);
       const parsed = extractJson(after);
       if (parsed) {
+        const numOrUndef = (v: any) => {
+          const n = Number(v);
+          return isFinite(n) ? Math.round(n) : undefined;
+        };
         result = {
           calories: Math.round(Number(parsed.calories) || goals.calories),
           protein: Math.round(Number(parsed.protein) || goals.protein),
           carbs: Math.round(Number(parsed.carbs) || goals.carbs),
           fat: Math.round(Number(parsed.fat) || goals.fat),
+          fiber: numOrUndef(parsed.fiber),
+          sugar_max: numOrUndef(parsed.sugar_max),
+          saturated_fat_max: numOrUndef(parsed.saturated_fat_max),
+          sodium_max: numOrUndef(parsed.sodium_max),
+          cholesterol_max: numOrUndef(parsed.cholesterol_max),
+          potassium: numOrUndef(parsed.potassium),
+          calcium: numOrUndef(parsed.calcium),
+          iron: numOrUndef(parsed.iron),
+          vitamin_c: numOrUndef(parsed.vitamin_c),
+          vitamin_d: numOrUndef(parsed.vitamin_d),
+          vitamin_a: numOrUndef(parsed.vitamin_a),
           summary: typeof parsed.summary === "string" ? parsed.summary : "Great work this week!",
         };
         visible = text.slice(0, idx).trim();
