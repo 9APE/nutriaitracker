@@ -287,6 +287,39 @@ export function BarcodeProductSheet({ barcode, onClose, onMealReady }: Props) {
                     onChange={(v) => setManual((m) => ({ ...m, fat: v }))}
                   />
                 </div>
+
+                <details className="rounded-xl border border-border bg-muted/30 px-3 py-2">
+                  <summary className="text-xs font-medium text-muted-foreground cursor-pointer select-none">
+                    Add micronutrients (optional)
+                  </summary>
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <Field
+                      label="Fiber / 100g (g)"
+                      type="number"
+                      value={manual.fiber}
+                      onChange={(v) => setManual((m) => ({ ...m, fiber: v }))}
+                    />
+                    <Field
+                      label="Sugar / 100g (g)"
+                      type="number"
+                      value={manual.sugar}
+                      onChange={(v) => setManual((m) => ({ ...m, sugar: v }))}
+                    />
+                    <Field
+                      label="Sat. fat / 100g (g)"
+                      type="number"
+                      value={manual.saturated_fat}
+                      onChange={(v) => setManual((m) => ({ ...m, saturated_fat: v }))}
+                    />
+                    <Field
+                      label="Sodium / 100g (mg)"
+                      type="number"
+                      value={manual.sodium}
+                      onChange={(v) => setManual((m) => ({ ...m, sodium: v }))}
+                    />
+                  </div>
+                </details>
+
                 <p className="text-xs text-muted-foreground">
                   Saved to this device — next scan of this barcode will load instantly.
                 </p>
