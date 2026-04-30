@@ -132,6 +132,37 @@ const EN: Dict = {
   calorieGoalHit: "Calorie goal hit! Just {g}g more protein to go.",
   needMore: "You need {g}g more protein and {kcal} kcal today.",
   signOutConfirm: "Sign out of Nouri?", signedOut: "Signed out",
+  // Log screen
+  logMealTitle: "Log a Meal",
+  logMealHelp: "Tap the mic and describe what you ate. I'll do the math.",
+  stopRecording: "Stop recording", startRecording: "Start recording",
+  recordingTap: "Recording… tap to stop",
+  transcribingAudio: "Transcribing your audio…",
+  tapToRecord: "Tap to start recording",
+  voiceUnsupported: "Voice not supported — type below",
+  orTypeInstead: "or type instead",
+  logExamplePlaceholder: "e.g. 100g rice, 150g grilled chicken, a tablespoon of olive oil",
+  calculatingMacros: "Calculating macros…",
+  send: "Send",
+  tryAnExample: "Try an example",
+  describeMealFirst: "Describe your meal first",
+  loggedToast: "Logged {name}",
+  logged: "Logged",
+  anythingElse: "Anything else?",
+  thinking: "Thinking…",
+  didntCatchThat: "I didn't catch that — could you try again or type your meal below?",
+  couldntAnalyse: "Sorry — I couldn't analyse that ({err}). Try rephrasing with quantities, e.g. \"150g chicken, 80g rice\".",
+  gotItPrefix: "Got it",
+  tapLogIt: "Tap **Log it** to save.",
+  kcalShort: "kcal", gShort: "g",
+  // History
+  historyTitle: "History", noMealsLogged: "No meals logged yet.",
+  mealsCount: "{n} meals", proteinShort: "protein",
+  // Insights
+  insightsTitle: "Insights",
+  avgProteinDay: "Avg Protein / day", avgCaloriesDay: "Avg Calories / day",
+  caloriesLast7: "Calories — last 7 days", proteinLast7: "Protein — last 7 days",
+  goalDot: "Goal",
 };
 
 const STRINGS: Record<LangCode, Partial<Dict>> = {
