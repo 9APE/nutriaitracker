@@ -499,7 +499,7 @@ export function TodayScreen({
           </div>
           <div className="flex flex-col items-center px-2">
             <div className="font-mono-data text-xl font-bold tabular-nums text-foreground">
-              {Math.round(goals.calories).toLocaleString()}
+              {Math.round(eGoals.calories).toLocaleString()}
             </div>
             <div className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">
               Goal
@@ -529,17 +529,39 @@ export function TodayScreen({
           <MacroChip
             label="Carbs"
             current={sum.carbs}
-            goal={goals.carbs}
+            goal={eGoals.carbs}
             colorVar="--macro-carbs"
           />
           <MacroChip
             label="Fat"
             current={sum.fat}
-            goal={goals.fat}
+            goal={eGoals.fat}
             colorVar="--macro-fat"
           />
         </div>
       </section>
+
+      {/* Training day banner — Part 2 */}
+      {training && (
+        <div
+          className="rounded-2xl border p-3 flex items-center gap-3"
+          style={{
+            backgroundColor: "hsl(var(--macro-carbs) / 0.10)",
+            borderColor: "hsl(var(--macro-carbs) / 0.35)",
+          }}
+        >
+          <span
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+            style={{ backgroundColor: "hsl(var(--macro-carbs) / 0.18)" }}
+            aria-hidden
+          >
+            <Dumbbell size={16} style={{ color: "hsl(var(--macro-carbs))" }} />
+          </span>
+          <p className="text-xs leading-relaxed text-foreground/90">
+            Training day targets active — goals adjusted for recovery.
+          </p>
+        </div>
+      )}
 
       {/* SECTION 4 — NOURI TIP BANNER */}
       <div
