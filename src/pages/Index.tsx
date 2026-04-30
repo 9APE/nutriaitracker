@@ -14,7 +14,7 @@ import { notifStore } from "@/lib/nouri-suggestions";
 import { useAuth } from "@/lib/auth-context";
 import { cloud, type Profile } from "@/lib/nouri-cloud";
 import { toast } from "sonner";
-import { Loader2, UserCog } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import {
   ProfileChatOnboarding,
   type UserProfile,
