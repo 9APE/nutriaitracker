@@ -186,6 +186,16 @@ export function SettingsScreen({
           </section>
         </div>
       </div>
+
+      {editingProfile && canEditProfile && userProfile && userId && (
+        <EditProfileSheet
+          profile={userProfile}
+          userId={userId}
+          onClose={() => setEditingProfile(false)}
+          onProfileSaved={(p) => onProfileSaved!(p)}
+          onGoalsRecalculated={(g, w) => onGoalsRecalculated!(g, w)}
+        />
+      )}
     </div>
   );
 }
