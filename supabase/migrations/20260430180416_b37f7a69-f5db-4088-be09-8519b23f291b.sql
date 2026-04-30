@@ -1,0 +1,1 @@
+ALTER TABLE public.meals ADD COLUMN IF NOT EXISTS micros jsonb;

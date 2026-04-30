@@ -13,6 +13,7 @@ export interface MealMicros {
   iron?: number;
   vitamin_c?: number;
   vitamin_d?: number;
+  vitamin_a?: number;
   calcium?: number;
 }
 

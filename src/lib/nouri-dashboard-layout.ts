@@ -5,9 +5,14 @@ import { todayISO } from "./nouri-storage";
 export const ALL_METRICS = [
   "calories", "protein", "carbs", "sugar", "fat", "fiber",
   "sodium", "potassium", "cholesterol", "saturated_fat",
-  "iron", "vitamin_c", "vitamin_d", "calcium",
+  "iron", "vitamin_c", "vitamin_d", "vitamin_a", "calcium",
 ] as const;
 export type Metric = typeof ALL_METRICS[number];
+
+/** Metrics where exceeding the goal is bad (limits, not targets). */
+export const LIMIT_METRICS: ReadonlySet<Metric> = new Set([
+  "sugar", "sodium", "saturated_fat", "cholesterol",
+]);
 
 export interface DashboardLayout {
   large: Metric[];
@@ -47,7 +52,7 @@ export function onLayoutChange(cb: () => void): () => void {
 export const DEFAULT_LAYOUT: DashboardLayout = {
   large: ["calories", "protein", "carbs"],
   medium: ["fat", "fiber", "sugar"],
-  small: ["sodium", "potassium", "cholesterol", "saturated_fat", "iron", "vitamin_c", "vitamin_d", "calcium"],
+  small: ["sodium", "potassium", "cholesterol", "saturated_fat", "iron", "vitamin_c", "vitamin_d", "vitamin_a", "calcium"],
   banner: "Steady choices today add up to real change.",
   reasoning: "Balanced default until your personalized layout is ready.",
 };
@@ -77,6 +82,7 @@ export const METRIC_META: Record<Metric, MetricMeta> = {
   iron:          { key: "iron",          label: "Iron",           unit: "mg",   defaultGoal: 18,   color: "#9b87d4" },
   vitamin_c:     { key: "vitamin_c",     label: "Vitamin C",      unit: "mg",   defaultGoal: 90,   color: "#5dbd8a" },
   vitamin_d:     { key: "vitamin_d",     label: "Vitamin D",      unit: "µg",   defaultGoal: 20,   color: "#d4954a" },
+  vitamin_a:     { key: "vitamin_a",     label: "Vitamin A",      unit: "µg",   defaultGoal: 800,  color: "#d4954a" },
   calcium:       { key: "calcium",       label: "Calcium",        unit: "mg",   defaultGoal: 1000, color: "#5b9bd4" },
 };
 
@@ -130,6 +136,7 @@ export function goalForMetric(metric: Metric, goals: Goals): number {
     case "iron":          return ext?.iron              ?? METRIC_META.iron.defaultGoal;
     case "vitamin_c":     return ext?.vitamin_c         ?? METRIC_META.vitamin_c.defaultGoal;
     case "vitamin_d":     return ext?.vitamin_d         ?? METRIC_META.vitamin_d.defaultGoal;
+    case "vitamin_a":     return ext?.vitamin_a         ?? METRIC_META.vitamin_a.defaultGoal;
     default:              return METRIC_META[metric as Metric].defaultGoal;
   }
 }

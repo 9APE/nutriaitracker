@@ -72,7 +72,8 @@ export const cloud = {
         carbs: meal.carbs,
         fat: meal.fat,
         date: meal.date,
-      })
+        micros: meal.micros ?? null,
+      } as any)
       .select()
       .single();
     if (error) throw error;
@@ -99,8 +100,9 @@ export const cloud = {
       carbs: m.carbs,
       fat: m.fat,
       date: m.date,
+      micros: m.micros ?? null,
     }));
-    const { error } = await supabase.from("meals").insert(rows);
+    const { error } = await supabase.from("meals").insert(rows as any);
     if (error) throw error;
   },
 };
@@ -116,5 +118,6 @@ function rowToMeal(row: any): Meal {
     fat: row.fat,
     date: row.date,
     created_at: new Date(row.created_at).getTime(),
+    micros: row.micros ?? undefined,
   };
 }

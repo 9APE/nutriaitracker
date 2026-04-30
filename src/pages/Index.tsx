@@ -248,7 +248,11 @@ const Index = () => {
         carbs: m.carbs,
         fat: m.fat,
         date: m.date,
+        micros: m.micros,
       });
+      // Preserve the AI-estimated micros locally even if the DB round-trip
+      // doesn't echo them back identically (so the Today tab keeps real numbers).
+      saved.micros = saved.micros ?? m.micros;
       // Replace optimistic entry with server row (so id matches)
       setMeals((prev) => [saved, ...prev.filter((x) => x.id !== m.id)]);
     } catch (e: any) {
