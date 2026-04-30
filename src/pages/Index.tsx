@@ -440,6 +440,17 @@ const Index = () => {
                 toast.error(e?.message || "Couldn't save updated goals");
               }
             }
+            // Re-run AI dashboard layout after weekly check-in (goals/conditions may have shifted)
+            try {
+              const layout = await generateLayout({
+                profile: userProfile,
+                goals: g,
+                currentLayout: getStoredLayout(),
+              });
+              saveLayout(layout);
+            } catch (e) {
+              console.error("layout regeneration failed", e);
+            }
           }}
         />
       )}
