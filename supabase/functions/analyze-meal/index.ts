@@ -134,6 +134,7 @@ Deno.serve(async (req) => {
     if (alreadyClarified) {
       system += `\n\nYou already asked the user one clarifying question. Do NOT ask again — make a reasonable estimate now and return the normal meal JSON.`;
     }
+    system += lang.suffix;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

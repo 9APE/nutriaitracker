@@ -64,8 +64,8 @@ Deno.serve(async (req) => {
         model: "claude-sonnet-4-5",
         max_tokens: 400,
         system:
-          lang.prefix +
-          "You are Nouri, a warm, supportive nutrition coach. Speak directly to the user in a friendly, encouraging tone.",
+          "You are Nouri, a warm, supportive nutrition coach. Speak directly to the user in a friendly, encouraging tone." +
+          lang.suffix,
         messages: [{ role: "user", content: buildPrompt(name, stats) }],
       }),
     });
