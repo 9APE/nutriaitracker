@@ -117,9 +117,9 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
   async function sendToClaude(history: ChatMessage[]) {
     setWaiting(true);
     try {
-      const { getLanguage } = await import("@/lib/nouri-i18n");
+      const { getLanguage, getLanguageName } = await import("@/lib/nouri-i18n");
       const { data, error } = await supabase.functions.invoke("onboarding-chat", {
-        body: { mode: "chat", messages: history, language: getLanguage() ?? "en" },
+        body: { mode: "chat", messages: history, language: getLanguage() ?? "en", languageName: getLanguageName() },
       });
       if (error) throw new Error(error.message);
       const visible: string = data?.message ?? "";
@@ -146,9 +146,9 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
   async function fetchPlan(p: UserProfile) {
     setPhase("plan-loading");
     try {
-      const { getLanguage } = await import("@/lib/nouri-i18n");
+      const { getLanguage, getLanguageName } = await import("@/lib/nouri-i18n");
       const { data, error } = await supabase.functions.invoke("onboarding-chat", {
-        body: { mode: "goals", profile: p, language: getLanguage() ?? "en" },
+        body: { mode: "goals", profile: p, language: getLanguage() ?? "en", languageName: getLanguageName() },
       });
       if (error) throw new Error(error.message);
       const plan: PlanResult = data?.plan;
