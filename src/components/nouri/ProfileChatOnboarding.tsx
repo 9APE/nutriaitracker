@@ -222,7 +222,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
   const acceptPlan = () => {
     if (!profile || !plan || !adjusted) return;
     saveUserWarnings(plan.warnings);
-    onDone({ profile, goals: adjusted, warnings: plan.warnings });
+    onDone({ profile, goals: adjusted, warnings: plan.warnings, plan });
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
