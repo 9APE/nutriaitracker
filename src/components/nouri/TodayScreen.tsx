@@ -18,6 +18,7 @@ import {
   type TrainingEntry,
 } from "@/lib/nouri-training";
 import { Mic, Dumbbell } from "lucide-react";
+import { useLanguage, t, getLocale } from "@/lib/nouri-i18n";
 
 interface TodayScreenProps {
   goals: Goals;
@@ -38,6 +39,7 @@ export function TodayScreen({
   onOpenXP,
   onStartCheckin,
 }: TodayScreenProps) {
+  const lang = useLanguage();
   const today = todayISO();
   const todayMeals = meals.filter((m) => m.date === today);
   const sum = todayMeals.reduce(
@@ -53,7 +55,7 @@ export function TodayScreen({
   const remaining = Math.max(0, goals.calories - sum.calories);
   const calPct = Math.min(100, (sum.calories / goals.calories) * 100);
 
-  const dateLabel = new Date().toLocaleDateString(undefined, {
+  const dateLabel = new Date().toLocaleDateString(getLocale(lang), {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -105,7 +107,7 @@ export function TodayScreen({
   return (
     <div className="px-5 pt-4 pb-28 max-w-md mx-auto space-y-5">
       <div>
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">Today</p>
+        <p className="text-xs uppercase tracking-wider text-muted-foreground">{t("today", lang)}</p>
         <div className="flex items-center justify-between gap-3">
           <h1 className="font-serif text-2xl font-medium">{dateLabel}</h1>
           <div className="flex items-center gap-1.5 shrink-0">
@@ -151,7 +153,7 @@ export function TodayScreen({
             {trainingEmoji(training.type)}
           </span>
           <p className="text-xs flex-1" style={{ color: "#1F6B43" }}>
-            Training logged — protein target +{TRAINING_PROTEIN_BONUS}g today.
+            {t("trainingLogged", lang, { n: TRAINING_PROTEIN_BONUS })}
           </p>
         </div>
       ) : (
@@ -170,10 +172,10 @@ export function TodayScreen({
           </span>
           <div className="flex-1 text-left">
             <div className="text-sm font-medium" style={{ color: "#1F3A28" }}>
-              Log training
+              {t("logTraining", lang)}
             </div>
             <div className="text-[11px] text-muted-foreground">
-              Bumps today's protein target by {TRAINING_PROTEIN_BONUS}g.
+              {t("trainingBumps", lang, { n: TRAINING_PROTEIN_BONUS })}
             </div>
           </div>
         </button>
@@ -189,17 +191,17 @@ export function TodayScreen({
           <span className="text-2xl shrink-0">🌿</span>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium" style={{ color: "#1F6B43" }}>
-              Time for your weekly check-in
+              {t("weeklyCheckinTitle", lang)}
             </div>
             <div className="text-xs mt-0.5" style={{ color: "#1F6B43", opacity: 0.8 }}>
-              A quick chat with Nouri to fine-tune your goals.
+              {t("weeklyCheckinSub", lang)}
             </div>
           </div>
           <span
             className="text-xs font-medium px-3 py-1.5 rounded-full text-white shrink-0"
             style={{ backgroundColor: "#5BB882" }}
           >
-            Let's go
+            {t("letsGo", lang)}
           </span>
         </button>
       )}
@@ -210,13 +212,13 @@ export function TodayScreen({
             <div className="font-mono-data text-5xl text-foreground leading-none">
               {Math.round(sum.calories)}
             </div>
-            <div className="text-xs text-muted-foreground mt-2">Calories eaten</div>
+            <div className="text-xs text-muted-foreground mt-2">{t("caloriesEaten", lang)}</div>
           </div>
           <div className="text-right">
             <div className="font-mono-data text-2xl text-primary leading-none">
               {Math.round(remaining)}
             </div>
-            <div className="text-xs text-muted-foreground mt-2">Remaining</div>
+            <div className="text-xs text-muted-foreground mt-2">{t("remaining", lang)}</div>
           </div>
         </div>
         <div className="mt-5 h-2 rounded-full bg-muted overflow-hidden">
@@ -226,7 +228,7 @@ export function TodayScreen({
           />
         </div>
         <div className="font-mono-data text-[11px] text-muted-foreground mt-2 text-right">
-          Goal {goals.calories} kcal
+          {t("goal", lang)} {goals.calories} {t("kcal", lang)}
         </div>
       </section>
 
@@ -246,14 +248,14 @@ export function TodayScreen({
         className="w-full rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors py-5 px-4 flex items-center justify-center gap-2 text-primary font-medium"
       >
         <Mic size={18} />
-        Log a meal with voice or text 🎤
+        {t("logMealCta", lang)}
       </button>
 
       <section className="space-y-2">
-        <h2 className="font-serif text-lg font-medium px-1">Today's meals</h2>
+        <h2 className="font-serif text-lg font-medium px-1">{t("todaysMeals", lang)}</h2>
         {todayMeals.length === 0 ? (
           <p className="text-sm text-muted-foreground px-1 py-4">
-            Nothing logged yet — tap the button above to add your first meal.
+            {t("nothingLoggedYet", lang)}
           </p>
         ) : (
           <div className="space-y-2">
