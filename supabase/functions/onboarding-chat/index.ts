@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const mode = body?.mode ?? "chat";
-    const lang = resolveLanguage(body?.language);
+    const lang = resolveLanguage(body?.language, body?.languageName);
 
     if (mode === "chat") {
       const history = Array.isArray(body?.messages) ? body.messages : [];

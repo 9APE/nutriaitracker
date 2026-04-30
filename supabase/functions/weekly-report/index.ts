@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       proteinGoal: body?.stats?.proteinGoal ? Number(body.stats.proteinGoal) : undefined,
       calorieGoal: body?.stats?.calorieGoal ? Number(body.stats.calorieGoal) : undefined,
     };
-    const lang = resolveLanguage(body?.language);
+    const lang = resolveLanguage(body?.language, body?.languageName);
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
