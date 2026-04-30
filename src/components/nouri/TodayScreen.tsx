@@ -236,42 +236,100 @@ export function TodayScreen({
         </button>
       )}
 
-      <section className="nouri-card p-6">
-        <div className="flex items-end justify-between mb-1">
-          <div>
-            <div className="font-mono-data text-5xl text-foreground leading-none">
-              {Math.round(sum.calories)}
-            </div>
-            <div className="text-xs text-muted-foreground mt-2">{t("caloriesEaten", lang)}</div>
-          </div>
-          <div className="text-right">
-            <div className="font-mono-data text-2xl text-primary leading-none">
-              {Math.round(remaining)}
-            </div>
-            <div className="text-xs text-muted-foreground mt-2">{t("remaining", lang)}</div>
-          </div>
+      {/* AI-personalized banner */}
+      {layout.banner && (
+        <div
+          className="rounded-2xl border p-3 flex items-start gap-2"
+          style={{ backgroundColor: "#FFF8E1", borderColor: "#F0C24A", color: "#7A5800" }}
+        >
+          <Sparkles size={14} className="mt-0.5 shrink-0" />
+          <p className="text-xs leading-relaxed">{layout.banner}</p>
         </div>
-        <div className="mt-5 h-2 rounded-full bg-muted overflow-hidden">
-          <div
-            className="h-full bg-primary macro-fill rounded-full"
-            style={{ width: `${calPct}%` }}
-          />
-        </div>
-        <div className="font-mono-data text-[11px] text-muted-foreground mt-2 text-right">
-          {t("goal", lang)} {goals.calories} {t("kcal", lang)}
-        </div>
-      </section>
+      )}
 
-      <section className="nouri-card p-5 space-y-4">
-        <MacroBar label="Protein" current={sum.protein} goal={displayedGoals.protein} color="protein" />
-        <MacroBar label="Carbs" current={sum.carbs} goal={goals.carbs} color="carbs" />
-        <MacroBar label="Fat" current={sum.fat} goal={goals.fat} color="fat" />
-      </section>
+      {/* Large priority metrics */}
+      {layout.large.length > 0 && (
+        <section
+          className={
+            layout.large.length === 1
+              ? "grid grid-cols-1 gap-3"
+              : layout.large.length === 2
+              ? "grid grid-cols-2 gap-3"
+              : "grid grid-cols-3 gap-3"
+          }
+        >
+          {layout.large.map((m) => (
+            <MetricRing
+              key={m}
+              metric={m}
+              size="large"
+              current={metricVal(m)}
+              goal={goalForMetric(m, m === "protein" ? displayedGoals : goals)}
+            />
+          ))}
+        </section>
+      )}
+
+      {/* Medium metrics */}
+      {layout.medium.length > 0 && (
+        <section className="grid grid-cols-3 gap-3">
+          {layout.medium.map((m) => (
+            <MetricRing
+              key={m}
+              metric={m}
+              size="medium"
+              current={metricVal(m)}
+              goal={goalForMetric(m, m === "protein" ? displayedGoals : goals)}
+            />
+          ))}
+        </section>
+      )}
+
+      {/* Small metrics, collapsed */}
+      {layout.small.length > 0 && (
+        <section className="nouri-card p-4">
+          <button
+            type="button"
+            onClick={() => setShowSmall((v) => !v)}
+            className="w-full flex items-center justify-between text-sm font-medium text-foreground"
+          >
+            <span>More nutrients</span>
+            {showSmall ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+          {showSmall && (
+            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
+              {layout.small.map((m) => {
+                const meta = METRIC_META[m];
+                const tracked = isTracked(m);
+                const cur = metricVal(m);
+                const goal = goalForMetric(m, m === "protein" ? displayedGoals : goals);
+                return (
+                  <div key={m} className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">{meta.label}</span>
+                    <span className="font-mono-data text-foreground">
+                      {tracked ? `${Math.round(cur)}/${Math.round(goal)} ${meta.unit}` : `— ${meta.unit}`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
 
       <RemainingBanner
         remainingProtein={displayedGoals.protein - sum.protein}
         remainingCalories={goals.calories - sum.calories}
       />
+
+      <button
+        type="button"
+        onClick={() => setAdjustOpen(true)}
+        className="w-full rounded-2xl border border-border bg-surface hover:bg-muted transition-colors py-3 px-4 flex items-center justify-center gap-2 text-sm text-foreground"
+      >
+        <Sliders size={14} />
+        Adjust my dashboard
+      </button>
 
       <button
         onClick={onGoLog}
