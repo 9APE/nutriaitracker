@@ -368,6 +368,15 @@ export function TodayScreen({
           setTrainingSheetOpen(false);
         }}
       />
+
+      <AdjustDashboardSheet
+        open={adjustOpen}
+        onClose={() => setAdjustOpen(false)}
+        profile={userProfile}
+        goals={goals}
+        currentLayout={layout}
+        onUpdated={(l) => setLayout(l)}
+      />
     </div>
   );
 }
