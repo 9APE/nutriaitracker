@@ -1,8 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MacroBar } from "@/components/nouri/MacroBar";
 import { MealCard } from "@/components/nouri/MealCard";
 import { NouriRecommends } from "@/components/nouri/NouriRecommends";
 import { RemainingBanner } from "@/components/nouri/RemainingBanner";
+import { MetricRing } from "@/components/nouri/MetricRing";
+import { AdjustDashboardSheet } from "@/components/nouri/AdjustDashboardSheet";
+import {
+  DEFAULT_LAYOUT,
+  METRIC_META,
+  getStoredLayout,
+  goalForMetric,
+  isTracked,
+  onLayoutChange,
+  totalForMetric,
+  type DashboardLayout,
+} from "@/lib/nouri-dashboard-layout";
+import { ChevronDown, ChevronUp, Sliders, Sparkles } from "lucide-react";
 import type { Goals, Meal } from "@/lib/nouri-storage";
 import { todayISO } from "@/lib/nouri-storage";
 import { getStreak, getFreezes } from "@/lib/nouri-streak";
