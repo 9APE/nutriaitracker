@@ -65,7 +65,7 @@ export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps)
     onClose();
   };
 
-  const statItems: Array<{ label: string; value: string; emoji: string }> = [
+  const statItems: Array<{ label: string; value: string }> = [
     { label: "Meals logged", value: String(stats.totalMeals) },
     { label: "Protein days", value: `${stats.proteinDaysHit}/7` },
     { label: "Avg calories", value: `${stats.avgCalories}` },
@@ -105,12 +105,9 @@ export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps)
           {statItems.map((s) => (
             <div
               key={s.label}
-              className="rounded-2xl p-3 flex items-center gap-3"
+              className="rounded-2xl p-3"
               style={{ backgroundColor: "#F2EADB", border: "1px solid #E2D8C4" }}
             >
-              <span className="text-xl shrink-0" aria-hidden>
-                {s.emoji}
-              </span>
               <div className="min-w-0">
                 <div
                   className="font-mono-data text-lg leading-none"
