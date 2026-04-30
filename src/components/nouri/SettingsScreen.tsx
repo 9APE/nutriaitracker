@@ -37,6 +37,13 @@ export function SettingsScreen({ onClose, initialPicking = false }: Props) {
   const lang = useLanguage();
   const current = getLanguageMeta(lang);
   const [picking, setPicking] = useState(initialPicking);
+  const themePref = useThemePreference();
+
+  const themeOptions: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
+    { value: "system", label: t("themeSystem", lang), Icon: Monitor },
+    { value: "light", label: t("themeLight", lang), Icon: Sun },
+    { value: "dark", label: t("themeDark", lang), Icon: Moon },
+  ];
 
   const handlePick = (code: LangCode) => {
     setLanguage(code);
