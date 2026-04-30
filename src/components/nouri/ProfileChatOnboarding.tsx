@@ -258,8 +258,11 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
             </div>
 
             <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 flex gap-3">
-              
-              <p className="text-sm leading-relaxed text-foreground">{plan.reasoning}</p>
+              <p className="text-sm leading-relaxed text-foreground">
+                {typeof plan.reasoning === "string"
+                  ? plan.reasoning
+                  : Object.values(plan.reasoning ?? {}).filter(Boolean).slice(0, 2).join(" ")}
+              </p>
             </div>
 
             {plan.warnings.length > 0 && (
