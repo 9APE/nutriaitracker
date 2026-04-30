@@ -24,6 +24,8 @@ import { awardMealXP, checkDailyGoalAwards } from "@/lib/nouri-xp";
 import { XPFloater } from "@/components/nouri/XPFloater";
 import { XPScreen } from "@/components/nouri/XPScreen";
 import { WeeklyCheckin } from "@/components/nouri/WeeklyCheckin";
+import { WeeklyReport } from "@/components/nouri/WeeklyReport";
+import { shouldShowWeeklyReport } from "@/lib/nouri-weekly-report";
 import { GoalCelebration } from "@/components/nouri/GoalCelebration";
 
 const MIGRATED_KEY = "nouri:migrated";
@@ -42,6 +44,7 @@ const Index = () => {
   const [logPrefill, setLogPrefill] = useState<string | undefined>(undefined);
   const [showXP, setShowXP] = useState(false);
   const [showCheckin, setShowCheckin] = useState(false);
+  const [showWeeklyReport, setShowWeeklyReport] = useState(false);
 
   // Reconcile streak (spend a freeze if a day was missed) on app open
   useEffect(() => {
