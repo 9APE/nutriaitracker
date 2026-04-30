@@ -391,6 +391,7 @@ const Index = () => {
             userProfile={userProfile}
             onDeleteMeal={handleDeleteMeal}
             onGoLog={() => setTab("log")}
+            onGoHistory={() => setTab("history")}
             onPickSuggestion={(name) => {
               setLogPrefill(name);
               setTab("log");

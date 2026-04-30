@@ -2,21 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 
 import { MealCard } from "@/components/nouri/MealCard";
 import { NouriRecommends } from "@/components/nouri/NouriRecommends";
-import { RemainingBanner } from "@/components/nouri/RemainingBanner";
-import { MetricRing } from "@/components/nouri/MetricRing";
 import { AdjustDashboardSheet } from "@/components/nouri/AdjustDashboardSheet";
 import {
   DEFAULT_LAYOUT,
-  METRIC_META,
   getStoredLayout,
-  goalForMetric,
-  isTracked,
   onLayoutChange,
-  totalForMetric,
   type DashboardLayout,
 } from "@/lib/nouri-dashboard-layout";
-import { ChevronDown, ChevronUp, Sliders, Sparkles } from "lucide-react";
-import type { Goals, Meal } from "@/lib/nouri-storage";
+import { Check, Flame, Mic, Sliders } from "lucide-react";
+import type { Goals, Meal, MealType } from "@/lib/nouri-storage";
 import { todayISO } from "@/lib/nouri-storage";
 import { getStreak, getFreezes } from "@/lib/nouri-streak";
 import { getTotalXP, getLevelInfo } from "@/lib/nouri-xp";
@@ -26,11 +20,10 @@ import { TrainingSheet } from "@/components/nouri/TrainingSheet";
 import {
   getTodayTraining,
   saveTodayTraining,
-  trainingEmoji,
   TRAINING_PROTEIN_BONUS,
   type TrainingEntry,
 } from "@/lib/nouri-training";
-import { Mic, Dumbbell } from "lucide-react";
+import { Dumbbell } from "lucide-react";
 import { useLanguage, t, getLocale } from "@/lib/nouri-i18n";
 
 interface TodayScreenProps {
@@ -39,9 +32,169 @@ interface TodayScreenProps {
   userProfile?: any;
   onDeleteMeal: (id: string) => void;
   onGoLog: () => void;
+  onGoHistory?: () => void;
   onPickSuggestion?: (mealName: string) => void;
   onOpenXP?: () => void;
   onStartCheckin?: () => void;
+}
+
+const MEAL_EMOJI: Record<MealType, string> = {
+  Breakfast: "🌅",
+  Lunch: "☀️",
+  Dinner: "🌙",
+  Snack: "🍎",
+};
+
+// Rough kcal estimate per training type
+const TRAINING_BURN: Record<string, number> = {
+  Strength: 350,
+  Cardio: 450,
+  Cycling: 500,
+  Bouldering: 400,
+  Other: 300,
+};
+
+function trainingBurn(t: TrainingEntry | null): number {
+  if (!t) return 0;
+  return TRAINING_BURN[t.type] ?? 300;
+}
+
+// SVG speedometer arc (open at bottom)
+function CalorieArc({ pct, remaining }: { pct: number; remaining: number }) {
+  const size = 220;
+  const stroke = 14;
+  const r = (size - stroke) / 2;
+  const cx = size / 2;
+  const cy = size / 2;
+  // Arc from 135deg to 45deg (going through top), 270deg sweep
+  const startAngle = 135;
+  const endAngle = 405; // 360 + 45
+  const polar = (a: number) => ({
+    x: cx + r * Math.cos((a * Math.PI) / 180),
+    y: cy + r * Math.sin((a * Math.PI) / 180),
+  });
+  const p1 = polar(startAngle);
+  const p2 = polar(endAngle);
+  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+  const trackPath = `M ${p1.x} ${p1.y} A ${r} ${r} 0 ${largeArc} 1 ${p2.x} ${p2.y}`;
+
+  // Filled portion
+  const clamped = Math.max(0, Math.min(100, pct));
+  const sweep = ((endAngle - startAngle) * clamped) / 100;
+  const pf = polar(startAngle + sweep);
+  const fillLarge = sweep > 180 ? 1 : 0;
+  const fillPath =
+    clamped > 0 ? `M ${p1.x} ${p1.y} A ${r} ${r} 0 ${fillLarge} 1 ${pf.x} ${pf.y}` : "";
+
+  return (
+    <div className="relative" style={{ width: size, height: size * 0.78 }}>
+      <svg width={size} height={size} className="absolute inset-0">
+        <path
+          d={trackPath}
+          fill="none"
+          stroke="hsl(var(--muted))"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+        />
+        {fillPath && (
+          <path
+            d={fillPath}
+            fill="none"
+            stroke="hsl(var(--primary))"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            style={{ transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1)" }}
+          />
+        )}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pt-4">
+        <div className="font-mono-data text-5xl font-bold tracking-tight text-foreground tabular-nums">
+          {Math.round(Math.max(0, remaining)).toLocaleString()}
+        </div>
+        <div className="text-xs text-muted-foreground mt-1">kcal left</div>
+      </div>
+    </div>
+  );
+}
+
+function MacroChip({
+  label,
+  current,
+  goal,
+  colorVar,
+}: {
+  label: string;
+  current: number;
+  goal: number;
+  colorVar: string;
+}) {
+  const pct = goal > 0 ? Math.min(100, (current / goal) * 100) : 0;
+  const over = current > goal;
+  return (
+    <div className="flex-1 rounded-2xl border border-border bg-card p-3 flex flex-col gap-1.5">
+      <div className="flex items-baseline gap-1">
+        <span
+          className="font-mono-data text-base font-semibold tabular-nums"
+          style={{ color: over ? "hsl(var(--destructive))" : `hsl(var(${colorVar}))` }}
+        >
+          {Math.round(current)}
+        </span>
+        <span className="font-mono-data text-[11px] text-muted-foreground">
+          /{Math.round(goal)}g
+        </span>
+      </div>
+      <div className="text-[11px] text-muted-foreground">{label}</div>
+      <div className="h-1 rounded-full bg-muted overflow-hidden mt-1">
+        <div
+          className="h-full rounded-full transition-all duration-700"
+          style={{
+            width: `${pct}%`,
+            backgroundColor: over ? "hsl(var(--destructive))" : `hsl(var(${colorVar}))`,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function MacroDetailCard({
+  label,
+  current,
+  goal,
+  unit,
+  colorVar,
+}: {
+  label: string;
+  current: number;
+  goal: number;
+  unit: string;
+  colorVar: string;
+}) {
+  const pct = goal > 0 ? Math.min(100, (current / goal) * 100) : 0;
+  const over = current > goal;
+  const color = over ? "hsl(var(--destructive))" : `hsl(var(${colorVar}))`;
+  return (
+    <div className="rounded-[20px] border border-border bg-card p-5 flex flex-col gap-2">
+      <div className="nouri-label">{label}</div>
+      <div className="flex items-baseline gap-1.5">
+        <span
+          className="font-mono-data text-3xl font-bold tabular-nums leading-none"
+          style={{ color }}
+        >
+          {Math.round(current)}
+        </span>
+        <span className="font-mono-data text-xs text-muted-foreground">
+          /{Math.round(goal)}{unit}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-2">
+        <div
+          className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${pct}%`, backgroundColor: color }}
+        />
+      </div>
+    </div>
+  );
 }
 
 export function TodayScreen({
@@ -50,6 +203,7 @@ export function TodayScreen({
   userProfile,
   onDeleteMeal,
   onGoLog,
+  onGoHistory,
   onPickSuggestion,
   onOpenXP,
   onStartCheckin,
@@ -67,13 +221,11 @@ export function TodayScreen({
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   );
 
-  const remaining = Math.max(0, goals.calories - sum.calories);
-  const calPct = Math.min(100, (sum.calories / goals.calories) * 100);
-
   const dateLabel = new Date().toLocaleDateString(getLocale(lang), {
     weekday: "long",
     month: "long",
     day: "numeric",
+    year: "numeric",
   });
 
   const [streak, setStreak] = useState(() => getStreak());
@@ -104,9 +256,8 @@ export function TodayScreen({
     return () => window.removeEventListener("training:updated", refresh);
   }, []);
 
-  // Personalized dashboard layout (AI-decided)
+  // Personalized layout still loaded for AI banner / fiber goal
   const [layout, setLayout] = useState<DashboardLayout>(() => getStoredLayout() ?? DEFAULT_LAYOUT);
-  const [showSmall, setShowSmall] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
   useEffect(() => {
     const refresh = () => {
@@ -117,15 +268,47 @@ export function TodayScreen({
     return onLayoutChange(refresh);
   }, []);
 
-  const metricVal = useMemo(
-    () => (m: any) => totalForMetric(m, meals),
-    [meals]
-  );
+  const burned = trainingBurn(training);
+  const displayedProteinGoal = goals.protein + (training ? TRAINING_PROTEIN_BONUS : 0);
+  const remaining = Math.max(0, goals.calories - sum.calories);
+  const calPct = (sum.calories / goals.calories) * 100;
 
-  // Apply training bonus to displayed protein goal only (not persisted)
-  const displayedGoals: Goals = training
-    ? { ...goals, protein: goals.protein + TRAINING_PROTEIN_BONUS }
-    : goals;
+  // Week strip — Monday-first
+  const weekDays = useMemo(() => {
+    const now = new Date();
+    const day = now.getDay(); // 0=Sun..6=Sat
+    const diffToMon = (day + 6) % 7;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - diffToMon);
+    monday.setHours(0, 0, 0, 0);
+    const labels = ["M", "T", "W", "T", "F", "S", "S"];
+    const todayStr = todayISO();
+    const loggedDates = new Set(meals.map((m) => m.date));
+    return labels.map((label, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const iso = d.toISOString().slice(0, 10);
+      const isToday = iso === todayStr;
+      const isFuture = iso > todayStr;
+      const logged = loggedDates.has(iso);
+      return { label, iso, isToday, isFuture, logged };
+    });
+  }, [meals]);
+
+  // Personalized tip — derived locally; replace with Claude later if wired
+  const tip = useMemo(() => {
+    const remP = Math.max(0, displayedProteinGoal - sum.protein);
+    const remC = Math.max(0, goals.calories - sum.calories);
+    if (remP <= 0 && remC <= 0)
+      return "You've hit your goals for the day — well done. Stay light tonight.";
+    if (sum.calories === 0)
+      return `Fresh start. ${Math.round(goals.calories)} kcal and ${Math.round(displayedProteinGoal)}g protein to go.`;
+    if (remP > 30)
+      return `You need ${Math.round(remP)}g more protein and ${Math.round(remC)} kcal today. Make dinner count!`;
+    if (remC < 300)
+      return `Almost there — only ${Math.round(remC)} kcal left. Keep it light.`;
+    return `${Math.round(remC)} kcal and ${Math.round(remP)}g protein remaining. You're on track.`;
+  }, [sum, goals, displayedProteinGoal]);
 
   const streakActive =
     streak.count > 0 &&
@@ -137,73 +320,184 @@ export function TodayScreen({
           return d.toISOString().slice(0, 10);
         })());
 
+  // Fiber goal (rough default if not in goals): 14g per 1000 kcal
+  const fiberGoal = Math.round((goals.calories / 1000) * 14);
+  // We don't track fiber per meal; estimate from carbs (~10% of carb grams)
+  const fiberCurrent = Math.round(sum.carbs * 0.1);
+
   return (
-    <div className="px-5 pt-4 pb-28 max-w-md mx-auto space-y-5">
-      <div>
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">{t("today", lang)}</p>
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="font-serif text-2xl font-medium">{dateLabel}</h1>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={onOpenXP}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap transition-transform active:scale-95 hover:brightness-105"
-              style={{ backgroundColor: "#FFF8E1", borderColor: "#F0C24A", color: "#7A5800" }}
-              title={`Level ${levelInfo.level} • ${xp} XP`}
-              aria-label="View your XP and level"
-            >
-              Lvl {levelInfo.level} ⭐
-            </button>
-            <span
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap"
-              style={{ backgroundColor: "#EAF4EE", borderColor: "#5BB882", color: "#1F6B43" }}
-              title="Daily logging streak"
-            >
-              {streakActive ? `🔥 ${streak.count}` : "Start streak"}
-            </span>
-            {freezes > 0 && (
-              <span
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap"
-                style={{ backgroundColor: "#E8F1FB", borderColor: "#5B8FCC", color: "#1F4A82" }}
-                title="Streak freezes available"
-              >
-                {freezes} freeze
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <EveningNudge meals={meals} onGoLog={onGoLog} />
-
-      {training ? (
-        <div
-          className="rounded-2xl border p-3 flex items-center gap-3"
-          style={{ backgroundColor: "#EAF4EE", borderColor: "#5BB882" }}
-          role="status"
-        >
-          <p className="text-xs flex-1" style={{ color: "#1F6B43" }}>
-            {t("trainingLogged", lang, { n: TRAINING_PROTEIN_BONUS })}
+    <div className="px-5 pt-4 pb-28 max-w-md mx-auto space-y-[14px]">
+      {/* SECTION 1 — HEADER */}
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">NutriAI</h1>
+          <p className="font-mono-data text-[11px] text-muted-foreground mt-0.5">
+            {dateLabel}
           </p>
         </div>
-      ) : (
+        <button
+          type="button"
+          onClick={onOpenXP}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card border border-border text-sm font-medium shadow-sm transition-transform active:scale-95"
+          aria-label="Streak"
+        >
+          <Flame
+            size={14}
+            style={{ color: streakActive ? "hsl(var(--macro-carbs))" : "hsl(var(--muted-foreground))" }}
+            fill={streakActive ? "hsl(var(--macro-carbs))" : "none"}
+          />
+          <span className="font-mono-data tabular-nums">{streak.count}</span>
+          <span className="text-xs text-muted-foreground">days</span>
+        </button>
+      </header>
+
+      {/* SECTION 2 — WEEK STRIP */}
+      <div className="flex items-center justify-between">
+        {weekDays.map((d, i) => {
+          const base =
+            "w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-medium transition-colors";
+          if (d.isToday) {
+            return (
+              <div key={i} className={`${base} bg-primary text-primary-foreground`}>
+                {d.label}
+              </div>
+            );
+          }
+          if (d.logged) {
+            return (
+              <div
+                key={i}
+                className={`${base} border`}
+                style={{
+                  backgroundColor: "hsl(var(--primary) / 0.15)",
+                  borderColor: "hsl(var(--primary) / 0.35)",
+                  color: "hsl(var(--primary))",
+                }}
+              >
+                <Check size={14} />
+              </div>
+            );
+          }
+          if (d.isFuture) {
+            return (
+              <div
+                key={i}
+                className={`${base} border border-border text-muted-foreground bg-transparent`}
+              >
+                {d.label}
+              </div>
+            );
+          }
+          // past unlogged
+          return (
+            <div
+              key={i}
+              className={`${base} border border-border text-muted-foreground/70`}
+            >
+              {d.label}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* SECTION 3 — MAIN CALORIE CARD */}
+      <section className="rounded-[24px] border border-border bg-card p-6 flex flex-col items-center gap-5">
+        {/* 3a Big arc */}
+        <CalorieArc pct={calPct} remaining={remaining} />
+
+        {/* 3b Consumed / Goal / Burned */}
+        <div className="grid grid-cols-3 w-full divide-x divide-border">
+          <div className="flex flex-col items-center px-2">
+            <div
+              className="font-mono-data text-xl font-bold tabular-nums"
+              style={{ color: "hsl(var(--primary))" }}
+            >
+              {Math.round(sum.calories).toLocaleString()}
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">
+              Consumed
+            </div>
+          </div>
+          <div className="flex flex-col items-center px-2">
+            <div className="font-mono-data text-xl font-bold tabular-nums text-foreground">
+              {Math.round(goals.calories).toLocaleString()}
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">
+              Goal
+            </div>
+          </div>
+          <div className="flex flex-col items-center px-2">
+            <div
+              className="font-mono-data text-xl font-bold tabular-nums"
+              style={{ color: "hsl(var(--macro-carbs))" }}
+            >
+              {Math.round(burned).toLocaleString()}
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">
+              Burned
+            </div>
+          </div>
+        </div>
+
+        {/* 3c Macro chips */}
+        <div className="flex gap-2 w-full">
+          <MacroChip
+            label="Protein"
+            current={sum.protein}
+            goal={displayedProteinGoal}
+            colorVar="--macro-protein"
+          />
+          <MacroChip
+            label="Carbs"
+            current={sum.carbs}
+            goal={goals.carbs}
+            colorVar="--macro-carbs"
+          />
+          <MacroChip
+            label="Fat"
+            current={sum.fat}
+            goal={goals.fat}
+            colorVar="--macro-fat"
+          />
+        </div>
+      </section>
+
+      {/* SECTION 4 — NOURI TIP BANNER */}
+      <div
+        className="rounded-2xl border p-4 flex items-start gap-3"
+        style={{
+          backgroundColor: "hsl(var(--primary) / 0.10)",
+          borderColor: "hsl(var(--primary) / 0.30)",
+        }}
+      >
+        <div
+          className="w-9 h-9 rounded-full flex items-center justify-center text-lg shrink-0"
+          style={{ backgroundColor: "hsl(var(--primary) / 0.18)" }}
+          aria-hidden
+        >
+          🌿
+        </div>
+        <p className="text-sm leading-relaxed text-foreground/90 pt-0.5">{tip}</p>
+      </div>
+
+      {/* Optional: training quick-action / weekly check-in */}
+      <EveningNudge meals={meals} onGoLog={onGoLog} />
+
+      {!training && (
         <button
           type="button"
           onClick={() => setTrainingSheetOpen(true)}
-          className="w-full rounded-2xl border p-3 flex items-center gap-3 transition-transform active:scale-[0.99]"
-          style={{ backgroundColor: "#F2EADB", borderColor: "#E2D8C4" }}
+          className="w-full rounded-2xl border border-border bg-card p-3 flex items-center gap-3 transition-transform active:scale-[0.99]"
         >
           <span
             className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-            style={{ backgroundColor: "#FBF8F1" }}
+            style={{ backgroundColor: "hsl(var(--macro-carbs) / 0.15)" }}
             aria-hidden
           >
-            <Dumbbell size={18} style={{ color: "#5A4422" }} />
+            <Dumbbell size={18} style={{ color: "hsl(var(--macro-carbs))" }} />
           </span>
           <div className="flex-1 text-left">
-            <div className="text-sm font-medium" style={{ color: "#1F3A28" }}>
-              {t("logTraining", lang)}
-            </div>
+            <div className="text-sm font-medium text-foreground">{t("logTraining", lang)}</div>
             <div className="text-[11px] text-muted-foreground">
               {t("trainingBumps", lang, { n: TRAINING_PROTEIN_BONUS })}
             </div>
@@ -216,131 +510,87 @@ export function TodayScreen({
           type="button"
           onClick={onStartCheckin}
           className="w-full text-left rounded-2xl border p-4 flex items-center gap-3 transition-transform active:scale-[0.99]"
-          style={{ backgroundColor: "#EAF4EE", borderColor: "#5BB882" }}
+          style={{
+            backgroundColor: "hsl(var(--primary) / 0.10)",
+            borderColor: "hsl(var(--primary) / 0.30)",
+          }}
         >
-          
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium" style={{ color: "#1F6B43" }}>
+            <div className="text-sm font-medium text-foreground">
               {t("weeklyCheckinTitle", lang)}
             </div>
-            <div className="text-xs mt-0.5" style={{ color: "#1F6B43", opacity: 0.8 }}>
+            <div className="text-xs mt-0.5 text-muted-foreground">
               {t("weeklyCheckinSub", lang)}
             </div>
           </div>
           <span
-            className="text-xs font-medium px-3 py-1.5 rounded-full text-white shrink-0"
-            style={{ backgroundColor: "#5BB882" }}
+            className="text-xs font-medium px-3 py-1.5 rounded-full text-primary-foreground shrink-0"
+            style={{ backgroundColor: "hsl(var(--primary))" }}
           >
             {t("letsGo", lang)}
           </span>
         </button>
       )}
 
-      {/* AI-personalized banner */}
-      {layout.banner && (
-        <div
-          className="rounded-2xl border p-3 flex items-start gap-2"
-          style={{ backgroundColor: "#FFF8E1", borderColor: "#F0C24A", color: "#7A5800" }}
-        >
-          <Sparkles size={14} className="mt-0.5 shrink-0" />
-          <p className="text-xs leading-relaxed">{layout.banner}</p>
-        </div>
-      )}
+      {/* SECTION 5 — DETAILED MACRO CARDS (2x2) */}
+      <section className="grid grid-cols-2 gap-3">
+        <MacroDetailCard
+          label="Protein"
+          current={sum.protein}
+          goal={displayedProteinGoal}
+          unit="g"
+          colorVar="--macro-protein"
+        />
+        <MacroDetailCard
+          label="Carbs"
+          current={sum.carbs}
+          goal={goals.carbs}
+          unit="g"
+          colorVar="--macro-carbs"
+        />
+        <MacroDetailCard
+          label="Fat"
+          current={sum.fat}
+          goal={goals.fat}
+          unit="g"
+          colorVar="--macro-fat"
+        />
+        <MacroDetailCard
+          label="Fiber"
+          current={fiberCurrent}
+          goal={fiberGoal}
+          unit="g"
+          colorVar="--macro-protein"
+        />
+      </section>
 
-      {/* Large priority metrics */}
-      {layout.large.length > 0 && (
-        <section
-          className={
-            layout.large.length === 1
-              ? "grid grid-cols-1 gap-3"
-              : layout.large.length === 2
-              ? "grid grid-cols-2 gap-3"
-              : "grid grid-cols-3 gap-3"
-          }
-        >
-          {layout.large.map((m) => (
-            <MetricRing
-              key={m}
-              metric={m}
-              size="large"
-              current={metricVal(m)}
-              goal={goalForMetric(m, m === "protein" ? displayedGoals : goals)}
-            />
-          ))}
-        </section>
-      )}
-
-      {/* Medium metrics */}
-      {layout.medium.length > 0 && (
-        <section className="grid grid-cols-3 gap-3">
-          {layout.medium.map((m) => (
-            <MetricRing
-              key={m}
-              metric={m}
-              size="medium"
-              current={metricVal(m)}
-              goal={goalForMetric(m, m === "protein" ? displayedGoals : goals)}
-            />
-          ))}
-        </section>
-      )}
-
-      {/* Small metrics, collapsed */}
-      {layout.small.length > 0 && (
-        <section className="nouri-card p-4">
-          <button
-            type="button"
-            onClick={() => setShowSmall((v) => !v)}
-            className="w-full flex items-center justify-between text-sm font-medium text-foreground"
-          >
-            <span>More nutrients</span>
-            {showSmall ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-          {showSmall && (
-            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
-              {layout.small.map((m) => {
-                const meta = METRIC_META[m];
-                const tracked = isTracked(m);
-                const cur = metricVal(m);
-                const goal = goalForMetric(m, m === "protein" ? displayedGoals : goals);
-                return (
-                  <div key={m} className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">{meta.label}</span>
-                    <span className="font-mono-data text-foreground">
-                      {tracked ? `${Math.round(cur)}/${Math.round(goal)} ${meta.unit}` : `— ${meta.unit}`}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      )}
-
-      <RemainingBanner
-        remainingProtein={displayedGoals.protein - sum.protein}
-        remainingCalories={goals.calories - sum.calories}
-      />
-
-      <button
-        type="button"
-        onClick={() => setAdjustOpen(true)}
-        className="w-full rounded-2xl border border-border bg-surface hover:bg-muted transition-colors py-3 px-4 flex items-center justify-center gap-2 text-sm text-foreground"
-      >
-        <Sliders size={14} />
-        Adjust my dashboard
-      </button>
-
+      {/* SECTION 6 — LOG MEAL BUTTON */}
       <button
         onClick={onGoLog}
-        className="w-full rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors py-5 px-4 flex items-center justify-center gap-2 text-primary font-medium"
+        className="w-full rounded-2xl border-2 border-dashed py-5 px-4 flex items-center justify-center gap-2 font-medium transition-colors"
+        style={{
+          borderColor: "hsl(var(--primary) / 0.45)",
+          backgroundColor: "hsl(var(--primary) / 0.08)",
+          color: "hsl(var(--primary))",
+        }}
       >
         <Mic size={18} />
-        {t("logMealCta", lang)}
+        Log a meal with voice or text
       </button>
 
+      {/* SECTION 7 — TODAY'S MEALS LIST */}
       <section className="space-y-2">
-        <h2 className="font-serif text-lg font-medium px-1">{t("todaysMeals", lang)}</h2>
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-base font-semibold text-foreground">Today's meals</h2>
+          {onGoHistory && (
+            <button
+              onClick={onGoHistory}
+              className="text-xs text-primary hover:underline"
+            >
+              View all
+            </button>
+          )}
+        </div>
         {todayMeals.length === 0 ? (
           <p className="text-sm text-muted-foreground px-1 py-4">
             {t("nothingLoggedYet", lang)}
@@ -348,11 +598,41 @@ export function TodayScreen({
         ) : (
           <div className="space-y-2">
             {todayMeals.map((m) => (
-              <MealCard key={m.id} meal={m} onDelete={onDeleteMeal} />
+              <div
+                key={m.id}
+                className="rounded-2xl border border-border bg-card p-4 flex items-center gap-3"
+              >
+                <div className="text-xl shrink-0" aria-hidden>
+                  {MEAL_EMOJI[m.type]}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-foreground truncate">
+                    {m.meal_name}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {m.type} · {Math.round(m.protein)}g protein
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="font-mono-data text-sm font-semibold tabular-nums text-foreground">
+                    {Math.round(m.calories)}
+                  </div>
+                  <div className="font-mono-data text-[10px] text-muted-foreground">kcal</div>
+                </div>
+              </div>
             ))}
           </div>
         )}
       </section>
+
+      <button
+        type="button"
+        onClick={() => setAdjustOpen(true)}
+        className="w-full rounded-2xl border border-border bg-card hover:bg-muted transition-colors py-3 px-4 flex items-center justify-center gap-2 text-xs text-muted-foreground"
+      >
+        <Sliders size={14} />
+        Adjust my dashboard
+      </button>
 
       <NouriRecommends
         goals={goals}
