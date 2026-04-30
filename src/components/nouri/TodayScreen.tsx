@@ -9,7 +9,15 @@ import { getStreak, getFreezes } from "@/lib/nouri-streak";
 import { getTotalXP, getLevelInfo } from "@/lib/nouri-xp";
 import { isCheckinDue } from "@/components/nouri/WeeklyCheckin";
 import { EveningNudge } from "@/components/nouri/EveningNudge";
-import { Mic } from "lucide-react";
+import { TrainingSheet } from "@/components/nouri/TrainingSheet";
+import {
+  getTodayTraining,
+  saveTodayTraining,
+  trainingEmoji,
+  TRAINING_PROTEIN_BONUS,
+  type TrainingEntry,
+} from "@/lib/nouri-training";
+import { Mic, Dumbbell } from "lucide-react";
 
 interface TodayScreenProps {
   goals: Goals;
@@ -70,6 +78,20 @@ export function TodayScreen({
   }, [meals]);
   const levelInfo = getLevelInfo(xp);
 
+  const [training, setTraining] = useState<TrainingEntry | null>(() => getTodayTraining());
+  const [trainingSheetOpen, setTrainingSheetOpen] = useState(false);
+  useEffect(() => {
+    const refresh = () => setTraining(getTodayTraining());
+    refresh();
+    window.addEventListener("training:updated", refresh);
+    return () => window.removeEventListener("training:updated", refresh);
+  }, []);
+
+  // Apply training bonus to displayed protein goal only (not persisted)
+  const displayedGoals: Goals = training
+    ? { ...goals, protein: goals.protein + TRAINING_PROTEIN_BONUS }
+    : goals;
+
   const streakActive =
     streak.count > 0 &&
     (streak.lastLogDate === today ||
@@ -118,6 +140,44 @@ export function TodayScreen({
       </div>
 
       <EveningNudge meals={meals} onGoLog={onGoLog} />
+
+      {training ? (
+        <div
+          className="rounded-2xl border p-3 flex items-center gap-3"
+          style={{ backgroundColor: "#EAF4EE", borderColor: "#5BB882" }}
+          role="status"
+        >
+          <span className="text-xl shrink-0" aria-hidden>
+            {trainingEmoji(training.type)}
+          </span>
+          <p className="text-xs flex-1" style={{ color: "#1F6B43" }}>
+            Training logged — protein target +{TRAINING_PROTEIN_BONUS}g today.
+          </p>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setTrainingSheetOpen(true)}
+          className="w-full rounded-2xl border p-3 flex items-center gap-3 transition-transform active:scale-[0.99]"
+          style={{ backgroundColor: "#F2EADB", borderColor: "#E2D8C4" }}
+        >
+          <span
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+            style={{ backgroundColor: "#FBF8F1" }}
+            aria-hidden
+          >
+            <Dumbbell size={18} style={{ color: "#5A4422" }} />
+          </span>
+          <div className="flex-1 text-left">
+            <div className="text-sm font-medium" style={{ color: "#1F3A28" }}>
+              Log training
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              Bumps today's protein target by {TRAINING_PROTEIN_BONUS}g.
+            </div>
+          </div>
+        </button>
+      )}
 
       {isCheckinDue(localStorage.getItem("nouri:signupDate")) && onStartCheckin && (
         <button
@@ -171,13 +231,13 @@ export function TodayScreen({
       </section>
 
       <section className="nouri-card p-5 space-y-4">
-        <MacroBar label="Protein" emoji="💪" current={sum.protein} goal={goals.protein} color="protein" />
+        <MacroBar label="Protein" emoji="💪" current={sum.protein} goal={displayedGoals.protein} color="protein" />
         <MacroBar label="Carbs" emoji="🌾" current={sum.carbs} goal={goals.carbs} color="carbs" />
         <MacroBar label="Fat" emoji="🫒" current={sum.fat} goal={goals.fat} color="fat" />
       </section>
 
       <RemainingBanner
-        remainingProtein={goals.protein - sum.protein}
+        remainingProtein={displayedGoals.protein - sum.protein}
         remainingCalories={goals.calories - sum.calories}
       />
 
@@ -208,6 +268,15 @@ export function TodayScreen({
         goals={goals}
         meals={meals}
         onPick={(name) => onPickSuggestion?.(name)}
+      />
+
+      <TrainingSheet
+        open={trainingSheetOpen}
+        onClose={() => setTrainingSheetOpen(false)}
+        onPick={(type) => {
+          saveTodayTraining(type);
+          setTrainingSheetOpen(false);
+        }}
       />
     </div>
   );
