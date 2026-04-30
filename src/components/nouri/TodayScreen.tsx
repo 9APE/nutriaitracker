@@ -357,8 +357,8 @@ export function TodayScreen({
 
   // Fiber goal (rough default if not in goals): 14g per 1000 kcal
   const fiberGoal = Math.round((goals.calories / 1000) * 14);
-  // We don't track fiber per meal; estimate from carbs (~10% of carb grams)
-  const fiberCurrent = Math.round(sum.carbs * 0.1);
+  // Real fiber comes from AI-estimated micros on each meal
+  const fiberCurrent = totalForMetric("fiber", meals);
 
   return (
     <div className="px-5 pt-4 pb-28 max-w-md mx-auto space-y-[14px]">
@@ -610,7 +610,7 @@ export function TodayScreen({
           </div>
           <div className="grid grid-cols-3 gap-2">
             {layout.small.map((m) => (
-              <MicroCard key={m} metric={m} />
+              <MicroCard key={m} metric={m} current={totalForMetric(m, meals)} />
             ))}
           </div>
         </section>
