@@ -19,7 +19,7 @@ export function LanguageSelect({ onDone }: Props) {
     <div className="min-h-screen flex flex-col bg-background">
       <header className="px-5 py-4 border-b border-border">
         <div className="max-w-md mx-auto flex items-center gap-2">
-          <span className="text-xl">🌿</span>
+          
           <span className="font-serif text-lg font-medium">Nouri</span>
         </div>
       </header>
@@ -29,7 +29,7 @@ export function LanguageSelect({ onDone }: Props) {
           <h1 className="font-serif text-2xl font-medium text-center mb-1">
             {selected ? t("chooseLanguage", selected) : "Choose your language"}
           </h1>
-          <p className="text-center text-sm text-muted-foreground mb-6">🌍</p>
+          
 
           <div className="grid grid-cols-2 gap-3">
             {LANGUAGES.map((l) => {

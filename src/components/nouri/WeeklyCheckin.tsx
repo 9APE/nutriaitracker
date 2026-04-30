@@ -144,7 +144,7 @@ export function WeeklyCheckin({ goals, meals, onClose, onGoalsUpdated }: Props) 
       <header className="px-5 py-4 border-b border-border">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🌿</span>
+            
             <span className="font-serif text-lg font-medium">Weekly check-in</span>
           </div>
           <button
@@ -162,7 +162,7 @@ export function WeeklyCheckin({ goals, meals, onClose, onGoalsUpdated }: Props) 
           {messages.map((m, i) =>
             m.role === "assistant" ? (
               <div key={i} className="flex items-start gap-2 animate-bubble-in">
-                <div className="text-xl shrink-0 pt-1">🌿</div>
+                
                 <div className="bg-surface border border-border rounded-2xl rounded-tl-sm px-4 py-3 text-[15px] leading-relaxed text-foreground max-w-[85%] whitespace-pre-wrap">
                   {m.content}
                 </div>
@@ -177,7 +177,7 @@ export function WeeklyCheckin({ goals, meals, onClose, onGoalsUpdated }: Props) 
           )}
           {waiting && (
             <div className="flex items-start gap-2">
-              <div className="text-xl shrink-0 pt-1">🌿</div>
+              
               <TypingDots />
             </div>
           )}
@@ -188,7 +188,7 @@ export function WeeklyCheckin({ goals, meals, onClose, onGoalsUpdated }: Props) 
               style={{ backgroundColor: "#EAF4EE", borderColor: "#5BB882" }}
             >
               <div className="flex items-start gap-3">
-                <span className="text-xl shrink-0">🌿</span>
+                
                 <div className="space-y-3 flex-1">
                   <p className="text-[15px] leading-relaxed text-foreground">
                     {result.summary}

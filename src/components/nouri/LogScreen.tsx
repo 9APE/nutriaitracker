@@ -185,7 +185,7 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
     onLogged(meal);
     recordMealLogged();
     setAnalyzed(null);
-    pushAssistant(`${t("logged", lang)} **${meal.meal_name}** ✓ ${t("anythingElse", lang)}`);
+    pushAssistant(`${t("logged", lang)} **${meal.meal_name}** — ${t("anythingElse", lang)}`);
     voice.reset();
     toast.success(t("loggedToast", lang, { name: meal.meal_name }));
   };

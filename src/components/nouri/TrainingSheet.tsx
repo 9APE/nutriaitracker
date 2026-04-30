@@ -51,9 +51,6 @@ export function TrainingSheet({ open, onClose, onPick }: TrainingSheetProps) {
               className="w-full flex items-center gap-3 rounded-2xl p-3 transition-transform active:scale-[0.99]"
               style={{ backgroundColor: "#F2EADB", border: "1px solid #E2D8C4" }}
             >
-              <span className="text-2xl shrink-0" aria-hidden>
-                {opt.emoji}
-              </span>
               <span className="text-sm font-medium" style={{ color: "#1F3A28" }}>
                 {opt.label}
               </span>

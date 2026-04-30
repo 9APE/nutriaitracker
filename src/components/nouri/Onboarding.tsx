@@ -7,7 +7,7 @@ import { DEFAULT_GOALS, type Goals } from "@/lib/nouri-storage";
 import { Loader2 } from "lucide-react";
 
 const messages = [
-  "Hi there! I'm Nouri, your personal nutrition assistant. 🌿",
+  "Hi there. I'm Nouri, your personal nutrition assistant.",
   "Tracking what you eat is simple — just describe what you had and I'll calculate all the calories and macros automatically.",
   "For the most accurate results, be specific with quantities. Instead of 'I had chicken and rice', try: '100g of jasmine rice, 150g of grilled chicken breast, two handfuls of mixed vegetables with olive oil.'",
   "Before we start — tell me a little about you so I can personalise your plan.",
@@ -90,7 +90,7 @@ export function Onboarding({ initialGoals, initialStats, onDone }: OnboardingPro
     <div className="min-h-screen flex flex-col bg-background">
       <header className="px-5 py-4 border-b border-border">
         <div className="max-w-md mx-auto flex items-center gap-2">
-          <span className="text-xl">🌿</span>
+          
           <span className="font-serif text-lg font-medium">Nouri</span>
         </div>
       </header>
@@ -99,7 +99,7 @@ export function Onboarding({ initialGoals, initialStats, onDone }: OnboardingPro
         <div className="max-w-md mx-auto space-y-3">
           {messages.slice(0, shown).map((m, i) => (
             <div key={i} className="flex items-start gap-2 animate-bubble-in">
-              <div className="text-xl shrink-0 pt-1">🌿</div>
+              
               <div className="bg-surface border border-border rounded-2xl rounded-tl-sm px-4 py-3 text-[15px] leading-relaxed text-foreground max-w-[85%]">
                 {m}
               </div>
@@ -107,7 +107,7 @@ export function Onboarding({ initialGoals, initialStats, onDone }: OnboardingPro
           ))}
           {typing && shown < messages.length && (
             <div className="flex items-start gap-2">
-              <div className="text-xl shrink-0 pt-1">🌿</div>
+              
               <TypingDots />
             </div>
           )}
@@ -185,7 +185,7 @@ export function Onboarding({ initialGoals, initialStats, onDone }: OnboardingPro
                   onChange={(v) => setGoals({ ...goals, calories: v })}
                 />
                 <GoalSlider
-                  label="Protein 💪"
+                  label="Protein"
                   value={goals.protein}
                   min={40}
                   max={300}
@@ -194,7 +194,7 @@ export function Onboarding({ initialGoals, initialStats, onDone }: OnboardingPro
                   onChange={(v) => setGoals({ ...goals, protein: v })}
                 />
                 <GoalSlider
-                  label="Carbs 🌾"
+                  label="Carbs"
                   value={goals.carbs}
                   min={50}
                   max={500}
@@ -203,7 +203,7 @@ export function Onboarding({ initialGoals, initialStats, onDone }: OnboardingPro
                   onChange={(v) => setGoals({ ...goals, carbs: v })}
                 />
                 <GoalSlider
-                  label="Fat 🫒"
+                  label="Fat"
                   value={goals.fat}
                   min={20}
                   max={200}
@@ -220,7 +220,7 @@ export function Onboarding({ initialGoals, initialStats, onDone }: OnboardingPro
                   {submitting ? (
                     <Loader2 className="animate-spin" size={18} />
                   ) : (
-                    "Start Tracking 🌿"
+                    "Start Tracking"
                   )}
                 </Button>
               </div>

@@ -16,16 +16,16 @@ interface Props {
 }
 
 const CONFIRMATIONS: Record<LangCode, (name: string) => string> = {
-  en: (n) => `Language updated! Nouri will now speak ${n} with you 🌍`,
-  fr: (n) => `Langue mise à jour ! Nouri parlera maintenant ${n} avec toi 🌍`,
-  de: (n) => `Sprache aktualisiert! Nouri spricht jetzt ${n} mit dir 🌍`,
-  es: (n) => `¡Idioma actualizado! Nouri ahora hablará ${n} contigo 🌍`,
-  it: (n) => `Lingua aggiornata! Nouri parlerà ora ${n} con te 🌍`,
-  pt: (n) => `Idioma atualizado! A Nouri vai falar ${n} contigo agora 🌍`,
-  nl: (n) => `Taal bijgewerkt! Nouri spreekt nu ${n} met je 🌍`,
-  ar: (n) => `تم تحديث اللغة! ستتحدث Nouri معك بـ ${n} الآن 🌍`,
-  zh: (n) => `语言已更新！Nouri 现在将用${n}与你交流 🌍`,
-  ja: (n) => `言語が更新されました！Nouri はこれから${n}で話します 🌍`,
+  en: (n) => `Language updated! Nouri will now speak ${n} with you`,
+  fr: (n) => `Langue mise à jour ! Nouri parlera maintenant ${n} avec toi`,
+  de: (n) => `Sprache aktualisiert! Nouri spricht jetzt ${n} mit dir`,
+  es: (n) => `¡Idioma actualizado! Nouri ahora hablará ${n} contigo`,
+  it: (n) => `Lingua aggiornata! Nouri parlerà ora ${n} con te`,
+  pt: (n) => `Idioma atualizado! A Nouri vai falar ${n} contigo agora`,
+  nl: (n) => `Taal bijgewerkt! Nouri spreekt nu ${n} met je`,
+  ar: (n) => `تم تحديث اللغة! ستتحدث Nouri معك بـ ${n} الآن`,
+  zh: (n) => `语言已更新！Nouri 现在将用${n}与你交流`,
+  ja: (n) => `言語が更新されました！Nouri はこれから${n}で話します`,
 };
 
 export function SettingsScreen({ onClose, initialPicking = false }: Props) {
@@ -46,7 +46,7 @@ export function SettingsScreen({ onClose, initialPicking = false }: Props) {
       <header className="sticky top-0 px-5 py-4 border-b border-border bg-background/95 backdrop-blur">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xl">⚙️</span>
+            <span className="text-xl"></span>
             <span className="font-serif text-lg font-medium">{t("settings", lang)}</span>
           </div>
           <button
@@ -67,7 +67,7 @@ export function SettingsScreen({ onClose, initialPicking = false }: Props) {
               className="w-full flex items-center justify-between rounded-2xl border border-border bg-card hover:border-primary/40 px-4 py-3.5 transition-colors text-left"
             >
               <div className="flex items-center gap-3">
-                <span className="text-2xl">🌍</span>
+                <span className="text-2xl"></span>
                 <div>
                   <div className="text-sm font-medium">{t("language", lang)}</div>
                   <div className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -81,7 +81,7 @@ export function SettingsScreen({ onClose, initialPicking = false }: Props) {
           ) : (
             <section>
               <h2 className="text-sm font-medium text-muted-foreground mb-3 px-1">
-                🌍 {t("chooseLanguage", lang)}
+                {t("chooseLanguage", lang)}
               </h2>
               <div className="grid grid-cols-2 gap-2">
                 {LANGUAGES.map((l) => {

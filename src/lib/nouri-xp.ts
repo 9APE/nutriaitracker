@@ -20,11 +20,11 @@ export interface XPSource {
 }
 
 export const XP_SOURCES: XPSource[] = [
-  { id: "meal", label: "Log a meal", amount: 10, description: "Every meal you log.", emoji: "🍽️" },
-  { id: "protein-goal", label: "Hit daily protein goal", amount: 25, description: "Reach your protein target for the day.", emoji: "💪" },
-  { id: "all-macros", label: "Hit all daily macro goals", amount: 50, description: "Protein, carbs, fat & calories all on target.", emoji: "🎯" },
-  { id: "weekly-checkin", label: "Complete weekly check-in", amount: 30, description: "Reflect on your week.", emoji: "📋" },
-  { id: "training", label: "Log a training session", amount: 20, description: "Log any workout.", emoji: "🏋️" },
+  { id: "meal", label: "Log a meal", amount: 10, description: "Every meal you log.", emoji: "" },
+  { id: "protein-goal", label: "Hit daily protein goal", amount: 25, description: "Reach your protein target for the day.", emoji: "" },
+  { id: "all-macros", label: "Hit all daily macro goals", amount: 50, description: "Protein, carbs, fat & calories all on target.", emoji: "" },
+  { id: "weekly-checkin", label: "Complete weekly check-in", amount: 30, description: "Reflect on your week.", emoji: "" },
+  { id: "training", label: "Log a training session", amount: 20, description: "Log any workout.", emoji: "" },
   { id: "streak-7", label: "7-day streak milestone", amount: 100, description: "Every 7 consecutive days logged.", emoji: "🔥" },
 ];
 

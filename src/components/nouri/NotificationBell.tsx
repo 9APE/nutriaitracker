@@ -153,7 +153,6 @@ export function NotificationBell({ goals, meals, onAddMeal, refreshKey }: Notifi
               <div key={n.id} className="nouri-card p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span>{mealTypeEmoji(n.mealType)}</span>
                     <span className="font-serif text-base">{n.mealType} ideas</span>
                   </div>
                   <button

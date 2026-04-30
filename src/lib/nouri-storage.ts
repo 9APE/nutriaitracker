@@ -77,4 +77,4 @@ export const storage = {
 export const todayISO = () => new Date().toISOString().slice(0, 10);
 
 export const mealTypeEmoji = (t: MealType) =>
-  ({ Breakfast: "🌅", Lunch: "☀️", Dinner: "🌙", Snack: "🍎" }[t]);
+  ({ Breakfast: "", Lunch: "", Dinner: "", Snack: "" }[t]);

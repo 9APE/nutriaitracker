@@ -10,7 +10,6 @@ interface MealCardProps {
 export function MealCard({ meal, onDelete }: MealCardProps) {
   return (
     <div className="nouri-card p-4 flex items-center gap-3">
-      <div className="text-2xl shrink-0">{mealTypeEmoji(meal.type)}</div>
       <div className="flex-1 min-w-0">
         <div className="font-medium text-foreground truncate">{meal.meal_name}</div>
         <div className="text-xs text-muted-foreground">{meal.type}</div>

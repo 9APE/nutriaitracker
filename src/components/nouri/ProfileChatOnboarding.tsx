@@ -211,7 +211,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
   if (phase === "plan-loading") {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background gap-4 px-6 text-center">
-        <div className="text-5xl animate-bubble-in">🌿</div>
+        
         <Loader2 className="animate-spin text-primary" size={28} />
         <p className="text-foreground font-serif text-lg">Nouri is building your personalised plan…</p>
         <p className="text-muted-foreground text-sm max-w-xs">
@@ -226,7 +226,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
       <div className="fixed inset-0 z-50 flex flex-col bg-background overflow-y-auto">
         <header className="px-5 py-4 border-b border-border">
           <div className="max-w-md mx-auto flex items-center gap-2">
-            <span className="text-xl">🌿</span>
+            
             <span className="font-serif text-lg font-medium">Nouri</span>
           </div>
         </header>
@@ -245,7 +245,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
             </div>
 
             <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 flex gap-3">
-              <span className="text-xl shrink-0">🌿</span>
+              
               <p className="text-sm leading-relaxed text-foreground">{plan.reasoning}</p>
             </div>
 
@@ -258,7 +258,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
                       key={i}
                       className="flex gap-2 items-start rounded-xl border border-border bg-card p-3 text-sm"
                     >
-                      <span className="shrink-0">⚠️</span>
+                      
                       <span className="leading-relaxed">{w}</span>
                     </li>
                   ))}
@@ -268,7 +268,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
 
             <div className="space-y-2 pt-2">
               <Button onClick={acceptPlan} className="w-full h-12 text-base">
-                Looks good, let's go! ✅
+                Looks good, let's go
               </Button>
               <Button
                 variant="outline"
@@ -289,7 +289,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
       <div className="fixed inset-0 z-50 flex flex-col bg-background overflow-y-auto">
         <header className="px-5 py-4 border-b border-border">
           <div className="max-w-md mx-auto flex items-center gap-2">
-            <span className="text-xl">🌿</span>
+            
             <span className="font-serif text-lg font-medium">Nouri</span>
           </div>
         </header>
@@ -343,7 +343,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
 
             <div className="space-y-2 pt-2">
               <Button onClick={acceptPlan} className="w-full h-12 text-base">
-                Save my plan ✅
+                Save my plan
               </Button>
               <Button
                 variant="outline"
@@ -365,7 +365,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
       <header className="px-5 py-4 border-b border-border">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🌿</span>
+            
             <span className="font-serif text-lg font-medium">Nouri</span>
           </div>
           {onClose && (
@@ -380,7 +380,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
         </div>
         {onClose && (
           <p className="max-w-md mx-auto mt-2 text-xs text-muted-foreground flex items-center gap-1.5">
-            <span>🛡️</span>
+            
             <span>Earn a freeze by logging 7 days in a row.</span>
           </p>
         )}
@@ -404,7 +404,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
             return (
               <div key={i} className="space-y-2 animate-bubble-in">
                 <div className="flex items-start gap-2">
-                  <div className="text-xl shrink-0 pt-1">🌿</div>
+                  
                   <div className="bg-surface border border-border rounded-2xl rounded-tl-sm px-4 py-3 text-[15px] leading-relaxed text-foreground max-w-[85%] whitespace-pre-wrap">
                     {clean}
                   </div>
@@ -441,7 +441,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
           })}
           {(waiting || voice.transcribing) && (
             <div className="flex items-start gap-2">
-              <div className="text-xl shrink-0 pt-1">🌿</div>
+              
               <TypingDots />
             </div>
           )}

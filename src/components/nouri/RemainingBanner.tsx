@@ -29,7 +29,7 @@ export function RemainingBanner({ remainingProtein, remainingCalories }: Remaini
       className="rounded-2xl px-4 py-3 text-sm leading-relaxed text-foreground flex items-start gap-2"
       style={{ backgroundColor: "#EAF4EE", border: "1px solid #5BB882" }}
     >
-      <span className="text-base leading-none mt-0.5">🌿</span>
+      
       <span className="flex-1">{message}</span>
     </div>
   );
