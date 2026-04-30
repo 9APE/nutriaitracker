@@ -29,7 +29,7 @@ import { shouldShowWeeklyReport } from "@/lib/nouri-weekly-report";
 import { GoalCelebration } from "@/components/nouri/GoalCelebration";
 import { LanguageSelect } from "@/components/nouri/LanguageSelect";
 import { SettingsScreen } from "@/components/nouri/SettingsScreen";
-import { getLanguage } from "@/lib/nouri-i18n";
+import { getLanguage, getLanguageMeta, useLanguage } from "@/lib/nouri-i18n";
 import { Settings as SettingsIcon } from "lucide-react";
 
 const MIGRATED_KEY = "nouri:migrated";
@@ -50,7 +50,10 @@ const Index = () => {
   const [showCheckin, setShowCheckin] = useState(false);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsPickLang, setSettingsPickLang] = useState(false);
   const [hasLanguage, setHasLanguage] = useState<boolean>(() => !!getLanguage());
+  const currentLang = useLanguage();
+  const langMeta = getLanguageMeta(currentLang);
 
   // Reconcile streak (spend a freeze if a day was missed) on app open
   useEffect(() => {
@@ -323,6 +326,17 @@ const Index = () => {
         rightSlot={
           <>
             <button
+              onClick={() => {
+                setSettingsPickLang(true);
+                setShowSettings(true);
+              }}
+              className="text-base flex items-center justify-center px-2 py-1.5 rounded-full hover:bg-muted transition-colors"
+              aria-label={`Change language (current: ${langMeta.native})`}
+              title={`Language: ${langMeta.native}`}
+            >
+              <span aria-hidden>{langMeta.flag}</span>
+            </button>
+            <button
               onClick={() => setEditingProfile(true)}
               className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-muted transition-colors"
               aria-label="Edit profile"
@@ -332,7 +346,10 @@ const Index = () => {
               Profile
             </button>
             <button
-              onClick={() => setShowSettings(true)}
+              onClick={() => {
+                setSettingsPickLang(false);
+                setShowSettings(true);
+              }}
               className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-muted transition-colors"
               aria-label="Settings"
               title="Settings"
@@ -377,7 +394,15 @@ const Index = () => {
       <XPFloater />
       <GoalCelebration />
       {showXP && <XPScreen onClose={() => setShowXP(false)} />}
-      {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} />}
+      {showSettings && (
+        <SettingsScreen
+          initialPicking={settingsPickLang}
+          onClose={() => {
+            setShowSettings(false);
+            setSettingsPickLang(false);
+          }}
+        />
+      )}
       {showWeeklyReport && !needsOnboarding && (
         <WeeklyReport
           name={userProfile?.name?.split(" ")[0] || "friend"}
