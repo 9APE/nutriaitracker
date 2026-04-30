@@ -7,7 +7,10 @@ import {
   DEFAULT_LAYOUT,
   getStoredLayout,
   onLayoutChange,
+  METRIC_META,
+  isTracked,
   type DashboardLayout,
+  type Metric,
 } from "@/lib/nouri-dashboard-layout";
 import { Check, Flame, Mic, Sliders } from "lucide-react";
 import type { Goals, Meal, MealType } from "@/lib/nouri-storage";
