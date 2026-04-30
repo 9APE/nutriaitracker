@@ -227,6 +227,37 @@ export function PhotoLabelSheet({ file, barcode, onClose, onMealReady }: Props) 
                   onChange={(v) => setForm((s) => ({ ...s, fat: v }))}
                 />
               </div>
+              <details className="rounded-xl border border-border bg-muted/30 px-3 py-2">
+                <summary className="text-xs font-medium text-muted-foreground cursor-pointer select-none">
+                  Micronutrients (optional)
+                </summary>
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <Field
+                    label="Fiber / 100g (g)"
+                    type="number"
+                    value={form.fiber}
+                    onChange={(v) => setForm((s) => ({ ...s, fiber: v }))}
+                  />
+                  <Field
+                    label="Sugar / 100g (g)"
+                    type="number"
+                    value={form.sugar}
+                    onChange={(v) => setForm((s) => ({ ...s, sugar: v }))}
+                  />
+                  <Field
+                    label="Sat. fat / 100g (g)"
+                    type="number"
+                    value={form.saturated_fat}
+                    onChange={(v) => setForm((s) => ({ ...s, saturated_fat: v }))}
+                  />
+                  <Field
+                    label="Sodium / 100g (mg)"
+                    type="number"
+                    value={form.sodium}
+                    onChange={(v) => setForm((s) => ({ ...s, sodium: v }))}
+                  />
+                </div>
+              </details>
               <p className="text-[11px] text-muted-foreground font-mono-data">
                 Saved under barcode {barcode}
               </p>
