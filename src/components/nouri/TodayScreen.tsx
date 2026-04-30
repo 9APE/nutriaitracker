@@ -645,14 +645,14 @@ export function TodayScreen({
         <MacroDetailCard
           label="Carbs"
           current={sum.carbs}
-          goal={goals.carbs}
+          goal={eGoals.carbs}
           unit="g"
           colorVar="--macro-carbs"
         />
         <MacroDetailCard
           label="Fat"
           current={sum.fat}
-          goal={goals.fat}
+          goal={eGoals.fat}
           unit="g"
           colorVar="--macro-fat"
         />
@@ -676,7 +676,12 @@ export function TodayScreen({
           </div>
           <div className="grid grid-cols-3 gap-2">
             {layout.small.map((m) => (
-              <MicroCard key={m} metric={m} current={totalForMetric(m, meals)} />
+              <MicroCard
+                key={m}
+                metric={m}
+                current={totalForMetric(m, meals)}
+                goal={goalForMetric(m, eGoals as Goals)}
+              />
             ))}
           </div>
         </section>
