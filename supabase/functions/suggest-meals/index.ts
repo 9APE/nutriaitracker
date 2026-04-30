@@ -1,5 +1,6 @@
 // Suggest meals tailored to remaining macros for the day
 import { resolveLanguage } from "../_shared/language.ts";
+import { EVIDENCE_SOURCES_INSTRUCTION } from "../_shared/evidence.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -90,7 +91,7 @@ Suggest 3 ${mealType.toLowerCase()} ideas to help hit these targets. Return JSON
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
         max_tokens: 1500,
-        system: SYSTEM_PROMPT + lang.suffix,
+        system: SYSTEM_PROMPT + EVIDENCE_SOURCES_INSTRUCTION + lang.suffix,
         messages: [{ role: "user", content: userMessage }],
       }),
     });

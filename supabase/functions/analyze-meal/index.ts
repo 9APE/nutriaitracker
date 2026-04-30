@@ -1,5 +1,6 @@
 // Analyze a meal description with Anthropic Claude using the user's personalized profile
 import { resolveLanguage } from "../_shared/language.ts";
+import { EVIDENCE_SOURCES_INSTRUCTION } from "../_shared/evidence.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -134,6 +135,7 @@ Deno.serve(async (req) => {
     if (alreadyClarified) {
       system += `\n\nYou already asked the user one clarifying question. Do NOT ask again — make a reasonable estimate now and return the normal meal JSON.`;
     }
+    system += EVIDENCE_SOURCES_INSTRUCTION;
     system += lang.suffix;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
