@@ -31,6 +31,7 @@ import { LanguageSelect } from "@/components/nouri/LanguageSelect";
 import { SettingsScreen } from "@/components/nouri/SettingsScreen";
 import { getLanguage, getLanguageMeta, useLanguage, t } from "@/lib/nouri-i18n";
 import { Settings as SettingsIcon } from "lucide-react";
+import { generateLayout, saveLayout, getStoredLayout } from "@/lib/nouri-dashboard-layout";
 
 const MIGRATED_KEY = "nouri:migrated";
 
