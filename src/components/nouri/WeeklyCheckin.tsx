@@ -107,6 +107,7 @@ export function WeeklyCheckin({ goals, meals, profile, onClose, onGoalsUpdated }
       const { data, error } = await supabase.functions.invoke("weekly-checkin", {
         body: {
           goals,
+          profile,
           avgProtein,
           avgCalories,
           messages: history,
@@ -130,7 +131,7 @@ export function WeeklyCheckin({ goals, meals, profile, onClose, onGoalsUpdated }
           carbs: r.carbs,
           fat: r.fat,
         };
-        onGoalsUpdated(newGoals);
+        onGoalsUpdated(newGoals, r);
         localStorage.setItem(LAST_CHECKIN_KEY, todayISO());
         maybeAwardWeeklyCheckin();
       }
