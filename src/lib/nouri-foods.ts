@@ -150,6 +150,11 @@ export interface ParsedLabel {
   proteinPer100g?: number;
   carbsPer100g?: number;
   fatPer100g?: number;
+  fiberPer100g?: number;
+  sugarPer100g?: number;
+  saturatedFatPer100g?: number;
+  /** mg per 100g */
+  sodiumPer100g?: number;
 }
 
 /** Parse a number from a string like "12,3 g", "12.3g", "234 kcal". */
@@ -236,6 +241,25 @@ export function parseNutritionLabel(rawText: string): ParsedLabel {
     /\b(fat|lipides)\b/i,
   ]);
   if (fat !== undefined) out.fatPer100g = Math.round(fat * 10) / 10;
+
+  const fiber = findValue([/\b(fib(?:re|er)s?|fibres?)\b/i]);
+  if (fiber !== undefined) out.fiberPer100g = Math.round(fiber * 10) / 10;
+
+  const sugar = findValue([/\b(sugars?|sucres?|az[uú]cares?)\b/i]);
+  if (sugar !== undefined) out.sugarPer100g = Math.round(sugar * 10) / 10;
+
+  const satFat = findValue([/\b(satur(?:ated|és?|es)|of which satur)\b/i]);
+  if (satFat !== undefined) out.saturatedFatPer100g = Math.round(satFat * 10) / 10;
+
+  // Sodium / salt → normalize to mg per 100g (salt → sodium ≈ ÷ 2.5 → ×1000)
+  const sodium = findValue([/\bsodium\b/i]);
+  if (sodium !== undefined) {
+    // OFF-style labels often print "0.5 g" sodium; treat <50 as grams
+    out.sodiumPer100g = sodium < 50 ? Math.round(sodium * 1000) : Math.round(sodium);
+  } else {
+    const salt = findValue([/\b(salt|sel|sal)\b/i]);
+    if (salt !== undefined) out.sodiumPer100g = Math.round(salt * 400);
+  }
 
   return out;
 }
