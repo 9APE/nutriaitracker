@@ -106,8 +106,14 @@ export function useVoice(): UseVoiceResult {
         setTranscribing(true);
         try {
           const base64 = await blobToBase64(blob);
+          const { getLanguageName, getLocale } = await import("@/lib/nouri-i18n");
           const { data, error: fnError } = await supabase.functions.invoke("transcribe-audio", {
-            body: { audio: base64, mime_type: mimeRef.current || "audio/webm" },
+            body: {
+              audio: base64,
+              mime_type: mimeRef.current || "audio/webm",
+              languageName: getLanguageName(),
+              locale: getLocale(),
+            },
           });
           if (fnError) throw new Error(fnError.message || "Transcription failed");
           const t = (data?.transcript ?? "").trim();
