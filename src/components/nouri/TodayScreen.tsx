@@ -377,17 +377,17 @@ export function TodayScreen({
   // Personalized tip — derived locally; replace with Claude later if wired
   const tip = useMemo(() => {
     const remP = Math.max(0, displayedProteinGoal - sum.protein);
-    const remC = Math.max(0, goals.calories - sum.calories);
+    const remC = Math.max(0, eGoals.calories - sum.calories);
     if (remP <= 0 && remC <= 0)
       return "You've hit your goals for the day — well done. Stay light tonight.";
     if (sum.calories === 0)
-      return `Fresh start. ${Math.round(goals.calories)} kcal and ${Math.round(displayedProteinGoal)}g protein to go.`;
+      return `Fresh start. ${Math.round(eGoals.calories)} kcal and ${Math.round(displayedProteinGoal)}g protein to go.`;
     if (remP > 30)
       return `You need ${Math.round(remP)}g more protein and ${Math.round(remC)} kcal today. Make dinner count!`;
     if (remC < 300)
       return `Almost there — only ${Math.round(remC)} kcal left. Keep it light.`;
     return `${Math.round(remC)} kcal and ${Math.round(remP)}g protein remaining. You're on track.`;
-  }, [sum, goals, displayedProteinGoal]);
+  }, [sum, eGoals, displayedProteinGoal]);
 
   const streakActive =
     streak.count > 0 &&
@@ -399,8 +399,8 @@ export function TodayScreen({
           return d.toISOString().slice(0, 10);
         })());
 
-  // Fiber goal (rough default if not in goals): 14g per 1000 kcal
-  const fiberGoal = Math.round((goals.calories / 1000) * 14);
+  // Fiber + other micro goals come from personalised extended goals (Claude); fallback to defaults
+  const fiberGoal = goalForMetric("fiber", eGoals as Goals);
   // Real fiber comes from AI-estimated micros on each meal
   const fiberCurrent = totalForMetric("fiber", meals);
 
