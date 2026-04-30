@@ -107,6 +107,8 @@ export const UI_KEYS = [
   // Insights
   "insightsTitle", "avgProteinDay", "avgCaloriesDay",
   "caloriesLast7", "proteinLast7", "goalDot",
+  // Theme
+  "theme", "themeSystem", "themeLight", "themeDark",
 ] as const;
 export type UIKey = (typeof UI_KEYS)[number];
 
@@ -115,6 +117,7 @@ type Dict = Record<UIKey, string>;
 const EN: Dict = {
   today: "Today", log: "Log Meal", history: "History", insights: "Insights", settings: "Settings",
   chooseLanguage: "Choose your language", language: "Language", profile: "Profile", signOut: "Sign out",
+  theme: "Theme", themeSystem: "System", themeLight: "Light", themeDark: "Dark",
   languageContinue: "Continue", logIt: "Log it", tryAgain: "Try again", refresh: "Refresh", getStarted: "Get Started",
   typeAnswer: "Type your answer…", listening: "Listening…", describeMeal: "Describe your meal…",
   yourGoals: "Your daily goals", todaysMeals: "Today's meals", recommendations: "Recommendations",
