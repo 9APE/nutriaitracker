@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, ChevronRight, Monitor, Sun, Moon, UserCog } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, ChevronRight, Monitor, Sun, Moon, UserCog, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
   LANGUAGES,
@@ -17,6 +17,7 @@ import {
 import { EditProfileSheet } from "@/components/nouri/EditProfileSheet";
 import type { UserProfile } from "@/components/nouri/ProfileChatOnboarding";
 import type { Goals } from "@/lib/nouri-storage";
+import { loadUserGoals, onGoalsChange, type ExtendedGoals } from "@/lib/nouri-goals";
 
 interface Props {
   onClose: () => void;
