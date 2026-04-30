@@ -107,7 +107,12 @@ type Phase = "chat" | "plan-loading" | "plan-show" | "plan-adjust";
 
 interface Props {
   initial?: UserProfile | null;
-  onDone: (data: { profile: UserProfile; goals: Goals; warnings: string[] }) => void;
+  onDone: (data: {
+    profile: UserProfile;
+    goals: Goals;
+    warnings: string[];
+    plan?: PlanResult;
+  }) => void;
   onClose?: () => void;
 }
 
