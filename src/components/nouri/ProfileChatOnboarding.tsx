@@ -21,6 +21,8 @@ export interface UserProfile {
   activityLevel: string;
   dislikes: string[];
   allergies: string[];
+  /** Free-form list of preferred foods/cuisines. Optional — set via Edit Profile. */
+  preferences?: string[];
 }
 
 export interface PlanResult {
