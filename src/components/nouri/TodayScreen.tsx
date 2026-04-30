@@ -209,9 +209,16 @@ function MacroDetailCard({
   );
 }
 
-function MicroCard({ metric, current }: { metric: Metric; current: number }) {
+function MicroCard({
+  metric,
+  current,
+  goal,
+}: {
+  metric: Metric;
+  current: number;
+  goal: number;
+}) {
   const meta = METRIC_META[metric];
-  const goal = meta.defaultGoal;
   const pct = goal > 0 ? Math.min(100, (current / goal) * 100) : 0;
   const hasValue = current > 0;
   return (
