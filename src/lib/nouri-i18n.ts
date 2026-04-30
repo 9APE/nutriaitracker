@@ -173,6 +173,7 @@ const STRINGS: Record<LangCode, Partial<Dict>> = {
   fr: {
     today: "Aujourd'hui", log: "Ajouter un repas", history: "Historique", insights: "Aperçus", settings: "Paramètres",
     chooseLanguage: "Choisissez votre langue", language: "Langue", profile: "Profil", signOut: "Déconnexion",
+    theme: "Thème", themeSystem: "Système", themeLight: "Clair", themeDark: "Sombre",
     languageContinue: "Continuer", logIt: "Enregistrer", tryAgain: "Réessayer", refresh: "Actualiser", getStarted: "Commencer",
     typeAnswer: "Tapez votre réponse…", listening: "Écoute…", describeMeal: "Décrivez votre repas…",
     yourGoals: "Vos objectifs quotidiens", todaysMeals: "Repas du jour", recommendations: "Recommandations",
@@ -217,6 +218,7 @@ const STRINGS: Record<LangCode, Partial<Dict>> = {
   de: {
     today: "Heute", log: "Mahlzeit eintragen", history: "Verlauf", insights: "Einblicke", settings: "Einstellungen",
     chooseLanguage: "Wähle deine Sprache", language: "Sprache", profile: "Profil", signOut: "Abmelden",
+    theme: "Design", themeSystem: "System", themeLight: "Hell", themeDark: "Dunkel",
     languageContinue: "Weiter", logIt: "Speichern", tryAgain: "Nochmal", refresh: "Aktualisieren", getStarted: "Loslegen",
     typeAnswer: "Antwort eingeben…", listening: "Höre zu…", describeMeal: "Beschreibe deine Mahlzeit…",
     yourGoals: "Deine Tagesziele", todaysMeals: "Heutige Mahlzeiten", recommendations: "Empfehlungen",
@@ -261,6 +263,7 @@ const STRINGS: Record<LangCode, Partial<Dict>> = {
   es: {
     today: "Hoy", log: "Registrar comida", history: "Historial", insights: "Análisis", settings: "Ajustes",
     chooseLanguage: "Elige tu idioma", language: "Idioma", profile: "Perfil", signOut: "Cerrar sesión",
+    theme: "Tema", themeSystem: "Sistema", themeLight: "Claro", themeDark: "Oscuro",
     languageContinue: "Continuar", logIt: "Guardar", tryAgain: "Reintentar", refresh: "Actualizar", getStarted: "Empezar",
     typeAnswer: "Escribe tu respuesta…", listening: "Escuchando…", describeMeal: "Describe tu comida…",
     yourGoals: "Tus objetivos diarios", todaysMeals: "Comidas de hoy", recommendations: "Recomendaciones",
@@ -305,6 +308,7 @@ const STRINGS: Record<LangCode, Partial<Dict>> = {
   it: {
     today: "Oggi", log: "Registra pasto", history: "Cronologia", insights: "Analisi", settings: "Impostazioni",
     chooseLanguage: "Scegli la tua lingua", language: "Lingua", profile: "Profilo", signOut: "Esci",
+    theme: "Tema", themeSystem: "Sistema", themeLight: "Chiaro", themeDark: "Scuro",
     languageContinue: "Continua", logIt: "Salva", tryAgain: "Riprova", refresh: "Aggiorna", getStarted: "Inizia",
     typeAnswer: "Scrivi la tua risposta…", listening: "In ascolto…", describeMeal: "Descrivi il tuo pasto…",
     yourGoals: "I tuoi obiettivi giornalieri", todaysMeals: "Pasti di oggi", recommendations: "Consigli",
@@ -349,6 +353,7 @@ const STRINGS: Record<LangCode, Partial<Dict>> = {
   pt: {
     today: "Hoje", log: "Registar refeição", history: "Histórico", insights: "Análises", settings: "Definições",
     chooseLanguage: "Escolha o seu idioma", language: "Idioma", profile: "Perfil", signOut: "Sair",
+    theme: "Tema", themeSystem: "Sistema", themeLight: "Claro", themeDark: "Escuro",
     languageContinue: "Continuar", logIt: "Guardar", tryAgain: "Tentar de novo", refresh: "Atualizar", getStarted: "Começar",
     typeAnswer: "Escreva a sua resposta…", listening: "A ouvir…", describeMeal: "Descreva a sua refeição…",
     yourGoals: "Os seus objetivos diários", todaysMeals: "Refeições de hoje", recommendations: "Recomendações",
@@ -393,6 +398,7 @@ const STRINGS: Record<LangCode, Partial<Dict>> = {
   nl: {
     today: "Vandaag", log: "Maaltijd loggen", history: "Geschiedenis", insights: "Inzichten", settings: "Instellingen",
     chooseLanguage: "Kies je taal", language: "Taal", profile: "Profiel", signOut: "Uitloggen",
+    theme: "Thema", themeSystem: "Systeem", themeLight: "Licht", themeDark: "Donker",
     languageContinue: "Doorgaan", logIt: "Opslaan", tryAgain: "Opnieuw", refresh: "Vernieuwen", getStarted: "Beginnen",
     typeAnswer: "Typ je antwoord…", listening: "Aan het luisteren…", describeMeal: "Beschrijf je maaltijd…",
     yourGoals: "Je dagelijkse doelen", todaysMeals: "Maaltijden van vandaag", recommendations: "Aanbevelingen",
@@ -437,6 +443,7 @@ const STRINGS: Record<LangCode, Partial<Dict>> = {
   ar: {
     today: "اليوم", log: "تسجيل وجبة", history: "السجل", insights: "تحليلات", settings: "الإعدادات",
     chooseLanguage: "اختر لغتك", language: "اللغة", profile: "الملف", signOut: "تسجيل الخروج",
+    theme: "السمة", themeSystem: "النظام", themeLight: "فاتح", themeDark: "داكن",
     languageContinue: "متابعة", logIt: "حفظ", tryAgain: "حاول مجددًا", refresh: "تحديث", getStarted: "ابدأ",
     typeAnswer: "اكتب إجابتك…", listening: "جارٍ الاستماع…", describeMeal: "صف وجبتك…",
     yourGoals: "أهدافك اليومية", todaysMeals: "وجبات اليوم", recommendations: "التوصيات",
@@ -481,6 +488,7 @@ const STRINGS: Record<LangCode, Partial<Dict>> = {
   zh: {
     today: "今天", log: "记录餐食", history: "历史", insights: "分析", settings: "设置",
     chooseLanguage: "选择你的语言", language: "语言", profile: "个人资料", signOut: "退出登录",
+    theme: "主题", themeSystem: "跟随系统", themeLight: "浅色", themeDark: "深色",
     languageContinue: "继续", logIt: "保存", tryAgain: "重试", refresh: "刷新", getStarted: "开始",
     typeAnswer: "输入你的回答…", listening: "正在聆听…", describeMeal: "描述你的餐食…",
     yourGoals: "你的每日目标", todaysMeals: "今天的餐食", recommendations: "推荐",
@@ -525,6 +533,7 @@ const STRINGS: Record<LangCode, Partial<Dict>> = {
   ja: {
     today: "今日", log: "食事を記録", history: "履歴", insights: "分析", settings: "設定",
     chooseLanguage: "言語を選択", language: "言語", profile: "プロフィール", signOut: "ログアウト",
+    theme: "テーマ", themeSystem: "システム", themeLight: "ライト", themeDark: "ダーク",
     languageContinue: "続ける", logIt: "保存", tryAgain: "再試行", refresh: "更新", getStarted: "始める",
     typeAnswer: "回答を入力…", listening: "聞いています…", describeMeal: "食事を入力…",
     yourGoals: "今日の目標", todaysMeals: "今日の食事", recommendations: "おすすめ",
