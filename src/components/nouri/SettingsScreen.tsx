@@ -63,6 +63,25 @@ export function SettingsScreen({
     { value: "dark", label: t("themeDark", lang), Icon: Moon },
   ];
 
+  const [extGoals, setExtGoals] = useState<ExtendedGoals | null>(() => loadUserGoals());
+  useEffect(() => {
+    const refresh = () => setExtGoals(loadUserGoals());
+    return onGoalsChange(refresh);
+  }, []);
+  const reasoning = extGoals?.reasoning;
+  const reasoningEntries = reasoning
+    ? (Object.entries(reasoning).filter(
+        ([, v]) => typeof v === "string" && (v as string).trim(),
+      ) as [string, string][])
+    : [];
+  const REASON_LABELS: Record<string, string> = {
+    calories: "Calories", protein: "Protein", carbs: "Carbs", fat: "Fat",
+    fiber: "Fiber", sodium_max: "Sodium limit", sugar_max: "Sugar limit",
+    saturated_fat_max: "Saturated fat limit", cholesterol_max: "Cholesterol limit",
+    potassium: "Potassium", calcium: "Calcium", iron: "Iron",
+    vitamin_c: "Vitamin C", vitamin_d: "Vitamin D", vitamin_a: "Vitamin A",
+  };
+
   const handlePick = (code: LangCode) => {
     setLanguage(code);
     setPicking(false);
