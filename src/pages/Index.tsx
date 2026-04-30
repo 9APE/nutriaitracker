@@ -377,6 +377,7 @@ const Index = () => {
       <XPFloater />
       <GoalCelebration />
       {showXP && <XPScreen onClose={() => setShowXP(false)} />}
+      {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} />}
       {showWeeklyReport && !needsOnboarding && (
         <WeeklyReport
           name={userProfile?.name?.split(" ")[0] || "friend"}
