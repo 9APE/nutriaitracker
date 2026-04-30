@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, ChevronRight } from "lucide-react";
+import { X, ChevronRight, Monitor, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import {
   LANGUAGES,
@@ -9,6 +9,11 @@ import {
   t,
   type LangCode,
 } from "@/lib/nouri-i18n";
+import {
+  setThemePreference,
+  useThemePreference,
+  type ThemePreference,
+} from "@/lib/nouri-theme";
 
 interface Props {
   onClose: () => void;
