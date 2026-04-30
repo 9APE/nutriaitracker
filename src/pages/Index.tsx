@@ -264,6 +264,11 @@ const Index = () => {
 
   if (!user) return <Navigate to="/auth" replace />;
 
+  // Language selection — must come BEFORE any AI chat / onboarding
+  if (!hasLanguage) {
+    return <LanguageSelect onDone={() => setHasLanguage(true)} />;
+  }
+
   if (needsOnboarding) {
     return (
       <Onboarding
@@ -325,6 +330,14 @@ const Index = () => {
             >
               <UserCog size={13} />
               Profile
+            </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-muted transition-colors"
+              aria-label="Settings"
+              title="Settings"
+            >
+              <SettingsIcon size={14} />
             </button>
             <NotificationBell
               goals={goals}
