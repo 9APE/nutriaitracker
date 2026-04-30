@@ -36,6 +36,7 @@ import { useLanguage, t, getLocale } from "@/lib/nouri-i18n";
 interface TodayScreenProps {
   goals: Goals;
   meals: Meal[];
+  userProfile?: any;
   onDeleteMeal: (id: string) => void;
   onGoLog: () => void;
   onPickSuggestion?: (mealName: string) => void;
@@ -46,6 +47,7 @@ interface TodayScreenProps {
 export function TodayScreen({
   goals,
   meals,
+  userProfile,
   onDeleteMeal,
   onGoLog,
   onPickSuggestion,
