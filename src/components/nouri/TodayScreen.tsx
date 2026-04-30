@@ -200,7 +200,36 @@ function MacroDetailCard({
   );
 }
 
-export function TodayScreen({
+function MicroCard({ metric }: { metric: Metric }) {
+  const meta = METRIC_META[metric];
+  const tracked = isTracked(metric);
+  return (
+    <div className="rounded-2xl border border-border bg-card p-3 flex flex-col gap-1">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+        {meta.label}
+      </div>
+      <div className="flex items-baseline gap-1">
+        <span
+          className="font-mono-data text-base font-semibold tabular-nums"
+          style={{ color: tracked ? meta.color : "hsl(var(--muted-foreground))" }}
+        >
+          {tracked ? "0" : "—"}
+        </span>
+        <span className="font-mono-data text-[10px] text-muted-foreground">
+          /{Math.round(meta.defaultGoal)}
+          {meta.unit}
+        </span>
+      </div>
+      <div className="h-1 rounded-full bg-muted overflow-hidden mt-1">
+        <div
+          className="h-full rounded-full"
+          style={{ width: "0%", backgroundColor: meta.color }}
+        />
+      </div>
+    </div>
+  );
+}
+
   goals,
   meals,
   userProfile,
