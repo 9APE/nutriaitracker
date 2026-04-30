@@ -314,6 +314,13 @@ const Index = () => {
               toast.error(e?.message || "Couldn't save goals");
             }
           }
+          // Generate AI personalized dashboard layout for the new/updated profile
+          try {
+            const layout = await generateLayout({ profile: p, goals: g });
+            saveLayout(layout);
+          } catch (e) {
+            console.error("layout generation failed", e);
+          }
           toast.success("Profile saved");
         }}
       />
