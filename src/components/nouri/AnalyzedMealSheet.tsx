@@ -37,7 +37,7 @@ export function AnalyzedMealSheet({ meal, onRetry, onConfirm }: AnalyzedMealShee
             className="rounded-2xl px-4 py-3 mb-5 text-sm leading-relaxed text-foreground flex items-start gap-2"
             style={{ backgroundColor: "#EAF4EE", border: "1px solid #5BB882" }}
           >
-            <span className="text-base leading-none mt-0.5">🌿</span>
+            
             <span className="flex-1">{meal.tip}</span>
           </div>
         )}
@@ -47,7 +47,7 @@ export function AnalyzedMealSheet({ meal, onRetry, onConfirm }: AnalyzedMealShee
             Try again
           </Button>
           <Button className="flex-1 h-12" onClick={onConfirm}>
-            Log it ✓
+            Log it
           </Button>
         </div>
       </div>

@@ -126,7 +126,7 @@ export function TodayScreen({
               style={{ backgroundColor: "#EAF4EE", borderColor: "#5BB882", color: "#1F6B43" }}
               title="Daily logging streak"
             >
-              {streakActive ? `🔥 ${streak.count}` : "🔥 Start"}
+              {streakActive ? `🔥 ${streak.count}` : "Start streak"}
             </span>
             {freezes > 0 && (
               <span
@@ -134,7 +134,7 @@ export function TodayScreen({
                 style={{ backgroundColor: "#E8F1FB", borderColor: "#5B8FCC", color: "#1F4A82" }}
                 title="Streak freezes available"
               >
-                🛡️ {freezes}
+                {freezes} freeze
               </span>
             )}
           </div>
@@ -188,7 +188,7 @@ export function TodayScreen({
           className="w-full text-left rounded-2xl border p-4 flex items-center gap-3 transition-transform active:scale-[0.99]"
           style={{ backgroundColor: "#EAF4EE", borderColor: "#5BB882" }}
         >
-          <span className="text-2xl shrink-0">🌿</span>
+          
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium" style={{ color: "#1F6B43" }}>
               {t("weeklyCheckinTitle", lang)}
@@ -233,9 +233,9 @@ export function TodayScreen({
       </section>
 
       <section className="nouri-card p-5 space-y-4">
-        <MacroBar label="Protein" emoji="💪" current={sum.protein} goal={displayedGoals.protein} color="protein" />
-        <MacroBar label="Carbs" emoji="🌾" current={sum.carbs} goal={goals.carbs} color="carbs" />
-        <MacroBar label="Fat" emoji="🫒" current={sum.fat} goal={goals.fat} color="fat" />
+        <MacroBar label="Protein" current={sum.protein} goal={displayedGoals.protein} color="protein" />
+        <MacroBar label="Carbs" current={sum.carbs} goal={goals.carbs} color="carbs" />
+        <MacroBar label="Fat" current={sum.fat} goal={goals.fat} color="fat" />
       </section>
 
       <RemainingBanner

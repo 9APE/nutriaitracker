@@ -88,7 +88,6 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
     <section className="space-y-2">
       <div className="flex items-center justify-between px-1">
         <h2 className="font-serif text-lg font-medium flex items-center gap-1.5">
-          <span className="text-primary">🌿</span>
           Nouri Recommends
         </h2>
         <button

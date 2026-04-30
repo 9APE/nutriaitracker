@@ -14,7 +14,7 @@ export function NouriHeader({
     <header className="sticky top-0 z-20 bg-background/90 backdrop-blur border-b border-border">
       <div className="max-w-md mx-auto px-5 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xl">🌿</span>
+          
           <span className="font-serif text-lg font-medium tracking-tight">Nouri</span>
         </div>
         <div className="flex items-center gap-1">

@@ -66,11 +66,11 @@ export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps)
   };
 
   const statItems: Array<{ label: string; value: string; emoji: string }> = [
-    { label: "Meals logged", value: String(stats.totalMeals), emoji: "🍽️" },
-    { label: "Protein days", value: `${stats.proteinDaysHit}/7`, emoji: "💪" },
-    { label: "Avg calories", value: `${stats.avgCalories}`, emoji: "🔢" },
-    { label: "Current streak", value: `${stats.streak}`, emoji: "🔥" },
-    { label: "XP this week", value: `${stats.xpThisWeek}`, emoji: "⭐" },
+    { label: "Meals logged", value: String(stats.totalMeals) },
+    { label: "Protein days", value: `${stats.proteinDaysHit}/7` },
+    { label: "Avg calories", value: `${stats.avgCalories}` },
+    { label: "Current streak", value: `${stats.streak}` },
+    { label: "XP this week", value: `${stats.xpThisWeek}` },
   ];
 
   return (
@@ -91,7 +91,7 @@ export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps)
             style={{ backgroundColor: "#EAF4EE", border: "2px solid #5BB882" }}
             aria-hidden
           >
-            🌿
+            
           </div>
           <p className="text-xs uppercase tracking-wider text-muted-foreground">
             Your week with Nouri
@@ -151,7 +151,7 @@ export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps)
           className="w-full mt-5 rounded-full py-3 text-white font-medium transition-transform active:scale-[0.99]"
           style={{ backgroundColor: "#5BB882" }}
         >
-          Let's go this week! 🔥
+          Let's go this week.
         </button>
       </div>
     </div>

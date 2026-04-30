@@ -119,7 +119,7 @@ export function GoalCelebration() {
             color: "#7A5800",
           }}
         >
-          <div className="text-2xl font-medium">🎉 All goals hit! {name}</div>
+          <div className="text-2xl font-medium">All goals hit, {name}</div>
           {xpToday > 0 && (
             <div className="font-mono-data text-sm mt-1 opacity-80">
               +{xpToday} XP earned today ⭐
