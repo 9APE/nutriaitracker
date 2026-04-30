@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useLanguage, t, type UIKey } from "@/lib/nouri-i18n";
 
 interface MacroBarProps {
   label: string;

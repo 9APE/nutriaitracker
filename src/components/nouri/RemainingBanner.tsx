@@ -1,21 +1,27 @@
+import { useLanguage, t } from "@/lib/nouri-i18n";
+
 interface RemainingBannerProps {
   remainingProtein: number;
   remainingCalories: number;
 }
 
 export function RemainingBanner({ remainingProtein, remainingCalories }: RemainingBannerProps) {
+  const lang = useLanguage();
   const proteinHit = remainingProtein <= 0;
   const caloriesHit = remainingCalories <= 0;
 
   let message: string;
   if (proteinHit && caloriesHit) {
-    message = "You've hit all your goals today! 🌿 Great work.";
+    message = t("allGoalsHit", lang);
   } else if (proteinHit) {
-    message = `Protein goal hit! ✅ Focus on your ${Math.round(remainingCalories)} kcal remaining.`;
+    message = t("proteinGoalHit", lang, { kcal: Math.round(remainingCalories) });
   } else if (caloriesHit) {
-    message = `Calorie goal hit! Just ${Math.round(remainingProtein)}g more protein to go.`;
+    message = t("calorieGoalHit", lang, { g: Math.round(remainingProtein) });
   } else {
-    message = `You need ${Math.round(remainingProtein)}g more protein and ${Math.round(remainingCalories)} kcal today.`;
+    message = t("needMore", lang, {
+      g: Math.round(remainingProtein),
+      kcal: Math.round(remainingCalories),
+    });
   }
 
   return (
