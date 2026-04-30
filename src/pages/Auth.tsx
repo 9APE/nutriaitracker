@@ -39,6 +39,11 @@ const Auth = () => {
       return;
     }
     setBusy(true);
+    // Persist the preference BEFORE the auth call so the next reload picks
+    // the correct storage (localStorage vs sessionStorage).
+    const prevPref = localStorage.getItem("nouri.staySignedIn") !== "false";
+    localStorage.setItem("nouri.staySignedIn", staySignedIn ? "true" : "false");
+    const prefChanged = prevPref !== staySignedIn;
     try {
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
@@ -51,12 +56,20 @@ const Auth = () => {
         });
         if (error) throw error;
         toast.success("Welcome to Nouri 🌿");
-        navigate("/");
+        if (prefChanged) {
+          window.location.replace("/");
+        } else {
+          navigate("/");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Signed in");
-        navigate("/");
+        if (prefChanged) {
+          window.location.replace("/");
+        } else {
+          navigate("/");
+        }
       }
     } catch (err: any) {
       const msg = err?.message || "Something went wrong";
