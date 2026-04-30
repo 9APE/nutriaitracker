@@ -597,6 +597,23 @@ export function TodayScreen({
         />
       </section>
 
+      {/* SECTION 5b — MICRONUTRIENTS */}
+      {layout.small.length > 0 && (
+        <section className="space-y-2">
+          <div className="flex items-baseline justify-between px-1">
+            <h2 className="text-base font-semibold text-foreground">Micronutrients</h2>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              Daily targets
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {layout.small.map((m) => (
+              <MicroCard key={m} metric={m} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* SECTION 6 — LOG MEAL BUTTON */}
       <button
         onClick={onGoLog}
