@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, ChevronRight, Monitor, Sun, Moon } from "lucide-react";
+import { X, ChevronRight, Monitor, Sun, Moon, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import {
   LANGUAGES,
@@ -14,10 +14,18 @@ import {
   useThemePreference,
   type ThemePreference,
 } from "@/lib/nouri-theme";
+import { EditProfileSheet } from "@/components/nouri/EditProfileSheet";
+import type { UserProfile } from "@/components/nouri/ProfileChatOnboarding";
+import type { Goals } from "@/lib/nouri-storage";
 
 interface Props {
   onClose: () => void;
   initialPicking?: boolean;
+  /** When provided, exposes the focused-edit profile sheet. */
+  userProfile?: UserProfile | null;
+  userId?: string;
+  onProfileSaved?: (next: UserProfile) => void;
+  onGoalsRecalculated?: (goals: Goals, warnings: string[]) => void;
 }
 
 const CONFIRMATIONS: Record<LangCode, (name: string) => string> = {
@@ -33,11 +41,20 @@ const CONFIRMATIONS: Record<LangCode, (name: string) => string> = {
   ja: (n) => `言語が更新されました！Nouri はこれから${n}で話します`,
 };
 
-export function SettingsScreen({ onClose, initialPicking = false }: Props) {
+export function SettingsScreen({
+  onClose,
+  initialPicking = false,
+  userProfile,
+  userId,
+  onProfileSaved,
+  onGoalsRecalculated,
+}: Props) {
   const lang = useLanguage();
   const current = getLanguageMeta(lang);
   const [picking, setPicking] = useState(initialPicking);
+  const [editingProfile, setEditingProfile] = useState(false);
   const themePref = useThemePreference();
+  const canEditProfile = !!(userProfile && userId && onProfileSaved && onGoalsRecalculated);
 
   const themeOptions: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
     { value: "system", label: t("themeSystem", lang), Icon: Monitor },
@@ -73,6 +90,24 @@ export function SettingsScreen({ onClose, initialPicking = false }: Props) {
 
       <div className="flex-1 px-5 py-6 pb-[max(2rem,env(safe-area-inset-bottom))]">
         <div className="max-w-md mx-auto space-y-3">
+          {!picking && canEditProfile && (
+            <button
+              onClick={() => setEditingProfile(true)}
+              className="w-full flex items-center justify-between rounded-2xl border border-border bg-card hover:border-primary/40 px-4 py-3.5 transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <UserCog size={18} className="text-muted-foreground" />
+                <div>
+                  <div className="text-sm font-medium">Edit profile</div>
+                  <div className="text-xs text-muted-foreground">
+                    Update conditions, diet, activity & preferences
+                  </div>
+                </div>
+              </div>
+              <ChevronRight size={18} className="text-muted-foreground" />
+            </button>
+          )}
+
           {!picking ? (
             <button
               onClick={() => setPicking(true)}
@@ -151,6 +186,16 @@ export function SettingsScreen({ onClose, initialPicking = false }: Props) {
           </section>
         </div>
       </div>
+
+      {editingProfile && canEditProfile && userProfile && userId && (
+        <EditProfileSheet
+          profile={userProfile}
+          userId={userId}
+          onClose={() => setEditingProfile(false)}
+          onProfileSaved={(p) => onProfileSaved!(p)}
+          onGoalsRecalculated={(g, w) => onGoalsRecalculated!(g, w)}
+        />
+      )}
     </div>
   );
 }

@@ -14,7 +14,7 @@ import { notifStore } from "@/lib/nouri-suggestions";
 import { useAuth } from "@/lib/auth-context";
 import { cloud, type Profile } from "@/lib/nouri-cloud";
 import { toast } from "sonner";
-import { Loader2, UserCog } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import {
   ProfileChatOnboarding,
   type UserProfile,
@@ -336,15 +336,7 @@ const Index = () => {
             >
               <span aria-hidden>{langMeta.flag}</span>
             </button>
-            <button
-              onClick={() => setEditingProfile(true)}
-              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-muted transition-colors"
-              aria-label="Edit profile"
-              title="Edit profile"
-            >
-              <UserCog size={13} />
-              {t("profile", currentLang)}
-            </button>
+            {/* Edit-profile moved to Settings → Edit profile (focused per-field sheet) */}
             <button
               onClick={() => {
                 setSettingsPickLang(false);
@@ -397,6 +389,20 @@ const Index = () => {
       {showSettings && (
         <SettingsScreen
           initialPicking={settingsPickLang}
+          userProfile={userProfile}
+          userId={user?.id}
+          onProfileSaved={(p) => {
+            setUserProfile(p);
+            setProfile((prev) =>
+              prev ? ({ ...prev, user_profile_json: p } as Profile) : prev,
+            );
+          }}
+          onGoalsRecalculated={(g, w) => {
+            setGoals(g);
+            setProfile((prev) =>
+              prev ? ({ ...prev, user_warnings_json: w } as Profile) : prev,
+            );
+          }}
           onClose={() => {
             setShowSettings(false);
             setSettingsPickLang(false);
