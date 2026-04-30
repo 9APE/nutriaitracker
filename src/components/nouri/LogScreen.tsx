@@ -368,6 +368,27 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
           onConfirm={confirmMeal}
         />
       )}
+
+      {scannerOpen && (
+        <BarcodeScanner
+          onClose={() => setScannerOpen(false)}
+          onDetected={(code) => {
+            setScannerOpen(false);
+            setScannedBarcode(code);
+          }}
+        />
+      )}
+
+      {scannedBarcode && (
+        <BarcodeProductSheet
+          barcode={scannedBarcode}
+          onClose={() => setScannedBarcode(null)}
+          onMealReady={(draft) => {
+            setScannedBarcode(null);
+            setAnalyzed(draft);
+          }}
+        />
+      )}
     </div>
   );
 }
