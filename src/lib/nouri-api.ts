@@ -62,6 +62,7 @@ export async function analyzeMeal(
   const eatenToday = buildEatenToday();
   const warnings = readUserWarnings();
 
+  const i18n = await import("@/lib/nouri-i18n");
   const { data, error } = await supabase.functions.invoke("analyze-meal", {
     body: {
       text,
@@ -70,7 +71,8 @@ export async function analyzeMeal(
       eatenToday,
       warnings,
       alreadyClarified: !!opts?.alreadyClarified,
-      language: (await import("@/lib/nouri-i18n")).getLanguage() ?? "en",
+      language: i18n.getLanguage() ?? "en",
+      languageName: i18n.getLanguageName(),
     },
   });
 
