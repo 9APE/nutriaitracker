@@ -50,6 +50,7 @@ export type Database = {
           fat: number
           id: string
           meal_name: string
+          micros: Json | null
           protein: number
           type: string
           user_id: string
@@ -62,6 +63,7 @@ export type Database = {
           fat?: number
           id?: string
           meal_name: string
+          micros?: Json | null
           protein?: number
           type: string
           user_id: string
@@ -74,6 +76,7 @@ export type Database = {
           fat?: number
           id?: string
           meal_name?: string
+          micros?: Json | null
           protein?: number
           type?: string
           user_id?: string
