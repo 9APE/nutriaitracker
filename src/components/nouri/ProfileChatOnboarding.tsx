@@ -56,6 +56,25 @@ export function saveUserWarnings(w: string[]) {
 // ── Sub-components ───────────────────────────────────────────────────────────
 type ChatMessage = { role: "assistant" | "user"; content: string };
 
+const CHIPS_RE = /\[CHIPS:\s*([^\]]+)\]\s*$/i;
+
+function parseChips(text: string): { clean: string; chips: string[] } {
+  const m = text.match(CHIPS_RE);
+  if (!m) return { clean: text, chips: [] };
+  const chips = m[1]
+    .split("|")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return { clean: text.replace(CHIPS_RE, "").trim(), chips };
+}
+
+function isOtherChip(label: string): boolean {
+  const l = label.toLowerCase().trim();
+  return ["other", "autre", "otro", "andere", "altro", "outro", "其他", "その他", "آخر", "anders"].some(
+    (w) => l === w || l.startsWith(w),
+  );
+}
+
 function TypingDots() {
   return (
     <div className="flex items-center gap-1.5 px-4 py-3 bg-surface border border-border rounded-2xl rounded-tl-sm w-fit">
@@ -88,6 +107,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
   const [plan, setPlan] = useState<PlanResult | null>(null);
   const [adjusted, setAdjusted] = useState<Goals | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const voice = useVoice();
   const startedRef = useRef(false);
 
@@ -368,22 +388,57 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-6">
         <div className="max-w-md mx-auto space-y-3">
-          {messages.map((m, i) =>
-            m.role === "assistant" ? (
-              <div key={i} className="flex items-start gap-2 animate-bubble-in">
-                <div className="text-xl shrink-0 pt-1">🌿</div>
-                <div className="bg-surface border border-border rounded-2xl rounded-tl-sm px-4 py-3 text-[15px] leading-relaxed text-foreground max-w-[85%] whitespace-pre-wrap">
-                  {m.content}
+          {messages.map((m, i) => {
+            if (m.role !== "assistant") {
+              return (
+                <div key={i} className="flex justify-end animate-bubble-in">
+                  <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-3 text-[15px] leading-relaxed max-w-[85%] whitespace-pre-wrap">
+                    {m.content}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div key={i} className="flex justify-end animate-bubble-in">
-                <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-3 text-[15px] leading-relaxed max-w-[85%] whitespace-pre-wrap">
-                  {m.content}
+              );
+            }
+            const { clean, chips } = parseChips(m.content);
+            const isLast = i === messages.length - 1;
+            const chipsActive = isLast && !waiting && !voice.transcribing;
+            return (
+              <div key={i} className="space-y-2 animate-bubble-in">
+                <div className="flex items-start gap-2">
+                  <div className="text-xl shrink-0 pt-1">🌿</div>
+                  <div className="bg-surface border border-border rounded-2xl rounded-tl-sm px-4 py-3 text-[15px] leading-relaxed text-foreground max-w-[85%] whitespace-pre-wrap">
+                    {clean}
+                  </div>
                 </div>
+                {chips.length > 0 && chipsActive && (
+                  <div className="pl-9 flex flex-wrap gap-2">
+                    {chips.map((label) => {
+                      const other = isOtherChip(label);
+                      return (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => {
+                            if (other) {
+                              inputRef.current?.focus();
+                            } else {
+                              void submitText(label);
+                            }
+                          }}
+                          className={`rounded-full border px-3.5 py-1.5 text-sm transition-colors ${
+                            other
+                              ? "border-dashed border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                              : "border-primary/40 bg-primary/10 text-foreground hover:bg-primary/20"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )
-          )}
+            );
+          })}
           {(waiting || voice.transcribing) && (
             <div className="flex items-start gap-2">
               <div className="text-xl shrink-0 pt-1">🌿</div>
@@ -402,6 +457,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
           className="max-w-md mx-auto flex items-center gap-2"
         >
           <Input
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={voice.listening ? "Listening…" : "Type your answer…"}
