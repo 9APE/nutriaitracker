@@ -62,21 +62,22 @@ export interface MetricMeta {
 }
 
 // Goal estimates (rough daily reference values for adults; surface only — never used for medical advice).
+// Colors use the muted Nouri accent palette: sage / amber / purple / rose / steel-blue.
 export const METRIC_META: Record<Metric, MetricMeta> = {
-  calories:      { key: "calories",      label: "Calories",       unit: "kcal", defaultGoal: 2000, color: "#5BB882" },
-  protein:       { key: "protein",       label: "Protein",        unit: "g",    defaultGoal: 120,  color: "#3B82F6" },
-  carbs:         { key: "carbs",         label: "Carbs",          unit: "g",    defaultGoal: 250,  color: "#F59E0B" },
-  sugar:         { key: "sugar",         label: "Sugar",          unit: "g",    defaultGoal: 50,   color: "#EC4899" },
-  fat:           { key: "fat",           label: "Fat",            unit: "g",    defaultGoal: 70,   color: "#A855F7" },
-  fiber:         { key: "fiber",         label: "Fiber",          unit: "g",    defaultGoal: 30,   color: "#10B981" },
-  sodium:        { key: "sodium",        label: "Sodium",         unit: "mg",   defaultGoal: 2300, color: "#EF4444" },
-  potassium:     { key: "potassium",     label: "Potassium",      unit: "mg",   defaultGoal: 3500, color: "#0EA5E9" },
-  cholesterol:   { key: "cholesterol",   label: "Cholesterol",    unit: "mg",   defaultGoal: 300,  color: "#F97316" },
-  saturated_fat: { key: "saturated_fat", label: "Saturated fat",  unit: "g",    defaultGoal: 20,   color: "#9333EA" },
-  iron:          { key: "iron",          label: "Iron",           unit: "mg",   defaultGoal: 18,   color: "#7C3AED" },
-  vitamin_c:     { key: "vitamin_c",     label: "Vitamin C",      unit: "mg",   defaultGoal: 90,   color: "#22C55E" },
-  vitamin_d:     { key: "vitamin_d",     label: "Vitamin D",      unit: "µg",   defaultGoal: 20,   color: "#FACC15" },
-  calcium:       { key: "calcium",       label: "Calcium",        unit: "mg",   defaultGoal: 1000, color: "#06B6D4" },
+  calories:      { key: "calories",      label: "Calories",       unit: "kcal", defaultGoal: 2000, color: "#5dbd8a" },
+  protein:       { key: "protein",       label: "Protein",        unit: "g",    defaultGoal: 120,  color: "#5dbd8a" },
+  carbs:         { key: "carbs",         label: "Carbs",          unit: "g",    defaultGoal: 250,  color: "#d4954a" },
+  sugar:         { key: "sugar",         label: "Sugar",          unit: "g",    defaultGoal: 50,   color: "#c96b72" },
+  fat:           { key: "fat",           label: "Fat",            unit: "g",    defaultGoal: 70,   color: "#9b87d4" },
+  fiber:         { key: "fiber",         label: "Fiber",          unit: "g",    defaultGoal: 30,   color: "#5dbd8a" },
+  sodium:        { key: "sodium",        label: "Sodium",         unit: "mg",   defaultGoal: 2300, color: "#c96b72" },
+  potassium:     { key: "potassium",     label: "Potassium",      unit: "mg",   defaultGoal: 3500, color: "#5b9bd4" },
+  cholesterol:   { key: "cholesterol",   label: "Cholesterol",    unit: "mg",   defaultGoal: 300,  color: "#d4954a" },
+  saturated_fat: { key: "saturated_fat", label: "Saturated fat",  unit: "g",    defaultGoal: 20,   color: "#9b87d4" },
+  iron:          { key: "iron",          label: "Iron",           unit: "mg",   defaultGoal: 18,   color: "#9b87d4" },
+  vitamin_c:     { key: "vitamin_c",     label: "Vitamin C",      unit: "mg",   defaultGoal: 90,   color: "#5dbd8a" },
+  vitamin_d:     { key: "vitamin_d",     label: "Vitamin D",      unit: "µg",   defaultGoal: 20,   color: "#d4954a" },
+  calcium:       { key: "calcium",       label: "Calcium",        unit: "mg",   defaultGoal: 1000, color: "#5b9bd4" },
 };
 
 /**
