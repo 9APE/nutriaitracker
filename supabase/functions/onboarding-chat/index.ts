@@ -194,12 +194,32 @@ Deno.serve(async (req) => {
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const plan = {
+      const numOrUndef = (v: any) => {
+        const n = Number(v);
+        return isFinite(n) ? Math.round(n) : undefined;
+      };
+      const plan: Record<string, any> = {
         calories: Math.round(Number(parsed.calories) || 0),
         protein: Math.round(Number(parsed.protein) || 0),
         carbs: Math.round(Number(parsed.carbs) || 0),
         fat: Math.round(Number(parsed.fat) || 0),
-        reasoning: typeof parsed.reasoning === "string" ? parsed.reasoning : "",
+        fiber: numOrUndef(parsed.fiber),
+        sugar_max: numOrUndef(parsed.sugar_max),
+        saturated_fat_max: numOrUndef(parsed.saturated_fat_max),
+        sodium_max: numOrUndef(parsed.sodium_max),
+        cholesterol_max: numOrUndef(parsed.cholesterol_max),
+        potassium: numOrUndef(parsed.potassium),
+        calcium: numOrUndef(parsed.calcium),
+        iron: numOrUndef(parsed.iron),
+        vitamin_c: numOrUndef(parsed.vitamin_c),
+        vitamin_d: numOrUndef(parsed.vitamin_d),
+        vitamin_a: numOrUndef(parsed.vitamin_a),
+        reasoning:
+          parsed.reasoning && typeof parsed.reasoning === "object"
+            ? parsed.reasoning
+            : typeof parsed.reasoning === "string"
+            ? { calories: parsed.reasoning }
+            : {},
         warnings: Array.isArray(parsed.warnings) ? parsed.warnings.map(String) : [],
       };
       return new Response(JSON.stringify({ plan }), {
