@@ -53,12 +53,14 @@ export function EveningNudge({ meals, onGoLog }: EveningNudgeProps) {
   return (
     <div
       className="rounded-2xl border p-4 flex gap-3"
-      style={{ backgroundColor: "#F4EFE6", borderColor: "#C9B68A" }}
+      style={{
+        backgroundColor: "hsl(var(--tone-warm-bg))",
+        borderColor: "hsl(var(--tone-warm-border))",
+      }}
       role="status"
     >
-      
       <div className="flex-1 min-w-0">
-        <p className="text-sm" style={{ color: "#5A4422" }}>
+        <p className="text-sm" style={{ color: "hsl(var(--tone-warm-fg))" }}>
           Hey {name}, I haven't heard from you since this afternoon. How's dinner going? Keep your 🔥 streak alive.
         </p>
         <div className="flex gap-2 mt-3">
@@ -68,8 +70,7 @@ export function EveningNudge({ meals, onGoLog }: EveningNudgeProps) {
               dismiss();
               onGoLog();
             }}
-            className="text-xs font-medium px-3 py-1.5 rounded-full text-white transition-transform active:scale-95"
-            style={{ backgroundColor: "#5BB882" }}
+            className="text-xs font-medium px-3 py-1.5 rounded-full bg-primary text-primary-foreground transition-transform active:scale-95"
           >
             Log dinner now
           </button>
@@ -77,7 +78,10 @@ export function EveningNudge({ meals, onGoLog }: EveningNudgeProps) {
             type="button"
             onClick={dismiss}
             className="text-xs font-medium px-3 py-1.5 rounded-full border transition-transform active:scale-95"
-            style={{ borderColor: "#C9B68A", color: "#5A4422" }}
+            style={{
+              borderColor: "hsl(var(--tone-warm-border))",
+              color: "hsl(var(--tone-warm-fg))",
+            }}
           >
             I'll do it later
           </button>

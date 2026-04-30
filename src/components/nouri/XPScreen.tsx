@@ -31,7 +31,11 @@ export function XPScreen({ onClose }: Props) {
         <div className="max-w-md mx-auto space-y-6">
           <section
             className="rounded-2xl border p-6 text-center"
-            style={{ backgroundColor: "#FFF8E1", borderColor: "#F0C24A", color: "#7A5800" }}
+            style={{
+              backgroundColor: "hsl(var(--tone-gold-bg))",
+              borderColor: "hsl(var(--tone-gold-border))",
+              color: "hsl(var(--tone-gold-fg))",
+            }}
           >
             <div className="text-xs uppercase tracking-wider opacity-70">Level</div>
             <div className="font-serif text-5xl font-medium mt-1">Lvl {info.level} ⭐</div>
@@ -48,7 +52,7 @@ export function XPScreen({ onClose }: Props) {
             <div className="h-3 rounded-full bg-muted overflow-hidden">
               <div
                 className="h-full rounded-full macro-fill"
-                style={{ width: `${info.pct}%`, backgroundColor: "#F0C24A" }}
+                style={{ width: `${info.pct}%`, backgroundColor: "hsl(var(--tone-gold-border))" }}
               />
             </div>
             <p className="text-xs text-muted-foreground">
@@ -68,8 +72,12 @@ export function XPScreen({ onClose }: Props) {
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="text-sm font-medium text-foreground">{s.label}</span>
                       <span
-                        className="font-mono-data text-xs px-2 py-0.5 rounded-full whitespace-nowrap"
-                        style={{ backgroundColor: "#FFF8E1", color: "#7A5800", border: "1px solid #F0C24A" }}
+                        className="font-mono-data text-xs px-2 py-0.5 rounded-full whitespace-nowrap border"
+                        style={{
+                          backgroundColor: "hsl(var(--tone-gold-bg))",
+                          color: "hsl(var(--tone-gold-fg))",
+                          borderColor: "hsl(var(--tone-gold-border))",
+                        }}
                       >
                         +{s.amount} XP
                       </span>

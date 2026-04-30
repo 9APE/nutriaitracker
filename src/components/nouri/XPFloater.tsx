@@ -30,9 +30,9 @@ export function XPFloater() {
           key={it.id}
           className="xp-floater rounded-full px-4 py-2 text-sm font-semibold shadow-lg border"
           style={{
-            backgroundColor: "#FFF8E1",
-            borderColor: "#F0C24A",
-            color: "#7A5800",
+            backgroundColor: "hsl(var(--tone-gold-bg))",
+            borderColor: "hsl(var(--tone-gold-border))",
+            color: "hsl(var(--tone-gold-fg))",
           }}
         >
           +{it.amount} XP ⭐

@@ -33,10 +33,13 @@ export function AnalyzedMealSheet({ meal, onRetry, onConfirm }: AnalyzedMealShee
 
         {meal.tip && (
           <div
-            className="rounded-2xl px-4 py-3 mb-5 text-sm leading-relaxed text-foreground flex items-start gap-2"
-            style={{ backgroundColor: "#EAF4EE", border: "1px solid #5BB882" }}
+            className="rounded-2xl px-4 py-3 mb-5 text-sm leading-relaxed flex items-start gap-2"
+            style={{
+              backgroundColor: "hsl(var(--tone-success-bg))",
+              border: "1px solid hsl(var(--tone-success-border))",
+              color: "hsl(var(--tone-success-fg))",
+            }}
           >
-            
             <span className="flex-1">{meal.tip}</span>
           </div>
         )}
