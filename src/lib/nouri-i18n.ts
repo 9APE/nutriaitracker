@@ -95,6 +95,18 @@ export const UI_KEYS = [
   "allGoalsHit", "proteinGoalHit", "calorieGoalHit", "needMore",
   // Header
   "signOutConfirm", "signedOut",
+  // Log screen
+  "logMealTitle", "logMealHelp", "stopRecording", "startRecording",
+  "recordingTap", "transcribingAudio", "tapToRecord", "voiceUnsupported",
+  "orTypeInstead", "logExamplePlaceholder", "calculatingMacros", "send",
+  "tryAnExample", "describeMealFirst", "loggedToast", "logged",
+  "anythingElse", "thinking", "didntCatchThat", "couldntAnalyse",
+  "gotItPrefix", "tapLogIt", "kcalShort", "gShort",
+  // History screen
+  "historyTitle", "noMealsLogged", "mealsCount", "proteinShort",
+  // Insights
+  "insightsTitle", "avgProteinDay", "avgCaloriesDay",
+  "caloriesLast7", "proteinLast7", "goalDot",
 ] as const;
 export type UIKey = (typeof UI_KEYS)[number];
 
