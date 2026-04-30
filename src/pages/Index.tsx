@@ -397,6 +397,20 @@ const Index = () => {
       {showSettings && (
         <SettingsScreen
           initialPicking={settingsPickLang}
+          userProfile={userProfile}
+          userId={user?.id}
+          onProfileSaved={(p) => {
+            setUserProfile(p);
+            setProfile((prev) =>
+              prev ? ({ ...prev, user_profile_json: p } as Profile) : prev,
+            );
+          }}
+          onGoalsRecalculated={(g, w) => {
+            setGoals(g);
+            setProfile((prev) =>
+              prev ? ({ ...prev, user_warnings_json: w } as Profile) : prev,
+            );
+          }}
           onClose={() => {
             setShowSettings(false);
             setSettingsPickLang(false);
