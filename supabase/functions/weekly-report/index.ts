@@ -1,4 +1,6 @@
 // Weekly report — generates an encouraging summary via Claude
+import { resolveLanguage } from "../_shared/language.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -49,6 +51,7 @@ Deno.serve(async (req) => {
       proteinGoal: body?.stats?.proteinGoal ? Number(body.stats.proteinGoal) : undefined,
       calorieGoal: body?.stats?.calorieGoal ? Number(body.stats.calorieGoal) : undefined,
     };
+    const lang = resolveLanguage(body?.language);
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -61,6 +64,7 @@ Deno.serve(async (req) => {
         model: "claude-sonnet-4-5",
         max_tokens: 400,
         system:
+          lang.prefix +
           "You are Nouri, a warm, supportive nutrition coach. Speak directly to the user in a friendly, encouraging tone.",
         messages: [{ role: "user", content: buildPrompt(name, stats) }],
       }),

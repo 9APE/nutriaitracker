@@ -70,6 +70,7 @@ export async function analyzeMeal(
       eatenToday,
       warnings,
       alreadyClarified: !!opts?.alreadyClarified,
+      language: (await import("@/lib/nouri-i18n")).getLanguage() ?? "en",
     },
   });
 

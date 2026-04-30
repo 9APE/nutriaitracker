@@ -27,6 +27,10 @@ import { WeeklyCheckin } from "@/components/nouri/WeeklyCheckin";
 import { WeeklyReport } from "@/components/nouri/WeeklyReport";
 import { shouldShowWeeklyReport } from "@/lib/nouri-weekly-report";
 import { GoalCelebration } from "@/components/nouri/GoalCelebration";
+import { LanguageSelect } from "@/components/nouri/LanguageSelect";
+import { SettingsScreen } from "@/components/nouri/SettingsScreen";
+import { getLanguage } from "@/lib/nouri-i18n";
+import { Settings as SettingsIcon } from "lucide-react";
 
 const MIGRATED_KEY = "nouri:migrated";
 
@@ -45,6 +49,8 @@ const Index = () => {
   const [showXP, setShowXP] = useState(false);
   const [showCheckin, setShowCheckin] = useState(false);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [hasLanguage, setHasLanguage] = useState<boolean>(() => !!getLanguage());
 
   // Reconcile streak (spend a freeze if a day was missed) on app open
   useEffect(() => {
@@ -258,6 +264,11 @@ const Index = () => {
 
   if (!user) return <Navigate to="/auth" replace />;
 
+  // Language selection — must come BEFORE any AI chat / onboarding
+  if (!hasLanguage) {
+    return <LanguageSelect onDone={() => setHasLanguage(true)} />;
+  }
+
   if (needsOnboarding) {
     return (
       <Onboarding
@@ -320,6 +331,14 @@ const Index = () => {
               <UserCog size={13} />
               Profile
             </button>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-muted transition-colors"
+              aria-label="Settings"
+              title="Settings"
+            >
+              <SettingsIcon size={14} />
+            </button>
             <NotificationBell
               goals={goals}
               meals={meals}
@@ -358,6 +377,7 @@ const Index = () => {
       <XPFloater />
       <GoalCelebration />
       {showXP && <XPScreen onClose={() => setShowXP(false)} />}
+      {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} />}
       {showWeeklyReport && !needsOnboarding && (
         <WeeklyReport
           name={userProfile?.name?.split(" ")[0] || "friend"}

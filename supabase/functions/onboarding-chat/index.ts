@@ -2,6 +2,8 @@
 // Two modes:
 //   mode: "chat"   -> conversational profile collection (returns assistant message)
 //   mode: "goals"  -> compute personalised macro targets from a profile JSON
+import { resolveLanguage } from "../_shared/language.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -96,6 +98,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const mode = body?.mode ?? "chat";
+    const lang = resolveLanguage(body?.language);
 
     if (mode === "chat") {
       const history = Array.isArray(body?.messages) ? body.messages : [];
@@ -105,7 +108,7 @@ Deno.serve(async (req) => {
           ? [{ role: "user", content: "Hi" }]
           : history;
 
-      const text = await callClaude(ANTHROPIC_API_KEY, CHAT_SYSTEM, messages);
+      const text = await callClaude(ANTHROPIC_API_KEY, lang.prefix + CHAT_SYSTEM, messages);
 
       // Detect completion marker
       const completeIdx = text.indexOf("[PROFILE_COMPLETE]");
@@ -133,7 +136,7 @@ Deno.serve(async (req) => {
       }
       const text = await callClaude(
         ANTHROPIC_API_KEY,
-        GOALS_SYSTEM(JSON.stringify(profile)),
+        lang.prefix + GOALS_SYSTEM(JSON.stringify(profile)),
         [{ role: "user", content: "Calculate the targets now." }]
       );
       const parsed = extractJson(text);

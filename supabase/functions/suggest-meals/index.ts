@@ -1,4 +1,6 @@
 // Suggest meals tailored to remaining macros for the day
+import { resolveLanguage } from "../_shared/language.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -37,7 +39,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { goals, eatenToday, mealType } = await req.json();
+    const { goals, eatenToday, mealType, language } = await req.json();
+    const lang = resolveLanguage(language);
 
     if (!goals || !mealType) {
       return new Response(
@@ -87,7 +90,7 @@ Suggest 3 ${mealType.toLowerCase()} ideas to help hit these targets. Return JSON
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
         max_tokens: 1500,
-        system: SYSTEM_PROMPT,
+        system: lang.prefix + SYSTEM_PROMPT,
         messages: [{ role: "user", content: userMessage }],
       }),
     });

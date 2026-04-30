@@ -1,4 +1,6 @@
 // Weekly check-in chat with Nouri (Claude Sonnet)
+import { resolveLanguage } from "../_shared/language.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -93,9 +95,10 @@ Deno.serve(async (req) => {
     const messages =
       history.length === 0 ? [{ role: "user", content: "Hi" }] : history;
 
+    const lang = resolveLanguage(body?.language);
     const text = await callClaude(
       ANTHROPIC_API_KEY,
-      buildSystem(goals, avgProtein, avgCalories),
+      lang.prefix + buildSystem(goals, avgProtein, avgCalories),
       messages
     );
 

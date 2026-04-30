@@ -1,4 +1,6 @@
 // Nouri Recommends — 3 meal suggestions to hit remaining macros
+import { resolveLanguage } from "../_shared/language.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -25,7 +27,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { remaining, profile } = await req.json();
+    const { remaining, profile, language } = await req.json();
+    const lang = resolveLanguage(language);
     if (!remaining) {
       return new Response(
         JSON.stringify({ error: "remaining is required" }),
@@ -54,6 +57,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
         max_tokens: 800,
+        system: lang.prefix.trim(),
         messages: [{ role: "user", content: userMessage }],
       }),
     });
