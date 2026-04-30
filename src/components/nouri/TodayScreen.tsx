@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { MacroBar } from "@/components/nouri/MacroBar";
+
 import { MealCard } from "@/components/nouri/MealCard";
 import { NouriRecommends } from "@/components/nouri/NouriRecommends";
 import { RemainingBanner } from "@/components/nouri/RemainingBanner";
