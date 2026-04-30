@@ -55,7 +55,7 @@ const Auth = () => {
           },
         });
         if (error) throw error;
-        toast.success("Welcome to Nouri 🌿");
+        toast.success("Welcome to Nouri");
         if (prefChanged) {
           window.location.replace("/");
         } else {
@@ -88,7 +88,7 @@ const Auth = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <header className="px-5 py-4 border-b border-border">
         <div className="max-w-md mx-auto flex items-center gap-2">
-          <span className="text-xl">🌿</span>
+          
           <span className="font-serif text-lg font-medium">Nouri</span>
         </div>
       </header>
@@ -159,7 +159,7 @@ const Auth = () => {
               {busy ? (
                 <Loader2 className="animate-spin" size={18} />
               ) : mode === "signup" ? (
-                "Create account 🌿"
+                "Create account"
               ) : (
                 "Sign in"
               )}

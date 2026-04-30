@@ -60,11 +60,11 @@ const Index = () => {
     reconcileStreakOnAppOpen();
     const pending = consumePendingMessage();
     if (pending?.kind === "freeze-used") {
-      toast("🛡️ Streak freeze used! Your 🔥 streak is safe. Log today to keep it going.", {
+      toast("Streak freeze used. Your 🔥 streak is safe — log today to keep it going.", {
         duration: 6000,
       });
     } else if (pending?.kind === "streak-ended") {
-      toast("Your streak ended — but you can start again today! 🔥", { duration: 6000 });
+      toast("Your streak ended — start a new one today.", { duration: 6000 });
     }
     // Record signup date once for weekly check-in cadence
     if (!localStorage.getItem("nouri:signupDate")) {
@@ -193,7 +193,7 @@ const Index = () => {
       setGoals(g);
       setProfile((p) => (p ? { ...p, ...stats } as Profile : p));
       setNeedsOnboarding(false);
-      toast.success("All set 🌿");
+      toast.success("All set");
     } catch (e: any) {
       toast.error(e?.message || "Couldn't save your profile");
     }
@@ -313,7 +313,7 @@ const Index = () => {
               toast.error(e?.message || "Couldn't save goals");
             }
           }
-          toast.success("Profile saved 🌿");
+          toast.success("Profile saved");
         }}
       />
     );
