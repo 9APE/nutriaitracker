@@ -57,6 +57,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
         max_tokens: 800,
+        system: lang.prefix.trim(),
         messages: [{ role: "user", content: userMessage }],
       }),
     });

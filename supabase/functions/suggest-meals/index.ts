@@ -1,4 +1,6 @@
 // Suggest meals tailored to remaining macros for the day
+import { resolveLanguage } from "../_shared/language.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -37,7 +39,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { goals, eatenToday, mealType } = await req.json();
+    const { goals, eatenToday, mealType, language } = await req.json();
+    const lang = resolveLanguage(language);
 
     if (!goals || !mealType) {
       return new Response(
