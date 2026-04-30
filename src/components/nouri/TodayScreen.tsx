@@ -230,6 +230,7 @@ function MicroCard({ metric }: { metric: Metric }) {
   );
 }
 
+export function TodayScreen({
   goals,
   meals,
   userProfile,
