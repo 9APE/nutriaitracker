@@ -1,5 +1,21 @@
 export type MealType = "Breakfast" | "Lunch" | "Dinner" | "Snack";
 
+/** Optional per-meal micronutrient estimates (in their canonical units —
+ * grams for fiber/sugar/saturated_fat, mg for sodium/potassium/cholesterol/iron/calcium/vitamin_c,
+ * µg for vitamin_d). Always best-effort estimates from the AI or food label. */
+export interface MealMicros {
+  fiber?: number;
+  sugar?: number;
+  sodium?: number;
+  potassium?: number;
+  cholesterol?: number;
+  saturated_fat?: number;
+  iron?: number;
+  vitamin_c?: number;
+  vitamin_d?: number;
+  calcium?: number;
+}
+
 export interface Meal {
   id: string;
   meal_name: string;
@@ -10,6 +26,7 @@ export interface Meal {
   fat: number;
   date: string; // YYYY-MM-DD
   created_at: number;
+  micros?: MealMicros;
 }
 
 export interface Goals {
