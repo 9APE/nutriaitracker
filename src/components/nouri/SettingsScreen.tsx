@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, ChevronRight } from "lucide-react";
+import { X, ChevronRight, Monitor, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import {
   LANGUAGES,
@@ -9,6 +9,11 @@ import {
   t,
   type LangCode,
 } from "@/lib/nouri-i18n";
+import {
+  setThemePreference,
+  useThemePreference,
+  type ThemePreference,
+} from "@/lib/nouri-theme";
 
 interface Props {
   onClose: () => void;
@@ -32,6 +37,13 @@ export function SettingsScreen({ onClose, initialPicking = false }: Props) {
   const lang = useLanguage();
   const current = getLanguageMeta(lang);
   const [picking, setPicking] = useState(initialPicking);
+  const themePref = useThemePreference();
+
+  const themeOptions: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
+    { value: "system", label: t("themeSystem", lang), Icon: Monitor },
+    { value: "light", label: t("themeLight", lang), Icon: Sun },
+    { value: "dark", label: t("themeDark", lang), Icon: Moon },
+  ];
 
   const handlePick = (code: LangCode) => {
     setLanguage(code);
@@ -111,6 +123,32 @@ export function SettingsScreen({ onClose, initialPicking = false }: Props) {
               </button>
             </section>
           )}
+
+          {/* Theme toggle — always visible */}
+          <section className="rounded-2xl border border-border bg-card px-4 py-3.5">
+            <div className="text-sm font-medium mb-2.5">{t("theme", lang)}</div>
+            <div role="radiogroup" aria-label={t("theme", lang)} className="grid grid-cols-3 gap-2">
+              {themeOptions.map(({ value, label, Icon }) => {
+                const isSel = themePref === value;
+                return (
+                  <button
+                    key={value}
+                    role="radio"
+                    aria-checked={isSel}
+                    onClick={() => setThemePreference(value)}
+                    className={`flex flex-col items-center gap-1.5 rounded-xl border px-2 py-2.5 transition-colors ${
+                      isSel
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border bg-background hover:border-primary/40 text-muted-foreground"
+                    }`}
+                  >
+                    <Icon size={18} />
+                    <span className="text-xs font-medium">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
         </div>
       </div>
     </div>
