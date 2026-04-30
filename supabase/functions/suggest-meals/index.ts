@@ -90,7 +90,7 @@ Suggest 3 ${mealType.toLowerCase()} ideas to help hit these targets. Return JSON
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
         max_tokens: 1500,
-        system: SYSTEM_PROMPT,
+        system: lang.prefix + SYSTEM_PROMPT,
         messages: [{ role: "user", content: userMessage }],
       }),
     });

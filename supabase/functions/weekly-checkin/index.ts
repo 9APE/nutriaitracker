@@ -1,4 +1,6 @@
 // Weekly check-in chat with Nouri (Claude Sonnet)
+import { resolveLanguage } from "../_shared/language.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
