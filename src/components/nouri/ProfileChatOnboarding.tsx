@@ -56,6 +56,25 @@ export function saveUserWarnings(w: string[]) {
 // ── Sub-components ───────────────────────────────────────────────────────────
 type ChatMessage = { role: "assistant" | "user"; content: string };
 
+const CHIPS_RE = /\[CHIPS:\s*([^\]]+)\]\s*$/i;
+
+function parseChips(text: string): { clean: string; chips: string[] } {
+  const m = text.match(CHIPS_RE);
+  if (!m) return { clean: text, chips: [] };
+  const chips = m[1]
+    .split("|")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return { clean: text.replace(CHIPS_RE, "").trim(), chips };
+}
+
+function isOtherChip(label: string): boolean {
+  const l = label.toLowerCase().trim();
+  return ["other", "autre", "otro", "andere", "altro", "outro", "其他", "その他", "آخر", "anders"].some(
+    (w) => l === w || l.startsWith(w),
+  );
+}
+
 function TypingDots() {
   return (
     <div className="flex items-center gap-1.5 px-4 py-3 bg-surface border border-border rounded-2xl rounded-tl-sm w-fit">
