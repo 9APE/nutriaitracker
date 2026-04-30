@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
     const lang = resolveLanguage(body?.language);
     const text = await callClaude(
       ANTHROPIC_API_KEY,
-      lang.prefix + buildSystem(goals, avgProtein, avgCalories),
+      buildSystem(goals, avgProtein, avgCalories) + lang.suffix,
       messages
     );
 

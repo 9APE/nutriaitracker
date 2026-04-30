@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     };
     const safeWarnings: string[] = Array.isArray(warnings) ? warnings.map(String) : [];
 
-    let system = lang.prefix + buildSystemPrompt({
+    let system = buildSystemPrompt({
       profile: profile && typeof profile === "object" ? profile : null,
       goals: safeGoals,
       eatenToday: safeEaten,
