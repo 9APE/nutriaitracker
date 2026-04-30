@@ -28,6 +28,15 @@ import {
 } from "@/lib/nouri-training";
 import { Dumbbell } from "lucide-react";
 import { useLanguage, t, getLocale } from "@/lib/nouri-i18n";
+import {
+  loadUserGoals,
+  loadTodayGoals,
+  saveTodayGoals,
+  computeTodayGoals,
+  onGoalsChange,
+  type ExtendedGoals,
+} from "@/lib/nouri-goals";
+import { goalForMetric } from "@/lib/nouri-dashboard-layout";
 
 interface TodayScreenProps {
   goals: Goals;
