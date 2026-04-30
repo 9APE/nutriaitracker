@@ -145,6 +145,16 @@ const Auth = () => {
               />
             </div>
 
+            <label className="flex items-center gap-2 mt-1 cursor-pointer select-none text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={staySignedIn}
+                onChange={(e) => setStaySignedIn(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-primary"
+              />
+              <span>Stay signed in on this device</span>
+            </label>
+
             <Button type="submit" disabled={busy} className="w-full h-12 text-base mt-2">
               {busy ? (
                 <Loader2 className="animate-spin" size={18} />
