@@ -1,5 +1,5 @@
 // Open Food Facts integration + local custom-foods cache for barcode scanning.
-import type { MealType } from "@/lib/nouri-storage";
+import type { MealType, MealMicros } from "@/lib/nouri-storage";
 
 export interface FoodProduct {
   barcode: string;
@@ -10,6 +10,8 @@ export interface FoodProduct {
   proteinPer100g: number;
   carbsPer100g: number;
   fatPer100g: number;
+  /** Optional micronutrients per 100g (units match MealMicros). */
+  microsPer100g?: MealMicros;
   source: "openfoodfacts" | "custom";
 }
 
@@ -50,12 +52,43 @@ export async function fetchOpenFoodFacts(barcode: string): Promise<FoodProduct |
 
   const p = data.product;
   const n = p.nutriments ?? {};
+  const num = (v: any) => {
+    const x = Number(v);
+    return Number.isFinite(x) ? x : undefined;
+  };
   const kcal = Number(
     n["energy-kcal_100g"] ?? n["energy-kcal"] ?? (n["energy_100g"] ? n["energy_100g"] / 4.184 : 0),
   );
   const protein = Number(n["proteins_100g"] ?? n["proteins"] ?? 0);
   const carbs = Number(n["carbohydrates_100g"] ?? n["carbohydrates"] ?? 0);
   const fat = Number(n["fat_100g"] ?? n["fat"] ?? 0);
+
+  const micros: MealMicros = {};
+  const fiber = num(n["fiber_100g"] ?? n["fiber"]);
+  const sugar = num(n["sugars_100g"] ?? n["sugars"]);
+  const satFat = num(n["saturated-fat_100g"] ?? n["saturated-fat"]);
+  // OFF gives sodium in grams when present; salt is "salt_100g" (g). Convert to mg.
+  const sodiumG = num(n["sodium_100g"] ?? n["sodium"]);
+  const saltG = num(n["salt_100g"] ?? n["salt"]);
+  const sodiumMg = sodiumG != null ? sodiumG * 1000 : saltG != null ? saltG * 400 : undefined;
+  const cholesterolG = num(n["cholesterol_100g"] ?? n["cholesterol"]);
+  const potassiumG = num(n["potassium_100g"] ?? n["potassium"]);
+  const ironG = num(n["iron_100g"] ?? n["iron"]);
+  const calciumG = num(n["calcium_100g"] ?? n["calcium"]);
+  const vitC = num(n["vitamin-c_100g"] ?? n["vitamin-c"]);
+  const vitD = num(n["vitamin-d_100g"] ?? n["vitamin-d"]);
+
+  if (fiber != null) micros.fiber = Math.round(fiber * 10) / 10;
+  if (sugar != null) micros.sugar = Math.round(sugar * 10) / 10;
+  if (satFat != null) micros.saturated_fat = Math.round(satFat * 10) / 10;
+  if (sodiumMg != null) micros.sodium = Math.round(sodiumMg);
+  if (cholesterolG != null) micros.cholesterol = Math.round(cholesterolG * 1000);
+  if (potassiumG != null) micros.potassium = Math.round(potassiumG * 1000);
+  if (ironG != null) micros.iron = Math.round(ironG * 1000 * 10) / 10;
+  if (calciumG != null) micros.calcium = Math.round(calciumG * 1000);
+  if (vitC != null) micros.vitamin_c = Math.round(vitC * 1000 * 10) / 10;
+  // OFF reports vitamin D in grams → µg = g * 1_000_000
+  if (vitD != null) micros.vitamin_d = Math.round(vitD * 1_000_000 * 10) / 10;
 
   return {
     barcode,
@@ -65,6 +98,7 @@ export async function fetchOpenFoodFacts(barcode: string): Promise<FoodProduct |
     proteinPer100g: Math.round(protein * 10) / 10,
     carbsPer100g: Math.round(carbs * 10) / 10,
     fatPer100g: Math.round(fat * 10) / 10,
+    microsPer100g: Object.keys(micros).length > 0 ? micros : undefined,
     source: "openfoodfacts",
   };
 }
