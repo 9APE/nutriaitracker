@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, Loader2, Send, Square } from "lucide-react";
+import { Mic, Loader2, Send, Square, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useVoice } from "@/hooks/useVoice";
@@ -7,6 +7,8 @@ import { analyzeMeal } from "@/lib/nouri-api";
 import type { Meal } from "@/lib/nouri-storage";
 import { recordMealLogged } from "@/lib/nouri-streak";
 import { AnalyzedMealSheet } from "./AnalyzedMealSheet";
+import { BarcodeScanner } from "./BarcodeScanner";
+import { BarcodeProductSheet } from "./BarcodeProductSheet";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useLanguage, t } from "@/lib/nouri-i18n";
@@ -63,6 +65,8 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
   const [analyzed, setAnalyzed] = useState<Omit<Meal, "id" | "created_at"> | null>(null);
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [pendingClarify, setPendingClarify] = useState<{ original: string; messageId: string } | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
