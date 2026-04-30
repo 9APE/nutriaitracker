@@ -169,6 +169,24 @@ const Index = () => {
     };
   }, [user]);
 
+  // Auto-generate dashboard layout once if missing for an existing user
+  useEffect(() => {
+    if (!userProfile) return;
+    if (getStoredLayout()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const layout = await generateLayout({ profile: userProfile, goals });
+        if (!cancelled) saveLayout(layout);
+      } catch (e) {
+        console.error("initial layout generation failed", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userProfile]);
+
   useAutoSuggestions({
     goals,
     meals,
