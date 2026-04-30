@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, ChevronRight, Monitor, Sun, Moon } from "lucide-react";
+import { X, ChevronRight, Monitor, Sun, Moon, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import {
   LANGUAGES,
@@ -14,10 +14,18 @@ import {
   useThemePreference,
   type ThemePreference,
 } from "@/lib/nouri-theme";
+import { EditProfileSheet } from "@/components/nouri/EditProfileSheet";
+import type { UserProfile } from "@/components/nouri/ProfileChatOnboarding";
+import type { Goals } from "@/lib/nouri-storage";
 
 interface Props {
   onClose: () => void;
   initialPicking?: boolean;
+  /** When provided, exposes the focused-edit profile sheet. */
+  userProfile?: UserProfile | null;
+  userId?: string;
+  onProfileSaved?: (next: UserProfile) => void;
+  onGoalsRecalculated?: (goals: Goals, warnings: string[]) => void;
 }
 
 const CONFIRMATIONS: Record<LangCode, (name: string) => string> = {
