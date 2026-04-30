@@ -11,58 +11,59 @@
 @layer base {
   :root {
     /* Light mode — kept clean and neutral, paired with new accents */
-    --background: 0 0% 98%;
+    /* Light mode — warm off-white, gently tinted, more "alive" */
+    --background: 36 22% 96%;          /* warm cream #F4F1EC */
     --surface: 0 0% 100%;
-    --foreground: 240 6% 12%;          /* near-black ink */
+    --foreground: 30 10% 14%;          /* warm near-black */
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 6% 12%;
+    --card: 36 30% 99%;                /* slight warm lift vs background */
+    --card-foreground: 30 10% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 6% 12%;
+    --popover-foreground: 30 10% 14%;
 
-    /* Sage green accent #5dbd8a */
-    --primary: 145 41% 56%;
+    /* Sage green accent — slightly richer */
+    --primary: 148 44% 46%;
     --primary-foreground: 0 0% 100%;
-    --primary-soft: 145 41% 92%;
+    --primary-soft: 148 40% 90%;
 
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 6% 18%;
+    --secondary: 36 18% 92%;
+    --secondary-foreground: 30 10% 18%;
 
-    --muted: 240 5% 95%;
-    --muted-foreground: 240 4% 45%;
+    --muted: 36 16% 91%;
+    --muted-foreground: 30 6% 38%;
 
-    --accent: 145 41% 56%;
+    --accent: 148 44% 46%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 354 48% 60%;        /* dusty rose */
+    --destructive: 354 56% 54%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 5% 90%;
-    --input: 240 5% 90%;
-    --ring: 145 41% 56%;
+    --border: 30 14% 86%;
+    --input: 30 14% 86%;
+    --ring: 148 44% 46%;
 
-    /* Macro / metric accent palette (muted, distinct) */
-    --macro-protein: 145 41% 56%;      /* sage green   #5dbd8a */
-    --macro-carbs: 31 60% 56%;         /* warm amber   #d4954a */
-    --macro-fat: 256 47% 68%;          /* soft purple  #9b87d4 */
-    --macro-calories: 145 41% 56%;
-    --macro-sugar: 354 48% 60%;        /* dusty rose   #c96b72 */
-    --macro-water: 211 56% 59%;        /* steel blue   #5b9bd4 */
+    /* Macro / metric accent palette (richer, still grounded) */
+    --macro-protein: 148 44% 46%;      /* sage */
+    --macro-carbs: 30 70% 52%;         /* warm amber */
+    --macro-fat: 256 50% 64%;          /* soft purple */
+    --macro-calories: 148 44% 46%;
+    --macro-sugar: 354 56% 54%;        /* dusty rose */
+    --macro-water: 211 62% 52%;        /* steel blue */
 
     --radius: 1.125rem;                /* 18px cards */
 
-    --shadow-soft: 0 2px 12px -4px hsl(240 6% 12% / 0.06);
-    --shadow-card: 0 1px 2px hsl(240 6% 12% / 0.04), 0 8px 24px -12px hsl(240 6% 12% / 0.08);
+    --shadow-soft: 0 2px 12px -4px hsl(30 15% 20% / 0.08);
+    --shadow-card: 0 1px 2px hsl(30 15% 20% / 0.05), 0 10px 28px -14px hsl(30 15% 20% / 0.12);
 
-    --sidebar-background: 0 0% 99%;
-    --sidebar-foreground: 240 5% 26%;
-    --sidebar-primary: 240 6% 12%;
+    --sidebar-background: 36 22% 97%;
+    --sidebar-foreground: 30 8% 26%;
+    --sidebar-primary: 30 10% 14%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 5% 95%;
-    --sidebar-accent-foreground: 240 6% 12%;
-    --sidebar-border: 240 5% 90%;
-    --sidebar-ring: 145 41% 56%;
+    --sidebar-accent: 36 16% 91%;
+    --sidebar-accent-foreground: 30 10% 14%;
+    --sidebar-border: 30 14% 86%;
+    --sidebar-ring: 148 44% 46%;
   }
 
   /* Dark mode — premium fitness app palette
