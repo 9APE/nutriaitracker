@@ -41,11 +41,20 @@ const CONFIRMATIONS: Record<LangCode, (name: string) => string> = {
   ja: (n) => `言語が更新されました！Nouri はこれから${n}で話します`,
 };
 
-export function SettingsScreen({ onClose, initialPicking = false }: Props) {
+export function SettingsScreen({
+  onClose,
+  initialPicking = false,
+  userProfile,
+  userId,
+  onProfileSaved,
+  onGoalsRecalculated,
+}: Props) {
   const lang = useLanguage();
   const current = getLanguageMeta(lang);
   const [picking, setPicking] = useState(initialPicking);
+  const [editingProfile, setEditingProfile] = useState(false);
   const themePref = useThemePreference();
+  const canEditProfile = !!(userProfile && userId && onProfileSaved && onGoalsRecalculated);
 
   const themeOptions: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
     { value: "system", label: t("themeSystem", lang), Icon: Monitor },
