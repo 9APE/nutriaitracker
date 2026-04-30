@@ -1,4 +1,6 @@
 // Weekly report — generates an encouraging summary via Claude
+import { resolveLanguage } from "../_shared/language.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
