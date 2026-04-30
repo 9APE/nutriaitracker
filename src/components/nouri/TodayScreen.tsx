@@ -300,12 +300,33 @@ export function TodayScreen({
 
   const [training, setTraining] = useState<TrainingEntry | null>(() => getTodayTraining());
   const [trainingSheetOpen, setTrainingSheetOpen] = useState(false);
+  const [effective, setEffective] = useState<ExtendedGoals>(
+    () => loadTodayGoals() ?? loadUserGoals() ?? { ...goals },
+  );
+
+  // Recompute today's adjusted goals whenever training changes (Part 2)
   useEffect(() => {
-    const refresh = () => setTraining(getTodayTraining());
-    refresh();
-    window.addEventListener("training:updated", refresh);
-    return () => window.removeEventListener("training:updated", refresh);
-  }, []);
+    const recompute = () => {
+      const t = getTodayTraining();
+      setTraining(t);
+      const base = loadUserGoals() ?? { ...goals };
+      if (t) {
+        const adjusted = computeTodayGoals(base, t.type);
+        saveTodayGoals(adjusted);
+        setEffective(adjusted);
+      } else {
+        const today = loadTodayGoals();
+        setEffective(today ?? base);
+      }
+    };
+    recompute();
+    window.addEventListener("training:updated", recompute);
+    const off = onGoalsChange(recompute);
+    return () => {
+      window.removeEventListener("training:updated", recompute);
+      off();
+    };
+  }, [goals]);
 
   // Personalized layout still loaded for AI banner / fiber goal
   const [layout, setLayout] = useState<DashboardLayout>(() => getStoredLayout() ?? DEFAULT_LAYOUT);
@@ -320,9 +341,16 @@ export function TodayScreen({
   }, []);
 
   const burned = trainingBurn(training);
-  const displayedProteinGoal = goals.protein + (training ? TRAINING_PROTEIN_BONUS : 0);
-  const remaining = Math.max(0, goals.calories - sum.calories);
-  const calPct = (sum.calories / goals.calories) * 100;
+  // Effective goals are training-aware; fall back to base if no extended goals exist yet
+  const eGoals = {
+    calories: effective.calories || goals.calories,
+    protein: effective.protein || goals.protein,
+    carbs: effective.carbs || goals.carbs,
+    fat: effective.fat || goals.fat,
+  };
+  const displayedProteinGoal = eGoals.protein;
+  const remaining = Math.max(0, eGoals.calories - sum.calories);
+  const calPct = (sum.calories / eGoals.calories) * 100;
 
   // Week strip — Monday-first
   const weekDays = useMemo(() => {
