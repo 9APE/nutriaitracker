@@ -149,7 +149,6 @@ export function TodayScreen({
           style={{ backgroundColor: "#EAF4EE", borderColor: "#5BB882" }}
           role="status"
         >
-          </span>
           <p className="text-xs flex-1" style={{ color: "#1F6B43" }}>
             {t("trainingLogged", lang, { n: TRAINING_PROTEIN_BONUS })}
           </p>
