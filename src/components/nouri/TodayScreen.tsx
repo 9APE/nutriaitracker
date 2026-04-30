@@ -9,7 +9,15 @@ import { getStreak, getFreezes } from "@/lib/nouri-streak";
 import { getTotalXP, getLevelInfo } from "@/lib/nouri-xp";
 import { isCheckinDue } from "@/components/nouri/WeeklyCheckin";
 import { EveningNudge } from "@/components/nouri/EveningNudge";
-import { Mic } from "lucide-react";
+import { TrainingSheet } from "@/components/nouri/TrainingSheet";
+import {
+  getTodayTraining,
+  saveTodayTraining,
+  trainingEmoji,
+  TRAINING_PROTEIN_BONUS,
+  type TrainingEntry,
+} from "@/lib/nouri-training";
+import { Mic, Dumbbell } from "lucide-react";
 
 interface TodayScreenProps {
   goals: Goals;
@@ -69,6 +77,20 @@ export function TodayScreen({
     };
   }, [meals]);
   const levelInfo = getLevelInfo(xp);
+
+  const [training, setTraining] = useState<TrainingEntry | null>(() => getTodayTraining());
+  const [trainingSheetOpen, setTrainingSheetOpen] = useState(false);
+  useEffect(() => {
+    const refresh = () => setTraining(getTodayTraining());
+    refresh();
+    window.addEventListener("training:updated", refresh);
+    return () => window.removeEventListener("training:updated", refresh);
+  }, []);
+
+  // Apply training bonus to displayed protein goal only (not persisted)
+  const displayedGoals: Goals = training
+    ? { ...goals, protein: goals.protein + TRAINING_PROTEIN_BONUS }
+    : goals;
 
   const streakActive =
     streak.count > 0 &&
