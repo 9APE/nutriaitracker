@@ -1,13 +1,14 @@
 import { Home, Mic, ClipboardList, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage, t } from "@/lib/nouri-i18n";
 
 export type TabKey = "today" | "log" | "history" | "insights";
 
-const tabs: { key: TabKey; label: string; Icon: typeof Home }[] = [
-  { key: "today", label: "Today", Icon: Home },
-  { key: "log", label: "Log", Icon: Mic },
-  { key: "history", label: "History", Icon: ClipboardList },
-  { key: "insights", label: "Insights", Icon: BarChart3 },
+const tabs: { key: TabKey; tKey: "today" | "log" | "history" | "insights"; Icon: typeof Home }[] = [
+  { key: "today", tKey: "today", Icon: Home },
+  { key: "log", tKey: "log", Icon: Mic },
+  { key: "history", tKey: "history", Icon: ClipboardList },
+  { key: "insights", tKey: "insights", Icon: BarChart3 },
 ];
 
 export function TabBar({
@@ -17,10 +18,11 @@ export function TabBar({
   active: TabKey;
   onChange: (k: TabKey) => void;
 }) {
+  const lang = useLanguage();
   return (
     <nav className="fixed bottom-0 inset-x-0 z-30 bg-surface/95 backdrop-blur border-t border-border">
       <div className="max-w-md mx-auto grid grid-cols-4 px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-        {tabs.map(({ key, label, Icon }) => {
+        {tabs.map(({ key, tKey, Icon }) => {
           const isActive = active === key;
           return (
             <button
@@ -32,7 +34,7 @@ export function TabBar({
               )}
             >
               <Icon size={22} strokeWidth={isActive ? 2.4 : 1.8} />
-              <span className="text-[11px] tracking-wide">{label}</span>
+              <span className="text-[11px] tracking-wide">{t(tKey, lang)}</span>
             </button>
           );
         })}
@@ -40,3 +42,4 @@ export function TabBar({
     </nav>
   );
 }
+
