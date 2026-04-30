@@ -9,6 +9,7 @@ import { recordMealLogged } from "@/lib/nouri-streak";
 import { AnalyzedMealSheet } from "./AnalyzedMealSheet";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { BarcodeProductSheet } from "./BarcodeProductSheet";
+import { PhotoLabelSheet } from "./PhotoLabelSheet";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useLanguage, t } from "@/lib/nouri-i18n";
@@ -67,6 +68,7 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
   const [pendingClarify, setPendingClarify] = useState<{ original: string; messageId: string } | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
+  const [photoCapture, setPhotoCapture] = useState<{ file: File; barcode: string } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -376,6 +378,13 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
             setScannerOpen(false);
             setScannedBarcode(code);
           }}
+          onPhotoCaptured={(file) => {
+            setScannerOpen(false);
+            // No barcode was read — synthesize a stable local key so future
+            // photo-added entries don't collide.
+            const localBarcode = `local-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+            setPhotoCapture({ file, barcode: localBarcode });
+          }}
         />
       )}
 
@@ -385,6 +394,18 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
           onClose={() => setScannedBarcode(null)}
           onMealReady={(draft) => {
             setScannedBarcode(null);
+            setAnalyzed(draft);
+          }}
+        />
+      )}
+
+      {photoCapture && (
+        <PhotoLabelSheet
+          file={photoCapture.file}
+          barcode={photoCapture.barcode}
+          onClose={() => setPhotoCapture(null)}
+          onMealReady={(draft) => {
+            setPhotoCapture(null);
             setAnalyzed(draft);
           }}
         />
