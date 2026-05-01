@@ -1,4 +1,4 @@
-// Nouri Recommends — 3 meal suggestions to hit remaining macros
+// Nouri Recommends — 3 meal suggestions respecting full user profile
 import { resolveLanguage } from "../_shared/language.ts";
 import { EVIDENCE_SOURCES_INSTRUCTION } from "../_shared/evidence.ts";
 import { requireAuth } from "../_shared/auth.ts";
@@ -13,6 +13,62 @@ function fmtList(v: unknown): string {
   if (Array.isArray(v)) return v.length ? v.join(", ") : "none specified";
   if (typeof v === "string" && v.trim()) return v;
   return "none specified";
+}
+
+function buildSystemPrompt(profile: Record<string, any>, totals: Record<string, number>, remaining: Record<string, number>, goals: Record<string, number>, todayMealNames: string[], training: string): string {
+  const p = profile ?? {};
+  return `You are Nouri, a personal nutrition assistant. You are about to recommend meals to a specific user. You MUST respect every single one of their preferences, restrictions, and conditions listed below without exception. Never recommend a food that conflicts with their dietary restrictions or health conditions. If the user is vegetarian, never suggest meat or fish. If the user is vegan, never suggest any animal products. If the user has diabetes, never suggest high-sugar or high-GI foods. If the user has a nut allergy, never suggest anything containing nuts. Apply every restriction simultaneously — a vegetarian diabetic must receive recommendations that are both meat-free AND low sugar.
+
+FULL USER PROFILE:
+- Name: ${p.name || "User"}
+- Age: ${p.age || "unknown"}
+- Height: ${p.height || "unknown"}
+- Weight: ${p.weight || "unknown"}
+- Sex: ${p.sex || "unknown"}
+- Activity level: ${p.activityLevel || "unknown"}
+- Main goals: ${fmtList(p.goals)}
+- Health conditions: ${fmtList(p.healthConditions)} — CRITICAL: adapt all recommendations to these conditions
+- Dietary restrictions: ${fmtList(p.dietaryRestrictions)} — CRITICAL: never violate these under any circumstances
+- Foods they dislike or avoid: ${fmtList(p.dislikes)} — never recommend these
+- Food allergies: ${fmtList(p.allergies)} — CRITICAL: never recommend anything containing these allergens
+- Training types: ${fmtList(p.trainingTypes)}
+
+TODAY'S PROGRESS:
+- Calories consumed so far: ${Math.round(totals.calories || 0)} kcal
+- Calories remaining: ${Math.round(remaining.calories || 0)} kcal
+- Protein consumed: ${Math.round(totals.protein || 0)}g
+- Protein remaining: ${Math.round(remaining.protein || 0)}g
+- Carbs consumed: ${Math.round(totals.carbs || 0)}g
+- Carbs remaining: ${Math.round(remaining.carbs || 0)}g
+- Fat consumed: ${Math.round(totals.fat || 0)}g
+- Fat remaining: ${Math.round(remaining.fat || 0)}g
+- Fiber consumed: ${Math.round(totals.fiber || 0)}g
+- Sugar consumed today: ${Math.round(totals.sugar || 0)}g (warn if close to limit)
+- Sodium consumed today: ${Math.round(totals.sodium || 0)}mg (warn if close to limit)
+- Training logged today: ${training || "none"}
+- Meals already logged today: ${todayMealNames.length ? todayMealNames.join(", ") : "none yet"}
+
+YOUR TASK:
+Suggest exactly 3 specific realistic meals that would help this user hit their remaining targets for today. Each meal must:
+1. Strictly respect ALL dietary restrictions and allergies listed above — this is non-negotiable
+2. Be appropriate for their health conditions
+3. Help close the gap on their most deficient macro or micronutrient for today
+4. Not repeat any meal already logged today
+5. Be realistic and easy to prepare
+6. If training was logged today, at least one recommendation must be high in protein for recovery
+
+Return ONLY a JSON array of exactly 3 objects with no extra text:
+[
+  {
+    "meal_name": "string",
+    "why": "string (one sentence explaining why this fits their profile AND their remaining targets today)",
+    "protein": number,
+    "calories": number,
+    "carbs": number,
+    "fat": number,
+    "suitable_for": "string (e.g. Vegetarian, Diabetic-friendly — confirm it meets their restrictions)"
+  }
+]`;
 }
 
 Deno.serve(async (req) => {
@@ -32,7 +88,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { remaining, profile, language, languageName } = await req.json();
+    const { remaining, totals, goals, profile, todayMealNames, training, language, languageName } = await req.json();
     const lang = resolveLanguage(language, languageName);
     if (!remaining) {
       return new Response(
@@ -41,16 +97,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    const p = profile ?? {};
-    const goals = fmtList(p.goals);
-    const restrictions = fmtList(p.dietaryRestrictions);
-    const regularFoods = fmtList(p.regularFoods);
-
-    const userMessage = `The user has ${Math.round(remaining.protein)}g protein, ${Math.round(
-      remaining.calories
-    )} kcal, ${Math.round(remaining.carbs)}g carbs, and ${Math.round(
-      remaining.fat
-    )}g fat left for today. Based on their profile (goals: ${goals}, dietary restrictions: ${restrictions}, foods they like: ${regularFoods}), suggest exactly 3 specific meals that would fit their remaining targets. Return ONLY a JSON array of 3 objects, each with: meal_name (string), why (one short sentence explaining why it fits), protein (number), calories (number).`;
+    const systemPrompt = buildSystemPrompt(
+      profile ?? {},
+      totals ?? {},
+      remaining,
+      goals ?? {},
+      todayMealNames ?? [],
+      training ?? ""
+    ) + "\n" + EVIDENCE_SOURCES_INSTRUCTION + lang.suffix;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -61,9 +115,9 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
-        max_tokens: 800,
-        system: (EVIDENCE_SOURCES_INSTRUCTION + lang.suffix).trim(),
-        messages: [{ role: "user", content: userMessage }],
+        max_tokens: 1200,
+        system: systemPrompt,
+        messages: [{ role: "user", content: "Generate my 3 personalized meal recommendations now. Return JSON only." }],
       }),
     });
 
@@ -102,6 +156,9 @@ Deno.serve(async (req) => {
       why: String(s.why ?? ""),
       protein: Math.round(Number(s.protein) || 0),
       calories: Math.round(Number(s.calories) || 0),
+      carbs: Math.round(Number(s.carbs) || 0),
+      fat: Math.round(Number(s.fat) || 0),
+      suitable_for: String(s.suitable_for ?? ""),
     }));
 
     return new Response(JSON.stringify({ suggestions }), {

@@ -3,12 +3,16 @@ import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Goals, Meal } from "@/lib/nouri-storage";
 import { todayISO } from "@/lib/nouri-storage";
+import { Badge } from "@/components/ui/badge";
 
 interface Suggestion {
   meal_name: string;
   why: string;
   protein: number;
   calories: number;
+  carbs: number;
+  fat: number;
+  suitable_for: string;
 }
 
 interface NouriRecommendsProps {
@@ -20,9 +24,9 @@ interface NouriRecommendsProps {
 // In-memory session cache (cleared on full page reload)
 let sessionCache: Suggestion[] | null = null;
 
-function readUserProfile(): Record<string, any> | null {
+function readFresh(key: string): Record<string, any> | null {
   try {
-    const raw = localStorage.getItem("userProfile");
+    const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -36,29 +40,62 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
 
   const today = todayISO();
   const todayMeals = meals.filter((m) => m.date === today);
-  const sum = todayMeals.reduce(
-    (a, m) => ({
-      calories: a.calories + m.calories,
-      protein: a.protein + m.protein,
-      carbs: a.carbs + m.carbs,
-      fat: a.fat + m.fat,
-    }),
-    { calories: 0, protein: 0, carbs: 0, fat: 0 }
-  );
-  const remaining = {
-    calories: Math.max(0, goals.calories - sum.calories),
-    protein: Math.max(0, goals.protein - sum.protein),
-    carbs: Math.max(0, goals.carbs - sum.carbs),
-    fat: Math.max(0, goals.fat - sum.fat),
+
+  const buildTotals = () => {
+    const macros = todayMeals.reduce(
+      (a, m) => ({
+        calories: a.calories + m.calories,
+        protein: a.protein + m.protein,
+        carbs: a.carbs + m.carbs,
+        fat: a.fat + m.fat,
+        fiber: a.fiber + (m.micros?.fiber || 0),
+        sugar: a.sugar + (m.micros?.sugar || 0),
+        sodium: a.sodium + (m.micros?.sodium || 0),
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 }
+    );
+    return macros;
   };
 
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
+      // Always read fresh profile data at call time
+      const profile = readFresh("userProfile");
+      const userGoals = readFresh("nouri:goals") ?? goals;
+      const totals = buildTotals();
+      const remaining = {
+        calories: Math.max(0, (userGoals as any).calories - totals.calories),
+        protein: Math.max(0, (userGoals as any).protein - totals.protein),
+        carbs: Math.max(0, (userGoals as any).carbs - totals.carbs),
+        fat: Math.max(0, (userGoals as any).fat - totals.fat),
+      };
+      const todayMealNames = todayMeals.map((m) => m.meal_name);
+
+      // Check for today's training
+      let training = "";
+      try {
+        const raw = localStorage.getItem("nouri:training");
+        if (raw) {
+          const sessions = JSON.parse(raw);
+          const todaySession = sessions.find((s: any) => s.date === today);
+          if (todaySession) training = todaySession.type || todaySession.name || "workout";
+        }
+      } catch {}
+
       const { getLanguage, getLanguageName } = await import("@/lib/nouri-i18n");
       const { data, error: err } = await supabase.functions.invoke("recommend-meals", {
-        body: { remaining, profile: readUserProfile(), language: getLanguage() ?? "en", languageName: getLanguageName() },
+        body: {
+          remaining,
+          totals,
+          goals: userGoals,
+          profile,
+          todayMealNames,
+          training,
+          language: getLanguage() ?? "en",
+          languageName: getLanguageName(),
+        },
       });
       if (err) throw new Error(err.message || "Failed to load suggestions");
       const list: Suggestion[] = data?.suggestions ?? [];
@@ -82,6 +119,12 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
     sessionCache = null;
     setSuggestions(null);
     load();
+  };
+
+  const totals = buildTotals();
+  const remaining = {
+    calories: Math.max(0, goals.calories - totals.calories),
+    protein: Math.max(0, goals.protein - totals.protein),
   };
 
   return (
@@ -132,14 +175,23 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
               <div className="flex items-start gap-3">
                 <Sparkles size={16} className="text-primary mt-0.5 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-foreground leading-tight">
-                    {s.meal_name}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-foreground leading-tight">
+                      {s.meal_name}
+                    </span>
+                    {s.suitable_for && (
+                      <Badge className="bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30 text-[10px] px-1.5 py-0 font-medium">
+                        {s.suitable_for}
+                      </Badge>
+                    )}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
                     {s.why}
                   </div>
                   <div className="flex gap-3 mt-2 font-mono-data text-[11px] text-muted-foreground">
-                    <span>~{s.protein}g protein</span>
+                    <span>~{s.protein}g P</span>
+                    <span>~{s.carbs}g C</span>
+                    <span>~{s.fat}g F</span>
                     <span>·</span>
                     <span>~{s.calories} kcal</span>
                   </div>
