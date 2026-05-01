@@ -123,6 +123,15 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
       // Also include extraAvoid (just-shown meals on refresh)
       const allAvoid = [...new Set([...recentMealNames, ...extraAvoid])];
 
+      // Verification log — confirm restrictions are being read from localStorage
+      console.log("[NouriRecommends] Profile restrictions being sent to API:", {
+        dietaryRestrictions: profile?.dietaryRestrictions,
+        allergies: profile?.allergies,
+        healthConditions: profile?.healthConditions,
+        dislikes: profile?.dislikes,
+        name: profile?.name,
+      });
+
       const { getLanguage, getLanguageName } = await import("@/lib/nouri-i18n");
       const { data, error: err } = await supabase.functions.invoke("recommend-meals", {
         body: {
