@@ -296,23 +296,8 @@ const Index = () => {
     return <LanguageSelect onDone={() => setHasLanguage(true)} />;
   }
 
-  if (needsOnboarding) {
-    return (
-      <Onboarding
-        initialGoals={goals}
-        initialStats={{
-          age: profile?.age ?? undefined,
-          weight_kg: profile?.weight_kg ?? undefined,
-          height_cm: profile?.height_cm ?? undefined,
-          activity_level: profile?.activity_level ?? undefined,
-        }}
-        onDone={handleOnboardDone}
-      />
-    );
-  }
-
-  // First-launch chat onboarding (or editing profile)
-  if (!userProfile || editingProfile) {
+  // Onboarding: always use AI chat (covers both needsOnboarding and !userProfile)
+  if (needsOnboarding || !userProfile || editingProfile) {
     return (
       <ProfileChatOnboarding
         initial={userProfile}
