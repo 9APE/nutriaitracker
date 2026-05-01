@@ -70,15 +70,18 @@ export function saveUserWarnings(w: string[]) {
 type ChatMessage = { role: "assistant" | "user"; content: string };
 
 const CHIPS_RE = /\[CHIPS:\s*([^\]]+)\]\s*$/i;
+const CHIPS_MULTI_RE = /\[CHIPS_MULTI:\s*([^\]]+)\]\s*$/i;
 
-function parseChips(text: string): { clean: string; chips: string[] } {
+function parseChips(text: string): { clean: string; chips: string[]; multiSelect: boolean } {
+  const multiMatch = text.match(CHIPS_MULTI_RE);
+  if (multiMatch) {
+    const chips = multiMatch[1].split("|").map((s) => s.trim()).filter(Boolean);
+    return { clean: text.replace(CHIPS_MULTI_RE, "").trim(), chips, multiSelect: true };
+  }
   const m = text.match(CHIPS_RE);
-  if (!m) return { clean: text, chips: [] };
-  const chips = m[1]
-    .split("|")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return { clean: text.replace(CHIPS_RE, "").trim(), chips };
+  if (!m) return { clean: text, chips: [], multiSelect: false };
+  const chips = m[1].split("|").map((s) => s.trim()).filter(Boolean);
+  return { clean: text.replace(CHIPS_RE, "").trim(), chips, multiSelect: false };
 }
 
 function isOtherChip(label: string): boolean {
@@ -86,6 +89,11 @@ function isOtherChip(label: string): boolean {
   return ["other", "autre", "otro", "andere", "altro", "outro", "其他", "その他", "آخر", "anders"].some(
     (w) => l === w || l.startsWith(w),
   );
+}
+
+function isExactInputChip(label: string): boolean {
+  const l = label.toLowerCase();
+  return l.includes("enter exact");
 }
 
 function TypingDots() {
