@@ -305,6 +305,7 @@ const Index = () => {
         onDone={async ({ profile: p, goals: g, warnings, plan }) => {
           setUserProfile(p);
           setEditingProfile(false);
+          setNeedsOnboarding(false);
           // Persist the FULL extended goals (macros + micros + reasoning) locally.
           const ext: ExtendedGoals = {
             calories: g.calories,
