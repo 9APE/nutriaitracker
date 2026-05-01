@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Goals, Meal } from "@/lib/nouri-storage";
@@ -7,12 +7,14 @@ import { Badge } from "@/components/ui/badge";
 
 interface Suggestion {
   meal_name: string;
+  meal_type?: string;
   why: string;
   protein: number;
   calories: number;
   carbs: number;
   fat: number;
-  suitable_for: string;
+  restriction_badges?: string[];
+  suitable_for?: string; // legacy fallback
 }
 
 interface NouriRecommendsProps {
@@ -21,8 +23,12 @@ interface NouriRecommendsProps {
   onPick: (mealName: string) => void;
 }
 
-// In-memory session cache (cleared on full page reload)
-let sessionCache: Suggestion[] | null = null;
+interface HistoryEntry {
+  date: string;
+  meals: string[];
+}
+
+const HISTORY_KEY = "recommendationHistory";
 
 function readFresh(key: string): Record<string, any> | null {
   try {
@@ -33,16 +39,46 @@ function readFresh(key: string): Record<string, any> | null {
   }
 }
 
+function getRecommendationHistory(): HistoryEntry[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const entries: HistoryEntry[] = JSON.parse(raw);
+    // Keep only last 7 days
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 7);
+    const cutoffISO = cutoff.toISOString().slice(0, 10);
+    return entries.filter((e) => e.date >= cutoffISO);
+  } catch {
+    return [];
+  }
+}
+
+function saveRecommendationHistory(mealNames: string[]) {
+  const today = todayISO();
+  let history = getRecommendationHistory();
+  // Remove today's existing entry if any, replace with new
+  history = history.filter((e) => e.date !== today);
+  history.push({ date: today, meals: mealNames });
+  // Keep only last 7 days
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 7);
+  const cutoffISO = cutoff.toISOString().slice(0, 10);
+  history = history.filter((e) => e.date >= cutoffISO);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
 export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) {
-  const [suggestions, setSuggestions] = useState<Suggestion[] | null>(sessionCache);
+  const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const justShownRef = useRef<string[]>([]);
 
   const today = todayISO();
   const todayMeals = meals.filter((m) => m.date === today);
 
-  const buildTotals = () => {
-    const macros = todayMeals.reduce(
+  const buildTotals = () =>
+    todayMeals.reduce(
       (a, m) => ({
         calories: a.calories + m.calories,
         protein: a.protein + m.protein,
@@ -54,35 +90,38 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
       }),
       { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 }
     );
-    return macros;
-  };
 
-  const load = async () => {
+  const load = async (extraAvoid: string[] = []) => {
     setLoading(true);
     setError(null);
     try {
-      // Always read fresh profile data at call time
       const profile = readFresh("userProfile");
-      const userGoals = readFresh("nouri:goals") ?? goals;
+      const userGoals: any = readFresh("nouri:goals") ?? goals;
       const totals = buildTotals();
       const remaining = {
-        calories: Math.max(0, (userGoals as any).calories - totals.calories),
-        protein: Math.max(0, (userGoals as any).protein - totals.protein),
-        carbs: Math.max(0, (userGoals as any).carbs - totals.carbs),
-        fat: Math.max(0, (userGoals as any).fat - totals.fat),
+        calories: Math.max(0, (userGoals.calories || 0) - totals.calories),
+        protein: Math.max(0, (userGoals.protein || 0) - totals.protein),
+        carbs: Math.max(0, (userGoals.carbs || 0) - totals.carbs),
+        fat: Math.max(0, (userGoals.fat || 0) - totals.fat),
+        fiber: Math.max(0, (userGoals.fiber || 0) - totals.fiber),
       };
       const todayMealNames = todayMeals.map((m) => m.meal_name);
 
-      // Check for today's training
+      // Training
       let training = "";
       try {
-        const raw = localStorage.getItem("nouri:training");
+        const raw = localStorage.getItem("todayTraining");
         if (raw) {
-          const sessions = JSON.parse(raw);
-          const todaySession = sessions.find((s: any) => s.date === today);
-          if (todaySession) training = todaySession.type || todaySession.name || "workout";
+          const t = JSON.parse(raw);
+          if (t?.date === today) training = t.type || "workout";
         }
       } catch {}
+
+      // Recommendation history
+      const history = getRecommendationHistory();
+      const recentMealNames = history.flatMap((h) => h.meals);
+      // Also include extraAvoid (just-shown meals on refresh)
+      const allAvoid = [...new Set([...recentMealNames, ...extraAvoid])];
 
       const { getLanguage, getLanguageName } = await import("@/lib/nouri-i18n");
       const { data, error: err } = await supabase.functions.invoke("recommend-meals", {
@@ -93,14 +132,19 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
           profile,
           todayMealNames,
           training,
+          recentlyRecommended: allAvoid,
+          currentHour: new Date().getHours(),
           language: getLanguage() ?? "en",
           languageName: getLanguageName(),
         },
       });
       if (err) throw new Error(err.message || "Failed to load suggestions");
       const list: Suggestion[] = data?.suggestions ?? [];
-      sessionCache = list;
       setSuggestions(list);
+      // Save to history
+      const names = list.map((s) => s.meal_name);
+      justShownRef.current = names;
+      saveRecommendationHistory(names);
     } catch (e: any) {
       setError(e?.message || "Couldn't get suggestions");
     } finally {
@@ -109,22 +153,25 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
   };
 
   useEffect(() => {
-    if (sessionCache === null) {
-      load();
-    }
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const refresh = () => {
-    sessionCache = null;
     setSuggestions(null);
-    load();
+    load(justShownRef.current);
   };
 
   const totals = buildTotals();
   const remaining = {
     calories: Math.max(0, goals.calories - totals.calories),
     protein: Math.max(0, goals.protein - totals.protein),
+  };
+
+  const getBadges = (s: Suggestion): string[] => {
+    if (s.restriction_badges && s.restriction_badges.length > 0) return s.restriction_badges;
+    if (s.suitable_for) return [s.suitable_for];
+    return [];
   };
 
   return (
@@ -158,7 +205,7 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
       {error && !loading && (
         <div className="nouri-card p-4 text-sm text-destructive">
           {error}{" "}
-          <button onClick={load} className="underline ml-1">
+          <button onClick={() => load()} className="underline ml-1">
             Try again
           </button>
         </div>
@@ -166,39 +213,54 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
 
       {suggestions && suggestions.length > 0 && (
         <div className="space-y-2">
-          {suggestions.map((s, i) => (
-            <button
-              key={i}
-              onClick={() => onPick(s.meal_name)}
-              className="w-full text-left nouri-card p-4 hover:border-primary/50 active:scale-[0.99] transition-all"
-            >
-              <div className="flex items-start gap-3">
-                <Sparkles size={16} className="text-primary mt-0.5 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-foreground leading-tight">
-                      {s.meal_name}
-                    </span>
-                    {s.suitable_for && (
-                      <Badge className="bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30 text-[10px] px-1.5 py-0 font-medium">
-                        {s.suitable_for}
-                      </Badge>
+          {suggestions.map((s, i) => {
+            const badges = getBadges(s);
+            return (
+              <button
+                key={i}
+                onClick={() => onPick(s.meal_name)}
+                className="w-full text-left nouri-card p-4 hover:border-primary/50 active:scale-[0.99] transition-all"
+              >
+                <div className="flex items-start gap-3">
+                  <Sparkles size={16} className="text-primary mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-foreground leading-tight">
+                        {s.meal_name}
+                      </span>
+                      {s.meal_type && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-medium">
+                          {s.meal_type}
+                        </Badge>
+                      )}
+                    </div>
+                    {badges.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {badges.map((b, j) => (
+                          <Badge
+                            key={j}
+                            className="bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30 text-[10px] px-1.5 py-0 font-medium"
+                          >
+                            {b}
+                          </Badge>
+                        ))}
+                      </div>
                     )}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    {s.why}
-                  </div>
-                  <div className="flex gap-3 mt-2 font-mono-data text-[11px] text-muted-foreground">
-                    <span>~{s.protein}g P</span>
-                    <span>~{s.carbs}g C</span>
-                    <span>~{s.fat}g F</span>
-                    <span>·</span>
-                    <span>~{s.calories} kcal</span>
+                    <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      {s.why}
+                    </div>
+                    <div className="flex gap-3 mt-2 font-mono-data text-[11px] text-muted-foreground">
+                      <span>~{s.protein}g P</span>
+                      <span>~{s.carbs}g C</span>
+                      <span>~{s.fat}g F</span>
+                      <span>·</span>
+                      <span>~{s.calories} kcal</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       )}
     </section>
