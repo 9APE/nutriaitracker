@@ -132,6 +132,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [plan, setPlan] = useState<PlanResult | null>(null);
   const [adjusted, setAdjusted] = useState<Goals | null>(null);
+  const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const voice = useVoice();
