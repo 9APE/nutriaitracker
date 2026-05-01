@@ -205,7 +205,7 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
       {error && !loading && (
         <div className="nouri-card p-4 text-sm text-destructive">
           {error}{" "}
-          <button onClick={load} className="underline ml-1">
+          <button onClick={() => load()} className="underline ml-1">
             Try again
           </button>
         </div>
