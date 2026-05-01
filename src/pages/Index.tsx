@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { storage, type Goals, type Meal, DEFAULT_GOALS, todayISO } from "@/lib/nouri-storage";
-import { Onboarding, type BodyStats } from "@/components/nouri/Onboarding";
+// Onboarding.tsx is no longer used — AI chat onboarding handles everything
 import { TabBar, type TabKey } from "@/components/nouri/TabBar";
 import { NouriHeader } from "@/components/nouri/NouriHeader";
 import { TodayScreen } from "@/components/nouri/TodayScreen";
@@ -194,30 +194,7 @@ const Index = () => {
     onNew: () => setNotifKey((k) => k + 1),
   });
 
-  const handleOnboardDone = async ({
-    goals: g,
-    stats,
-  }: {
-    goals: Goals;
-    stats: BodyStats;
-  }) => {
-    if (!user) return;
-    try {
-      await cloud.upsertGoals(user.id, g);
-      await cloud.updateProfile(user.id, {
-        age: stats.age ?? null,
-        weight_kg: stats.weight_kg ?? null,
-        height_cm: stats.height_cm ?? null,
-        activity_level: stats.activity_level ?? null,
-      });
-      setGoals(g);
-      setProfile((p) => (p ? { ...p, ...stats } as Profile : p));
-      setNeedsOnboarding(false);
-      toast.success("All set");
-    } catch (e: any) {
-      toast.error(e?.message || "Couldn't save your profile");
-    }
-  };
+  // Old static onboarding handler removed — AI chat handles everything now
 
   const handleAddMeal = async (m: Meal) => {
     if (!user) return;
@@ -296,23 +273,8 @@ const Index = () => {
     return <LanguageSelect onDone={() => setHasLanguage(true)} />;
   }
 
-  if (needsOnboarding) {
-    return (
-      <Onboarding
-        initialGoals={goals}
-        initialStats={{
-          age: profile?.age ?? undefined,
-          weight_kg: profile?.weight_kg ?? undefined,
-          height_cm: profile?.height_cm ?? undefined,
-          activity_level: profile?.activity_level ?? undefined,
-        }}
-        onDone={handleOnboardDone}
-      />
-    );
-  }
-
-  // First-launch chat onboarding (or editing profile)
-  if (!userProfile || editingProfile) {
+  // Onboarding: always use AI chat (covers both needsOnboarding and !userProfile)
+  if (needsOnboarding || !userProfile || editingProfile) {
     return (
       <ProfileChatOnboarding
         initial={userProfile}
@@ -320,6 +282,7 @@ const Index = () => {
         onDone={async ({ profile: p, goals: g, warnings, plan }) => {
           setUserProfile(p);
           setEditingProfile(false);
+          setNeedsOnboarding(false);
           // Persist the FULL extended goals (macros + micros + reasoning) locally.
           const ext: ExtendedGoals = {
             calories: g.calories,
@@ -350,9 +313,21 @@ const Index = () => {
           if (user) {
             try {
               await cloud.upsertGoals(user.id, g);
+              // Save both the full chat profile JSON and extracted body stats
+              const weightKg = parseWeightToKg(p.weight);
+              const heightCm = (() => {
+                const h = p.height;
+                const num = parseFloat(h?.replace(/[^0-9.]/g, "") ?? "");
+                return isFinite(num) ? num : null;
+              })();
+              const age = typeof p.age === "number" ? p.age : parseInt(String(p.age), 10) || null;
               await cloud.updateProfile(user.id, {
                 user_profile_json: p,
                 user_warnings_json: warnings ?? [],
+                age,
+                weight_kg: weightKg ?? null,
+                height_cm: heightCm,
+                activity_level: p.activityLevel || null,
               } as any);
               setGoals(g);
               setProfile((prev) =>

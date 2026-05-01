@@ -19,6 +19,7 @@ export interface UserProfile {
   conditions: string[];
   restrictions: string[];
   activityLevel: string;
+  trainingTypes?: string[];
   dislikes: string[];
   allergies: string[];
   /** Free-form list of preferred foods/cuisines. Optional — set via Edit Profile. */
@@ -70,15 +71,18 @@ export function saveUserWarnings(w: string[]) {
 type ChatMessage = { role: "assistant" | "user"; content: string };
 
 const CHIPS_RE = /\[CHIPS:\s*([^\]]+)\]\s*$/i;
+const CHIPS_MULTI_RE = /\[CHIPS_MULTI:\s*([^\]]+)\]\s*$/i;
 
-function parseChips(text: string): { clean: string; chips: string[] } {
+function parseChips(text: string): { clean: string; chips: string[]; multiSelect: boolean } {
+  const multiMatch = text.match(CHIPS_MULTI_RE);
+  if (multiMatch) {
+    const chips = multiMatch[1].split("|").map((s) => s.trim()).filter(Boolean);
+    return { clean: text.replace(CHIPS_MULTI_RE, "").trim(), chips, multiSelect: true };
+  }
   const m = text.match(CHIPS_RE);
-  if (!m) return { clean: text, chips: [] };
-  const chips = m[1]
-    .split("|")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return { clean: text.replace(CHIPS_RE, "").trim(), chips };
+  if (!m) return { clean: text, chips: [], multiSelect: false };
+  const chips = m[1].split("|").map((s) => s.trim()).filter(Boolean);
+  return { clean: text.replace(CHIPS_RE, "").trim(), chips, multiSelect: false };
 }
 
 function isOtherChip(label: string): boolean {
@@ -86,6 +90,11 @@ function isOtherChip(label: string): boolean {
   return ["other", "autre", "otro", "andere", "altro", "outro", "其他", "その他", "آخر", "anders"].some(
     (w) => l === w || l.startsWith(w),
   );
+}
+
+function isExactInputChip(label: string): boolean {
+  const l = label.toLowerCase();
+  return l.includes("enter exact");
 }
 
 function TypingDots() {
@@ -124,6 +133,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [plan, setPlan] = useState<PlanResult | null>(null);
   const [adjusted, setAdjusted] = useState<Goals | null>(null);
+  const [multiSelected, setMultiSelected] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const voice = useVoice();
@@ -419,7 +429,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
                 </div>
               );
             }
-            const { clean, chips } = parseChips(m.content);
+            const { clean, chips, multiSelect } = parseChips(m.content);
             const isLast = i === messages.length - 1;
             const chipsActive = isLast && !waiting && !voice.transcribing;
             return (
@@ -431,30 +441,68 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
                   </div>
                 </div>
                 {chips.length > 0 && chipsActive && (
-                  <div className="pl-9 flex flex-wrap gap-2">
-                    {chips.map((label) => {
-                      const other = isOtherChip(label);
-                      return (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={() => {
-                            if (other) {
-                              inputRef.current?.focus();
-                            } else {
-                              void submitText(label);
-                            }
-                          }}
-                          className={`rounded-full border px-3.5 py-1.5 text-sm transition-colors ${
-                            other
-                              ? "border-dashed border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
-                              : "border-primary/40 bg-primary/10 text-foreground hover:bg-primary/20"
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
+                  <div className="pl-2 space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {chips.map((label) => {
+                        const other = isOtherChip(label);
+                        const exact = isExactInputChip(label);
+                        const selected = multiSelect && multiSelected.has(label);
+                        return (
+                          <button
+                            key={label}
+                            type="button"
+                            onClick={() => {
+                              if (other || exact) {
+                                if (multiSelect) {
+                                  // For multi-select "Other", focus the input
+                                  inputRef.current?.focus();
+                                } else {
+                                  inputRef.current?.focus();
+                                }
+                              } else if (multiSelect) {
+                                setMultiSelected((prev) => {
+                                  const next = new Set(prev);
+                                  // If "None" is selected, clear others
+                                  if (label.toLowerCase() === "none") {
+                                    return new Set(["None"]);
+                                  }
+                                  // If selecting something else, remove "None"
+                                  next.delete("None");
+                                  if (next.has(label)) next.delete(label);
+                                  else next.add(label);
+                                  return next;
+                                });
+                              } else {
+                                void submitText(label);
+                              }
+                            }}
+                            className={`rounded-full border px-3.5 py-1.5 text-sm transition-all ${
+                              selected
+                                ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                                : other || exact
+                                ? "border-dashed border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                                : "border-primary/40 bg-primary/10 text-foreground hover:bg-primary/20"
+                            }`}
+                          >
+                            {selected && <span className="mr-1">✓</span>}
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {multiSelect && multiSelected.size > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const answer = Array.from(multiSelected).join(", ");
+                          setMultiSelected(new Set());
+                          void submitText(answer);
+                        }}
+                        className="rounded-full bg-primary text-primary-foreground px-5 py-2 text-sm font-medium shadow-sm hover:bg-primary/90 transition-colors"
+                      >
+                        Continue →
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
