@@ -194,30 +194,7 @@ const Index = () => {
     onNew: () => setNotifKey((k) => k + 1),
   });
 
-  const handleOnboardDone = async ({
-    goals: g,
-    stats,
-  }: {
-    goals: Goals;
-    stats: BodyStats;
-  }) => {
-    if (!user) return;
-    try {
-      await cloud.upsertGoals(user.id, g);
-      await cloud.updateProfile(user.id, {
-        age: stats.age ?? null,
-        weight_kg: stats.weight_kg ?? null,
-        height_cm: stats.height_cm ?? null,
-        activity_level: stats.activity_level ?? null,
-      });
-      setGoals(g);
-      setProfile((p) => (p ? { ...p, ...stats } as Profile : p));
-      setNeedsOnboarding(false);
-      toast.success("All set");
-    } catch (e: any) {
-      toast.error(e?.message || "Couldn't save your profile");
-    }
-  };
+  // Old static onboarding handler removed — AI chat handles everything now
 
   const handleAddMeal = async (m: Meal) => {
     if (!user) return;
