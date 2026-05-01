@@ -336,9 +336,21 @@ const Index = () => {
           if (user) {
             try {
               await cloud.upsertGoals(user.id, g);
+              // Save both the full chat profile JSON and extracted body stats
+              const weightKg = parseWeightToKg(p.weight);
+              const heightCm = (() => {
+                const h = p.height;
+                const num = parseFloat(h?.replace(/[^0-9.]/g, "") ?? "");
+                return isFinite(num) ? num : null;
+              })();
+              const age = typeof p.age === "number" ? p.age : parseInt(String(p.age), 10) || null;
               await cloud.updateProfile(user.id, {
                 user_profile_json: p,
                 user_warnings_json: warnings ?? [],
+                age,
+                weight_kg: weightKg ?? null,
+                height_cm: heightCm,
+                activity_level: p.activityLevel || null,
               } as any);
               setGoals(g);
               setProfile((prev) =>
