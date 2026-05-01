@@ -428,7 +428,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
                 </div>
               );
             }
-            const { clean, chips } = parseChips(m.content);
+            const { clean, chips, multiSelect } = parseChips(m.content);
             const isLast = i === messages.length - 1;
             const chipsActive = isLast && !waiting && !voice.transcribing;
             return (
@@ -440,30 +440,68 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
                   </div>
                 </div>
                 {chips.length > 0 && chipsActive && (
-                  <div className="pl-9 flex flex-wrap gap-2">
-                    {chips.map((label) => {
-                      const other = isOtherChip(label);
-                      return (
-                        <button
-                          key={label}
-                          type="button"
-                          onClick={() => {
-                            if (other) {
-                              inputRef.current?.focus();
-                            } else {
-                              void submitText(label);
-                            }
-                          }}
-                          className={`rounded-full border px-3.5 py-1.5 text-sm transition-colors ${
-                            other
-                              ? "border-dashed border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
-                              : "border-primary/40 bg-primary/10 text-foreground hover:bg-primary/20"
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })}
+                  <div className="pl-2 space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {chips.map((label) => {
+                        const other = isOtherChip(label);
+                        const exact = isExactInputChip(label);
+                        const selected = multiSelect && multiSelected.has(label);
+                        return (
+                          <button
+                            key={label}
+                            type="button"
+                            onClick={() => {
+                              if (other || exact) {
+                                if (multiSelect) {
+                                  // For multi-select "Other", focus the input
+                                  inputRef.current?.focus();
+                                } else {
+                                  inputRef.current?.focus();
+                                }
+                              } else if (multiSelect) {
+                                setMultiSelected((prev) => {
+                                  const next = new Set(prev);
+                                  // If "None" is selected, clear others
+                                  if (label.toLowerCase() === "none") {
+                                    return new Set(["None"]);
+                                  }
+                                  // If selecting something else, remove "None"
+                                  next.delete("None");
+                                  if (next.has(label)) next.delete(label);
+                                  else next.add(label);
+                                  return next;
+                                });
+                              } else {
+                                void submitText(label);
+                              }
+                            }}
+                            className={`rounded-full border px-3.5 py-1.5 text-sm transition-all ${
+                              selected
+                                ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                                : other || exact
+                                ? "border-dashed border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                                : "border-primary/40 bg-primary/10 text-foreground hover:bg-primary/20"
+                            }`}
+                          >
+                            {selected && <span className="mr-1">✓</span>}
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {multiSelect && multiSelected.size > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const answer = Array.from(multiSelected).join(", ");
+                          setMultiSelected(new Set());
+                          void submitText(answer);
+                        }}
+                        className="rounded-full bg-primary text-primary-foreground px-5 py-2 text-sm font-medium shadow-sm hover:bg-primary/90 transition-colors"
+                      >
+                        Continue →
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
