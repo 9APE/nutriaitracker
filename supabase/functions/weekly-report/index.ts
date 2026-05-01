@@ -1,5 +1,6 @@
 // Weekly report — generates an encouraging summary via Claude
 import { resolveLanguage } from "../_shared/language.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,10 +32,13 @@ Mention one thing they did well and one gentle suggestion for next week. Warm, p
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const authResult = await requireAuth(req);
+  if (authResult instanceof Response) return authResult;
+
   try {
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) {
-      return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY is not configured" }), {
+      return new Response(JSON.stringify({ error: "Service configuration error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -72,9 +76,9 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("Anthropic error", response.status, errText);
-      return new Response(JSON.stringify({ error: `Anthropic ${response.status}` }), {
-        status: 500,
+      console.error("Anthropic error:", response.status, errText);
+      return new Response(JSON.stringify({ error: "AI request failed" }), {
+        status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -88,7 +92,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error("weekly-report error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "An unexpected error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

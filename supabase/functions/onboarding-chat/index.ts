@@ -3,6 +3,7 @@
 //   mode: "chat"   -> conversational profile collection (returns assistant message)
 //   mode: "goals"  -> compute personalised macro targets from a profile JSON
 import { resolveLanguage } from "../_shared/language.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -113,7 +114,8 @@ async function callClaude(apiKey: string, system: string, messages: any[]) {
   });
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`Anthropic ${response.status}: ${errText}`);
+    console.error("Anthropic error:", response.status, errText);
+    throw new Error("AI request failed");
   }
   const data = await response.json();
   return (data?.content?.[0]?.text ?? "") as string;
@@ -135,10 +137,13 @@ function extractJson(raw: string): any | null {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const authResult = await requireAuth(req);
+  if (authResult instanceof Response) return authResult;
+
   try {
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) {
-      return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY is not configured" }), {
+      return new Response(JSON.stringify({ error: "Service configuration error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -150,7 +155,6 @@ Deno.serve(async (req) => {
 
     if (mode === "chat") {
       const history = Array.isArray(body?.messages) ? body.messages : [];
-      // If history is empty, send a single nudge so Claude produces the opening message.
       const messages =
         history.length === 0
           ? [{ role: "user", content: "Hi" }]
@@ -158,7 +162,6 @@ Deno.serve(async (req) => {
 
       const text = await callClaude(ANTHROPIC_API_KEY, CHAT_SYSTEM + lang.suffix, messages);
 
-      // Detect completion marker
       const completeIdx = text.indexOf("[PROFILE_COMPLETE]");
       let profile: any = null;
       let visible = text;
@@ -189,8 +192,9 @@ Deno.serve(async (req) => {
       );
       const parsed = extractJson(text);
       if (!parsed) {
+        console.error("Failed to parse goals output:", text);
         return new Response(
-          JSON.stringify({ error: "Failed to parse plan", raw: text }),
+          JSON.stringify({ error: "Failed to parse AI response" }),
           { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -234,7 +238,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error("onboarding-chat error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "An unexpected error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
