@@ -19,6 +19,7 @@ export interface UserProfile {
   conditions: string[];
   restrictions: string[];
   activityLevel: string;
+  trainingTypes?: string[];
   dislikes: string[];
   allergies: string[];
   /** Free-form list of preferred foods/cuisines. Optional — set via Edit Profile. */
