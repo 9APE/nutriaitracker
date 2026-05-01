@@ -1,6 +1,5 @@
 // Transcribe audio recorded in the browser using Lovable AI (Gemini multimodal).
-// Accepts JSON: { audio: <base64 string>, mime_type: <string> }
-// Returns: { transcript: <string> }
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,11 +14,14 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const authResult = await requireAuth(req);
+  if (authResult instanceof Response) return authResult;
+
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "LOVABLE_API_KEY is not configured" }),
+        JSON.stringify({ error: "Service configuration error" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -41,7 +43,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Strip any data URL prefix and whitespace — Gemini expects raw base64
     let cleanAudio = audio.trim();
     if (cleanAudio.startsWith("data:") && cleanAudio.includes(",")) {
       cleanAudio = cleanAudio.split(",")[1];
@@ -90,7 +91,7 @@ Deno.serve(async (req) => {
         );
       }
       return new Response(
-        JSON.stringify({ error: "Transcription failed", details: errText }),
+        JSON.stringify({ error: "Transcription failed" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -104,7 +105,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error("transcribe-audio error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "An unexpected error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

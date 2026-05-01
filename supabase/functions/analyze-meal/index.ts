@@ -1,6 +1,7 @@
 // Analyze a meal description with Anthropic Claude using the user's personalized profile
 import { resolveLanguage } from "../_shared/language.ts";
 import { EVIDENCE_SOURCES_INSTRUCTION } from "../_shared/evidence.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -94,11 +95,15 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Auth guard
+  const authResult = await requireAuth(req);
+  if (authResult instanceof Response) return authResult;
+
   try {
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "ANTHROPIC_API_KEY is not configured" }),
+        JSON.stringify({ error: "Service configuration error" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -167,8 +172,8 @@ Deno.serve(async (req) => {
       const errText = await response.text();
       console.error("Anthropic error:", response.status, errText);
       return new Response(
-        JSON.stringify({ error: "AI request failed", details: errText }),
-        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "AI request failed" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -187,7 +192,7 @@ Deno.serve(async (req) => {
     } catch (e) {
       console.error("Failed to parse Claude output:", raw);
       return new Response(
-        JSON.stringify({ error: "Failed to parse AI response", raw }),
+        JSON.stringify({ error: "Failed to parse AI response" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -209,8 +214,6 @@ Deno.serve(async (req) => {
       "fiber", "sugar", "saturated_fat", "sodium", "potassium",
       "cholesterol", "iron", "vitamin_c", "vitamin_d", "vitamin_a", "calcium",
     ] as const;
-    // Accept micros either as flat top-level fields (preferred new shape) or
-    // nested under `micros` (older shape). Build a normalised object either way.
     const flatSource = parsed && typeof parsed === "object" ? parsed : {};
     const nestedSource =
       parsed && typeof parsed.micros === "object" && parsed.micros ? parsed.micros : {};
@@ -241,7 +244,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error("analyze-meal error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "An unexpected error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

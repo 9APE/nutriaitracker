@@ -1,6 +1,7 @@
 // Generate a personalized Today-tab dashboard layout via Claude.
 // Returns { large, medium, small, banner, reasoning }.
 import { resolveLanguage } from "../_shared/language.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,7 +64,8 @@ async function callClaude(apiKey: string, system: string, userContent: string) {
   });
   if (!r.ok) {
     const t = await r.text();
-    throw new Error(`Anthropic ${r.status}: ${t}`);
+    console.error("Anthropic error:", r.status, t);
+    throw new Error("AI request failed");
   }
   const data = await r.json();
   return (data?.content?.[0]?.text ?? "") as string;
@@ -99,7 +101,6 @@ function sanitize(parsed: any): LayoutOut {
   };
   const large = filterArr(parsed?.large, 3);
   const medium = filterArr(parsed?.medium, 3);
-  // small = remaining
   const small: Metric[] = [];
   for (const m of AVAILABLE_METRICS) {
     if (!seen.has(m)) {
@@ -107,7 +108,6 @@ function sanitize(parsed: any): LayoutOut {
       small.push(m);
     }
   }
-  // Guarantee protein & calories visible
   const ensure = (m: Metric) => {
     if (large.includes(m) || medium.includes(m)) return;
     const i = small.indexOf(m);
@@ -133,10 +133,13 @@ function sanitize(parsed: any): LayoutOut {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const authResult = await requireAuth(req);
+  if (authResult instanceof Response) return authResult;
+
   try {
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) {
-      return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY is not configured" }), {
+      return new Response(JSON.stringify({ error: "Service configuration error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -164,7 +167,8 @@ Deno.serve(async (req) => {
     const raw = await callClaude(ANTHROPIC_API_KEY, system, userContent);
     const parsed = extractJson(raw);
     if (!parsed) {
-      return new Response(JSON.stringify({ error: "Failed to parse AI layout", raw }), {
+      console.error("Failed to parse AI layout:", raw);
+      return new Response(JSON.stringify({ error: "Failed to parse AI response" }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -176,7 +180,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error("dashboard-layout error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "An unexpected error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
