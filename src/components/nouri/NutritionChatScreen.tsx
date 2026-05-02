@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
-import { Send, Mic, Square, Loader2, ExternalLink, AlertTriangle } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Send, Mic, Square, Loader2, ExternalLink, AlertTriangle, Plus, UtensilsCrossed, Cookie } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoice } from "@/hooks/useVoice";
 import { todayISO } from "@/lib/nouri-storage";
 import { getLanguage, getLanguageName } from "@/lib/nouri-i18n";
 import { toast } from "sonner";
-import type { Goals, Meal } from "@/lib/nouri-storage";
+import type { Goals, Meal, MealType } from "@/lib/nouri-storage";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,13 +22,33 @@ interface ChatMessage {
   timestamp: number;
 }
 
+interface SuggestionCard {
+  meal_name: string;
+  description: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  type: MealType;
+}
+
 interface Props {
   goals: Goals;
   meals: Meal[];
+  onAddMeal?: (meal: Meal) => void;
 }
 
 const CHAT_KEY = "nutriai:chat";
 const MAX_STORED = 60;
+
+// ── Time-based meal detection ────────────────────────────────────────────────
+
+function getNextMealType(): MealType {
+  const h = new Date().getHours() + new Date().getMinutes() / 60;
+  if (h < 10.5) return "Breakfast";
+  if (h < 15.5) return "Lunch";
+  return "Dinner";
+}
 
 // ── Storage helpers ──────────────────────────────────────────────────────────
 
@@ -74,14 +94,62 @@ function CitationList({ citations }: { citations: Citation[] }) {
   );
 }
 
+// ── Suggestion Card ──────────────────────────────────────────────────────────
+
+function SuggestionCardUI({
+  suggestion,
+  onLog,
+  logging,
+}: {
+  suggestion: SuggestionCard;
+  onLog: () => void;
+  logging: boolean;
+}) {
+  const isSnack = suggestion.type === "Snack";
+  return (
+    <button
+      onClick={onLog}
+      disabled={logging}
+      className="relative flex flex-col gap-1.5 rounded-2xl border border-border bg-card p-3.5 text-left transition-all hover:border-primary/40 hover:shadow-md active:scale-[0.98] disabled:opacity-60 w-full"
+    >
+      <div className="flex items-center gap-2">
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${isSnack ? "bg-amber-500/10" : "bg-primary/10"}`}>
+          {isSnack ? <Cookie size={14} className="text-amber-500" /> : <UtensilsCrossed size={14} className="text-primary" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{suggestion.meal_name}</p>
+          <span className={`text-[10px] font-medium uppercase tracking-wider ${isSnack ? "text-amber-500" : "text-primary"}`}>
+            {suggestion.type}
+          </span>
+        </div>
+        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+          {logging ? <Loader2 size={12} className="animate-spin text-primary" /> : <Plus size={12} className="text-primary" />}
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{suggestion.description}</p>
+      <div className="flex gap-3 text-[10px] text-muted-foreground font-medium">
+        <span>{suggestion.calories} kcal</span>
+        <span>{suggestion.protein}g P</span>
+        <span>{suggestion.carbs}g C</span>
+        <span>{suggestion.fat}g F</span>
+      </div>
+    </button>
+  );
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 
-export function NutritionChatScreen({ goals, meals }: Props) {
+export function NutritionChatScreen({ goals, meals, onAddMeal }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory());
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-suggestions state
+  const [suggestions, setSuggestions] = useState<SuggestionCard[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [loggingId, setLoggingId] = useState<string | null>(null);
 
   const today = todayISO();
   const todayMeals = meals.filter((m) => m.date === today);
@@ -108,7 +176,7 @@ export function NutritionChatScreen({ goals, meals }: Props) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // Fetch fresh profile from Supabase every time
+  // Fetch fresh profile from Supabase
   async function getFreshProfile(): Promise<Record<string, any> | null> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -131,6 +199,109 @@ export function NutritionChatScreen({ goals, meals }: Props) {
     }
   }
 
+  // ── Auto-suggestions on mount ──────────────────────────────────────────────
+
+  const fetchSuggestions = useCallback(async () => {
+    setSuggestionsLoading(true);
+    try {
+      const profile = await getFreshProfile();
+      const mealType = getNextMealType();
+      const eaten = todayMeals.reduce(
+        (a, m) => ({
+          calories: a.calories + m.calories,
+          protein: a.protein + m.protein,
+          carbs: a.carbs + m.carbs,
+          fat: a.fat + m.fat,
+          names: [...a.names, m.meal_name],
+        }),
+        { calories: 0, protein: 0, carbs: 0, fat: 0, names: [] as string[] }
+      );
+
+      const prompt = `Based on my profile and goals, suggest exactly 3 meal ideas in JSON format:
+- 2 options for my next meal (${mealType})
+- 1 snack option
+
+My profile: ${JSON.stringify(profile ?? {})}
+Dietary restrictions: ${(profile as any)?.dietary_restrictions?.join(", ") || "none"}
+Allergies: ${(profile as any)?.allergies?.join(", ") || "none"}
+Dislikes: ${(profile as any)?.dislikes?.join(", ") || "none"}
+Health conditions: ${(profile as any)?.health_conditions?.join(", ") || "none"}
+
+Daily goals: ${goals.calories} kcal, ${goals.protein}g protein, ${goals.carbs}g carbs, ${goals.fat}g fat
+Already eaten today: ${eaten.calories} kcal, ${eaten.protein}g protein (${eaten.names.join(", ") || "nothing yet"})
+
+Return ONLY a JSON object: {"suggestions": [{"meal_name": "string", "description": "string (1 sentence)", "calories": number, "protein": number, "carbs": number, "fat": number, "type": "${mealType}" or "Snack"}]}
+The first 2 items must be type "${mealType}", the 3rd must be type "Snack". Respect all dietary restrictions strictly.`;
+
+      const { data, error } = await supabase.functions.invoke("nutrition-chat", {
+        body: {
+          messages: [{ role: "user", content: prompt }],
+          profile,
+          goals,
+          todayMeals,
+          language: getLanguage() ?? "en",
+          languageName: getLanguageName(),
+          jsonMode: true,
+        },
+      });
+
+      if (error) throw error;
+
+      const content = data?.content ?? "";
+      // Parse JSON from response
+      let jsonStr = content.trim();
+      const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (fenceMatch) jsonStr = fenceMatch[1].trim();
+      const objMatch = jsonStr.match(/\{[\s\S]*\}/);
+      if (objMatch) jsonStr = objMatch[0];
+
+      const parsed = JSON.parse(jsonStr);
+      const items: SuggestionCard[] = (parsed.suggestions ?? []).slice(0, 3).map((s: any, i: number) => ({
+        meal_name: String(s.meal_name ?? "Meal"),
+        description: String(s.description ?? ""),
+        calories: Math.round(Number(s.calories) || 0),
+        protein: Math.round(Number(s.protein) || 0),
+        carbs: Math.round(Number(s.carbs) || 0),
+        fat: Math.round(Number(s.fat) || 0),
+        type: i < 2 ? getNextMealType() : "Snack" as MealType,
+      }));
+      setSuggestions(items);
+    } catch (e) {
+      console.error("Auto-suggestions failed:", e);
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  }, [goals, todayMeals.length]);
+
+  // Fetch suggestions on mount
+  useEffect(() => {
+    fetchSuggestions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Log suggestion as meal ─────────────────────────────────────────────────
+
+  const handleLogSuggestion = (s: SuggestionCard) => {
+    if (!onAddMeal) return;
+    setLoggingId(s.meal_name);
+    const meal: Meal = {
+      id: uid(),
+      meal_name: s.meal_name,
+      type: s.type,
+      calories: s.calories,
+      protein: s.protein,
+      carbs: s.carbs,
+      fat: s.fat,
+      date: today,
+      created_at: Date.now(),
+    };
+    onAddMeal(meal);
+    toast.success(`${s.meal_name} logged!`);
+    // Remove from suggestions
+    setSuggestions((prev) => prev.filter((x) => x.meal_name !== s.meal_name));
+    setLoggingId(null);
+  };
+
   async function detectPreferenceUpdate(message: string, profile: Record<string, any> | null) {
     try {
       const { data } = await supabase.functions.invoke("detect-preference-update", {
@@ -150,10 +321,8 @@ export function NutritionChatScreen({ goals, meals }: Props) {
       }
       updatedProfile[field] = arr;
 
-      // Save to localStorage
       localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
 
-      // Save to Supabase
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await supabase
@@ -206,7 +375,6 @@ export function NutritionChatScreen({ goals, meals }: Props) {
       setMessages(withAI);
       saveHistory(withAI);
 
-      // Detect preference updates in the background
       detectPreferenceUpdate(text, profile);
     } catch (e: any) {
       const errMsg: ChatMessage = {
@@ -235,6 +403,8 @@ export function NutritionChatScreen({ goals, meals }: Props) {
     localStorage.removeItem(CHAT_KEY);
   }
 
+  const mealType = getNextMealType();
+
   return (
     <div className="flex flex-col h-[calc(100dvh-120px)]">
       {/* Disclaimer banner */}
@@ -248,7 +418,33 @@ export function NutritionChatScreen({ goals, meals }: Props) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
-        {messages.length === 0 && !loading && (
+        {/* Auto-generated suggestions */}
+        {(suggestions.length > 0 || suggestionsLoading) && (
+          <div className="space-y-2 pb-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              🍽️ Suggested for you — {mealType} + Snack
+            </p>
+            {suggestionsLoading ? (
+              <div className="flex items-center gap-2 py-6 justify-center">
+                <Loader2 size={16} className="animate-spin text-primary" />
+                <span className="text-sm text-muted-foreground">Generating personalised suggestions…</span>
+              </div>
+            ) : (
+              <div className="grid gap-2">
+                {suggestions.map((s) => (
+                  <SuggestionCardUI
+                    key={s.meal_name}
+                    suggestion={s}
+                    onLog={() => handleLogSuggestion(s)}
+                    logging={loggingId === s.meal_name}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {messages.length === 0 && !loading && suggestions.length === 0 && !suggestionsLoading && (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="text-2xl">🥗</span>
