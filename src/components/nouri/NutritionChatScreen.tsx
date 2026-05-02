@@ -554,7 +554,6 @@ The first 2 items must be type "${mealType}", the 3rd must be type "Snack". Resp
           >
             <Send size={15} />
           </button>
-          </div>
         </div>
       </div>
     </div>
