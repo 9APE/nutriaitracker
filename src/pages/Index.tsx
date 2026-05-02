@@ -54,7 +54,12 @@ const Index = () => {
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsPickLang, setSettingsPickLang] = useState(false);
-  const [hasLanguage, setHasLanguage] = useState<boolean>(() => !!getLanguage());
+  const [hasLanguage, setHasLanguage] = useState<boolean>(() => {
+    // Show language picker only on very first use (never picked before)
+    if (localStorage.getItem("nouri:lang-picked")) return true;
+    if (getLanguage()) { localStorage.setItem("nouri:lang-picked", "1"); return true; }
+    return false;
+  });
   const currentLang = useLanguage();
   const langMeta = getLanguageMeta(currentLang);
 
