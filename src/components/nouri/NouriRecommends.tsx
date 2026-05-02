@@ -107,7 +107,19 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
             .eq("id", user.id)
             .maybeSingle();
           if (prof?.user_profile_json) {
-            profile = prof.user_profile_json;
+            // Merge: Supabase is authoritative for most fields, but preserve
+            // restriction arrays from localStorage if Supabase record is older
+            // and missing them (prevents vegetarian/condition data being lost).
+            const local = profile ?? {};
+            const remote = prof.user_profile_json;
+            profile = {
+              ...local,
+              ...remote,
+              restrictions: remote.restrictions?.length ? remote.restrictions : (local.restrictions ?? []),
+              conditions:   remote.conditions?.length   ? remote.conditions   : (local.conditions   ?? []),
+              allergies:    remote.allergies?.length     ? remote.allergies    : (local.allergies    ?? []),
+              dislikes:     remote.dislikes?.length      ? remote.dislikes     : (local.dislikes     ?? []),
+            };
             localStorage.setItem("userProfile", JSON.stringify(profile));
           }
         } catch {
