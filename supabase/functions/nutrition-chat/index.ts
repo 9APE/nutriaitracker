@@ -1,4 +1,4 @@
-// NutriAI Chat — Perplexity-powered nutrition Q&A with live research citations
+// NutriAI Chat — Claude-powered nutrition Q&A with research citations
 import { resolveLanguage } from "../_shared/language.ts";
 import { requireAuth } from "../_shared/auth.ts";
 
@@ -68,11 +68,21 @@ Remaining: ${Math.round(remaining.calories)} kcal | ${Math.round(remaining.prote
 
 ━━ RULES ━━
 1. Always tailor answers to this user's specific profile, conditions, restrictions, and remaining nutrition needs.
-2. Every response MUST end with numbered sources — real research papers or authoritative health organisation pages.
-3. If the user has a health condition (e.g. diabetes, hypertension), reference condition-specific guidelines (ADA, NHS, WHO).
+2. For every response, include 2–3 real citations from trusted sources: PubMed (https://pubmed.ncbi.nlm.nih.gov/[PMID]/), WHO (https://www.who.int/...), NHS (https://www.nhs.uk/...), ADA (https://diabetes.org/...), Mayo Clinic (https://www.mayoclinic.org/...), NIH ODS (https://ods.od.nih.gov/...). Only cite URLs you are confident exist.
+3. If the user has a health condition, reference condition-specific guidelines.
 4. Never diagnose or replace a medical professional. For medical questions, always recommend consulting their doctor.
-5. Be warm, specific, and concise — avoid generic advice.
-6. Always reply in ${languageName}.`;
+5. Be warm, specific, and concise.
+6. Always reply in ${languageName}.
+
+━━ RESPONSE FORMAT ━━
+You MUST return valid JSON only — no markdown fences, no extra text:
+{
+  "answer": "your full response here",
+  "sources": [
+    { "title": "Source name", "url": "https://..." },
+    { "title": "Source name", "url": "https://..." }
+  ]
+}`;
 }
 
 Deno.serve(async (req) => {
@@ -84,10 +94,10 @@ Deno.serve(async (req) => {
   if (authResult instanceof Response) return authResult;
 
   try {
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
-    if (!PERPLEXITY_API_KEY) {
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "Perplexity API key not configured. Add PERPLEXITY_API_KEY to Supabase secrets." }),
+        JSON.stringify({ error: "Service configuration error" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -109,46 +119,30 @@ Deno.serve(async (req) => {
       lang.name,
     );
 
-    // Send last 10 messages for context (keeps costs manageable)
+    // Send last 10 messages for context
     const historyToSend = messages.slice(-10).map((m: any) => ({
       role: m.role as "user" | "assistant",
       content: String(m.content),
     }));
 
-    const response = await fetch("https://api.perplexity.ai/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
         "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "llama-3.1-sonar-large-128k-online",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...historyToSend,
-        ],
-        max_tokens: 1024,
-        temperature: 0.2,
-        search_domain_filter: [
-          "pubmed.ncbi.nlm.nih.gov",
-          "nih.gov",
-          "who.int",
-          "nhs.uk",
-          "diabetes.org",
-          "mayoclinic.org",
-          "nutrition.org",
-          "heart.org",
-          "dietitians.ca",
-          "nutrition.gov",
-        ],
-        return_images: false,
-        return_related_questions: false,
+        model: "claude-sonnet-4-5",
+        max_tokens: 1500,
+        system: systemPrompt,
+        messages: historyToSend,
       }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("Perplexity error:", response.status, errText);
+      console.error("Anthropic error:", response.status, errText);
       return new Response(
         JSON.stringify({ error: "AI request failed" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -156,11 +150,24 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
-    const content: string = data?.choices?.[0]?.message?.content ?? "";
-    const citations: string[] = Array.isArray(data?.citations) ? data.citations : [];
+    const raw: string = data?.content?.[0]?.text ?? "";
+
+    // Parse the JSON response from Claude
+    let parsed: { answer: string; sources: { title: string; url: string }[] };
+    try {
+      const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      // If Claude didn't return valid JSON, treat the whole text as the answer
+      parsed = { answer: raw, sources: [] };
+    }
+
+    const citations = (parsed.sources ?? [])
+      .filter((s) => s?.url)
+      .map((s) => ({ title: s.title || s.url, url: s.url }));
 
     return new Response(
-      JSON.stringify({ content, citations }),
+      JSON.stringify({ content: parsed.answer || raw, citations }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {

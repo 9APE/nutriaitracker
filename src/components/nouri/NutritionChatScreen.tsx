@@ -8,11 +8,16 @@ import type { Goals, Meal } from "@/lib/nouri-storage";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+interface Citation {
+  title: string;
+  url: string;
+}
+
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
-  citations?: string[];
+  citations?: Citation[];
   timestamp: number;
 }
 
@@ -47,30 +52,23 @@ function uid(): string {
 
 // ── Citation display ─────────────────────────────────────────────────────────
 
-function CitationList({ citations }: { citations: string[] }) {
+function CitationList({ citations }: { citations: Citation[] }) {
   if (!citations.length) return null;
   return (
     <div className="mt-2 space-y-1">
       <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Sources</p>
-      {citations.map((url, i) => {
-        let label = url;
-        try {
-          const u = new URL(url);
-          label = u.hostname.replace(/^www\./, "");
-        } catch {}
-        return (
-          <a
-            key={i}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-[11px] text-primary hover:underline"
-          >
-            <ExternalLink size={10} className="shrink-0" />
-            <span className="truncate">{label}</span>
-          </a>
-        );
-      })}
+      {citations.map((c, i) => (
+        <a
+          key={i}
+          href={c.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-[11px] text-primary hover:underline"
+        >
+          <ExternalLink size={10} className="shrink-0" />
+          <span className="truncate">{c.title}</span>
+        </a>
+      ))}
     </div>
   );
 }
