@@ -15,7 +15,7 @@ export function NouriHeader({
       <div className="max-w-md mx-auto px-5 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           
-          <span className="font-serif text-lg font-medium tracking-tight">Nouri</span>
+          <span className="font-serif text-lg font-medium tracking-tight">NutriAI</span>
         </div>
         <div className="flex items-center gap-1">
           {rightSlot}
