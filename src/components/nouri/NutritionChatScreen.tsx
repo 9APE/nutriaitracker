@@ -120,7 +120,7 @@ export function NutritionChatScreen({ goals, meals }: Props) {
         .maybeSingle();
       if (data?.user_profile_json) {
         localStorage.setItem("userProfile", JSON.stringify(data.user_profile_json));
-        return data.user_profile_json;
+        return data.user_profile_json as Record<string, any>;
       }
     } catch {}
     try {
