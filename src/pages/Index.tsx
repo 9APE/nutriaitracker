@@ -276,7 +276,7 @@ const Index = () => {
 
   // Language selection — must come BEFORE any AI chat / onboarding
   if (!hasLanguage) {
-    return <LanguageSelect onDone={() => setHasLanguage(true)} />;
+    return <LanguageSelect onDone={() => { localStorage.setItem("nouri:lang-picked", "1"); setHasLanguage(true); }} />;
   }
 
   // Onboarding: always use AI chat (covers both needsOnboarding and !userProfile)
