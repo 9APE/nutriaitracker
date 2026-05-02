@@ -111,14 +111,14 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
             // restriction arrays from localStorage if Supabase record is older
             // and missing them (prevents vegetarian/condition data being lost).
             const local = profile ?? {};
-            const remote = prof.user_profile_json;
+            const remote = prof.user_profile_json as Record<string, any>;
             profile = {
               ...local,
               ...remote,
-              restrictions: remote.restrictions?.length ? remote.restrictions : (local.restrictions ?? []),
-              conditions:   remote.conditions?.length   ? remote.conditions   : (local.conditions   ?? []),
-              allergies:    remote.allergies?.length     ? remote.allergies    : (local.allergies    ?? []),
-              dislikes:     remote.dislikes?.length      ? remote.dislikes     : (local.dislikes     ?? []),
+              restrictions: (remote as any).restrictions?.length ? (remote as any).restrictions : ((local as any).restrictions ?? []),
+              conditions:   (remote as any).conditions?.length   ? (remote as any).conditions   : ((local as any).conditions   ?? []),
+              allergies:    (remote as any).allergies?.length     ? (remote as any).allergies    : ((local as any).allergies    ?? []),
+              dislikes:     (remote as any).dislikes?.length      ? (remote as any).dislikes     : ((local as any).dislikes     ?? []),
             };
             localStorage.setItem("userProfile", JSON.stringify(profile));
           }

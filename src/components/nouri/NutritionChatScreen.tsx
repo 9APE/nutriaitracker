@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useVoice } from "@/hooks/useVoice";
 import { todayISO } from "@/lib/nouri-storage";
 import { getLanguage, getLanguageName } from "@/lib/nouri-i18n";
+import { toast } from "sonner";
 import type { Goals, Meal } from "@/lib/nouri-storage";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -86,12 +87,21 @@ export function NutritionChatScreen({ goals, meals }: Props) {
   const todayMeals = meals.filter((m) => m.date === today);
 
   // Voice input
-  const { isRecording, isTranscribing, startRecording, stopRecording } = useVoice({
-    onTranscript: (text) => {
+  const voice = useVoice();
+  const isRecording = voice.listening;
+  const isTranscribing = voice.transcribing;
+
+  const startRecording = async () => {
+    voice.reset();
+    await voice.start();
+  };
+  const stopRecording = async () => {
+    const text = await voice.stop();
+    if (text) {
       setInput((prev) => (prev ? prev + " " + text : text));
       inputRef.current?.focus();
-    },
-  });
+    }
+  };
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -110,7 +120,7 @@ export function NutritionChatScreen({ goals, meals }: Props) {
         .maybeSingle();
       if (data?.user_profile_json) {
         localStorage.setItem("userProfile", JSON.stringify(data.user_profile_json));
-        return data.user_profile_json;
+        return data.user_profile_json as Record<string, any>;
       }
     } catch {}
     try {
@@ -118,6 +128,44 @@ export function NutritionChatScreen({ goals, meals }: Props) {
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
+    }
+  }
+
+  async function detectPreferenceUpdate(message: string, profile: Record<string, any> | null) {
+    try {
+      const { data } = await supabase.functions.invoke("detect-preference-update", {
+        body: { message, profile: profile ?? {} },
+      });
+      if (!data || !data.field) return;
+
+      const { field, action, value } = data as { field: string; action: string; value: string };
+      const updatedProfile = { ...(profile ?? {}) };
+      const arr: string[] = Array.isArray(updatedProfile[field]) ? [...updatedProfile[field]] : [];
+
+      if (action === "add" && !arr.includes(value)) {
+        arr.push(value);
+      } else if (action === "remove") {
+        const idx = arr.indexOf(value);
+        if (idx >= 0) arr.splice(idx, 1);
+      }
+      updatedProfile[field] = arr;
+
+      // Save to localStorage
+      localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+
+      // Save to Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("profiles")
+          .update({ user_profile_json: updatedProfile })
+          .eq("id", user.id);
+      }
+
+      const label = action === "remove" ? "removed from" : "added to";
+      toast.success(`✓ Preference saved: ${value} ${label} your ${field}`);
+    } catch (e) {
+      console.error("Preference detection failed:", e);
     }
   }
 
@@ -157,6 +205,9 @@ export function NutritionChatScreen({ goals, meals }: Props) {
       const withAI = [...next, aiMsg];
       setMessages(withAI);
       saveHistory(withAI);
+
+      // Detect preference updates in the background
+      detectPreferenceUpdate(text, profile);
     } catch (e: any) {
       const errMsg: ChatMessage = {
         id: uid(),
