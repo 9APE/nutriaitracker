@@ -273,11 +273,7 @@ The first 2 items must be type "${mealType}", the 3rd must be type "Snack". Resp
     }
   }, [goals, todayMeals.length]);
 
-  // Fetch suggestions on mount
-  useEffect(() => {
-    fetchSuggestions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // No longer auto-fetch — user triggers via button
 
   // ── Log suggestion as meal ─────────────────────────────────────────────────
 
@@ -418,54 +414,46 @@ The first 2 items must be type "${mealType}", the 3rd must be type "Snack". Resp
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
-        {/* Auto-generated suggestions */}
-        {(suggestions.length > 0 || suggestionsLoading) && (
-          <div className="space-y-2 pb-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              🍽️ Suggested for you — {mealType} + Snack
-            </p>
-            {suggestionsLoading ? (
-              <div className="flex items-center gap-2 py-6 justify-center">
-                <Loader2 size={16} className="animate-spin text-primary" />
-                <span className="text-sm text-muted-foreground">Generating personalised suggestions…</span>
-              </div>
-            ) : (
-              <div className="grid gap-2">
-                {suggestions.map((s) => (
-                  <SuggestionCardUI
-                    key={s.meal_name}
-                    suggestion={s}
-                    onLog={() => handleLogSuggestion(s)}
-                    logging={loggingId === s.meal_name}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {messages.length === 0 && !loading && suggestions.length === 0 && !suggestionsLoading && (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
+        {/* Suggest next meal button or results */}
+        {suggestions.length === 0 && !suggestionsLoading && messages.length === 0 && !loading && (
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="text-2xl">🥗</span>
             </div>
             <p className="font-serif text-lg font-medium">Ask me anything about nutrition</p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              I know your profile, goals, and what you've eaten today. Try asking:
+              I know your profile, goals, and what you've eaten today.
             </p>
-            <div className="space-y-2 w-full max-w-xs">
-              {[
-                "How much sugar can I have today?",
-                "What should I eat for dinner?",
-                "Am I getting enough protein?",
-              ].map((q) => (
-                <button
-                  key={q}
-                  onClick={() => { setInput(q); inputRef.current?.focus(); }}
-                  className="w-full text-left text-sm px-4 py-2.5 rounded-xl border border-border bg-card hover:border-primary/40 transition-colors"
-                >
-                  {q}
-                </button>
+            <button
+              onClick={fetchSuggestions}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary/10 border border-primary/20 text-sm font-medium text-primary hover:bg-primary/20 transition-colors"
+            >
+              <UtensilsCrossed size={15} />
+              Suggest my next {mealType}
+            </button>
+          </div>
+        )}
+
+        {suggestionsLoading && (
+          <div className="flex items-center gap-2 py-6 justify-center">
+            <Loader2 size={16} className="animate-spin text-primary" />
+            <span className="text-sm text-muted-foreground">Generating personalised suggestions…</span>
+          </div>
+        )}
+
+        {suggestions.length > 0 && (
+          <div className="space-y-2 pb-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              🍽️ Suggested for you — {mealType} + Snack
+            </p>
+            <div className="grid gap-2">
+              {suggestions.map((s) => (
+                <SuggestionCardUI
+                  key={s.meal_name}
+                  suggestion={s}
+                  onLog={() => handleLogSuggestion(s)}
+                  logging={loggingId === s.meal_name}
+                />
               ))}
             </div>
           </div>
@@ -507,48 +495,65 @@ The first 2 items must be type "${mealType}", the 3rd must be type "Snack". Resp
         </div>
       )}
 
+      {/* Suggested questions */}
+      {messages.length === 0 && !loading && (
+        <div className="px-4 pb-1 flex gap-2 overflow-x-auto scrollbar-none">
+          {[
+            "How much protein left?",
+            "What should I eat?",
+            "Am I on track today?",
+          ].map((q) => (
+            <button
+              key={q}
+              onClick={() => { setInput(q); inputRef.current?.focus(); }}
+              className="shrink-0 text-xs px-3 py-1.5 rounded-full border border-border bg-card hover:border-primary/40 transition-colors text-muted-foreground"
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Input bar */}
-      <div className="px-4 pb-4 pt-2 border-t border-border bg-background">
-        <div className="flex items-end gap-2 bg-card border border-border rounded-2xl px-3 py-2">
+      <div className="px-4 pb-2 pt-1.5 bg-background">
+        <div className="flex items-center gap-2 bg-card border border-border rounded-full px-3 py-1.5">
           <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder="Ask anything about nutrition…"
+            placeholder="Ask anything…"
             rows={1}
-            className="flex-1 bg-transparent text-sm resize-none outline-none max-h-32 leading-relaxed placeholder:text-muted-foreground"
+            className="flex-1 bg-transparent text-sm resize-none outline-none max-h-20 leading-relaxed placeholder:text-muted-foreground"
             style={{ fieldSizing: "content" } as any}
             disabled={loading || isRecording}
           />
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={loading || isTranscribing}
-              className={`p-2 rounded-xl transition-colors ${
-                isRecording
-                  ? "bg-red-500/15 text-red-500"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
-              aria-label={isRecording ? "Stop recording" : "Voice input"}
-            >
-              {isTranscribing ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : isRecording ? (
-                <Square size={16} />
-              ) : (
-                <Mic size={16} />
-              )}
-            </button>
-            <button
-              onClick={send}
-              disabled={!input.trim() || loading}
-              className="p-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-40 transition-opacity"
-              aria-label="Send"
-            >
-              <Send size={16} />
-            </button>
-          </div>
+          <button
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={loading || isTranscribing}
+            className={`p-1.5 rounded-full transition-colors ${
+              isRecording
+                ? "bg-red-500/15 text-red-500"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            aria-label={isRecording ? "Stop recording" : "Voice input"}
+          >
+            {isTranscribing ? (
+              <Loader2 size={15} className="animate-spin" />
+            ) : isRecording ? (
+              <Square size={15} />
+            ) : (
+              <Mic size={15} />
+            )}
+          </button>
+          <button
+            onClick={send}
+            disabled={!input.trim() || loading}
+            className="p-1.5 rounded-full bg-primary text-primary-foreground disabled:opacity-40 transition-opacity"
+            aria-label="Send"
+          >
+            <Send size={15} />
+          </button>
         </div>
       </div>
     </div>
