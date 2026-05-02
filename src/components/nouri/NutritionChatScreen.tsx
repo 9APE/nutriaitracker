@@ -414,54 +414,46 @@ The first 2 items must be type "${mealType}", the 3rd must be type "Snack". Resp
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
-        {/* Auto-generated suggestions */}
-        {(suggestions.length > 0 || suggestionsLoading) && (
-          <div className="space-y-2 pb-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              🍽️ Suggested for you — {mealType} + Snack
-            </p>
-            {suggestionsLoading ? (
-              <div className="flex items-center gap-2 py-6 justify-center">
-                <Loader2 size={16} className="animate-spin text-primary" />
-                <span className="text-sm text-muted-foreground">Generating personalised suggestions…</span>
-              </div>
-            ) : (
-              <div className="grid gap-2">
-                {suggestions.map((s) => (
-                  <SuggestionCardUI
-                    key={s.meal_name}
-                    suggestion={s}
-                    onLog={() => handleLogSuggestion(s)}
-                    logging={loggingId === s.meal_name}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {messages.length === 0 && !loading && suggestions.length === 0 && !suggestionsLoading && (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
+        {/* Suggest next meal button or results */}
+        {suggestions.length === 0 && !suggestionsLoading && messages.length === 0 && !loading && (
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="text-2xl">🥗</span>
             </div>
             <p className="font-serif text-lg font-medium">Ask me anything about nutrition</p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              I know your profile, goals, and what you've eaten today. Try asking:
+              I know your profile, goals, and what you've eaten today.
             </p>
-            <div className="space-y-2 w-full max-w-xs">
-              {[
-                "How much sugar can I have today?",
-                "What should I eat for dinner?",
-                "Am I getting enough protein?",
-              ].map((q) => (
-                <button
-                  key={q}
-                  onClick={() => { setInput(q); inputRef.current?.focus(); }}
-                  className="w-full text-left text-sm px-4 py-2.5 rounded-xl border border-border bg-card hover:border-primary/40 transition-colors"
-                >
-                  {q}
-                </button>
+            <button
+              onClick={fetchSuggestions}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary/10 border border-primary/20 text-sm font-medium text-primary hover:bg-primary/20 transition-colors"
+            >
+              <UtensilsCrossed size={15} />
+              Suggest my next {mealType}
+            </button>
+          </div>
+        )}
+
+        {suggestionsLoading && (
+          <div className="flex items-center gap-2 py-6 justify-center">
+            <Loader2 size={16} className="animate-spin text-primary" />
+            <span className="text-sm text-muted-foreground">Generating personalised suggestions…</span>
+          </div>
+        )}
+
+        {suggestions.length > 0 && (
+          <div className="space-y-2 pb-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              🍽️ Suggested for you — {mealType} + Snack
+            </p>
+            <div className="grid gap-2">
+              {suggestions.map((s) => (
+                <SuggestionCardUI
+                  key={s.meal_name}
+                  suggestion={s}
+                  onLog={() => handleLogSuggestion(s)}
+                  logging={loggingId === s.meal_name}
+                />
               ))}
             </div>
           </div>
