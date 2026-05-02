@@ -48,11 +48,13 @@ Deno.serve(async (req) => {
       cleanAudio = cleanAudio.split(",")[1];
     }
     cleanAudio = cleanAudio.replace(/\s/g, "");
-    const format = mimeType.includes("mp4") ? "mp4" : mimeType.includes("mpeg") ? "mp3" : mimeType.includes("ogg") ? "ogg" : "webm";
 
     const SYSTEM_PROMPT =
       BASE_SYSTEM +
       `\n\nThe user is speaking in ${languageName} (${locale}). Transcribe in ${languageName} only — preserve the original language exactly as spoken; do not translate.`;
+
+    // Send audio as a data URL in image_url format (Gemini accepts audio this way via OpenAI-compatible API)
+    const dataUrl = `data:${mimeType};base64,${cleanAudio}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -68,7 +70,7 @@ Deno.serve(async (req) => {
             role: "user",
             content: [
               { type: "text", text: `Transcribe this meal description in ${languageName}.` },
-              { type: "input_audio", input_audio: { data: cleanAudio, format } },
+              { type: "image_url", image_url: { url: dataUrl } },
             ],
           },
         ],

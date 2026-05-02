@@ -406,7 +406,7 @@ The first 2 items must be type "${mealType}", the 3rd must be type "Snack". Resp
   const mealType = getNextMealType();
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-120px)]">
+    <div className="flex flex-col h-[calc(100dvh-190px)]">
       {/* Disclaimer banner */}
       <div className="mx-4 mt-3 mb-1 flex items-start gap-2 rounded-xl bg-amber-500/10 border border-amber-500/25 px-3 py-2.5">
         <AlertTriangle size={13} className="text-amber-500 shrink-0 mt-0.5" />
