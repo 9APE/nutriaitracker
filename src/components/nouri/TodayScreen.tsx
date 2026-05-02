@@ -788,11 +788,6 @@ export function TodayScreen({
         Adjust my dashboard
       </button>
 
-      <NouriRecommends
-        goals={goals}
-        meals={meals}
-        onPick={(name) => onPickSuggestion?.(name)}
-      />
 
       <TrainingSheet
         open={trainingSheetOpen}
