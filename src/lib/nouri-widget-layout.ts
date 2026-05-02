@@ -30,17 +30,17 @@ export interface WidgetLayout {
 }
 
 export const WIDGET_META: Record<WidgetType, { label: string; icon: string; defaultSize: WidgetSize; allowedSizes: WidgetSize[] }> = {
-  "calorie-arc":   { label: "Calories Overview",   icon: "🔥", defaultSize: "large",  allowedSizes: ["medium", "large"] },
-  "macros":        { label: "Macro Summary",        icon: "📊", defaultSize: "large",  allowedSizes: ["medium", "large"] },
-  "macro-protein": { label: "Protein Detail",       icon: "🥩", defaultSize: "small",  allowedSizes: ["small", "medium"] },
-  "macro-carbs":   { label: "Carbs Detail",         icon: "🍞", defaultSize: "small",  allowedSizes: ["small", "medium"] },
-  "macro-fat":     { label: "Fat Detail",           icon: "🥑", defaultSize: "small",  allowedSizes: ["small", "medium"] },
-  "macro-fiber":   { label: "Fiber Detail",         icon: "🥦", defaultSize: "small",  allowedSizes: ["small", "medium"] },
-  "micros":        { label: "Micronutrients",       icon: "💊", defaultSize: "large",  allowedSizes: ["medium", "large"] },
-  "tip":           { label: "AI Tip",               icon: "🌿", defaultSize: "large",  allowedSizes: ["medium", "large"] },
-  "training":      { label: "Training",             icon: "🏋️", defaultSize: "large",  allowedSizes: ["medium", "large"] },
-  "meals":         { label: "Today's Meals",        icon: "🍽️", defaultSize: "large",  allowedSizes: ["medium", "large"] },
-  "log-button":    { label: "Log Meal Button",      icon: "🎤", defaultSize: "large",  allowedSizes: ["medium", "large"] },
+  "calorie-arc":   { label: "Calories Overview",   icon: "🔥", defaultSize: "large",  allowedSizes: ["small", "medium", "large"] },
+  "macros":        { label: "Macro Summary",        icon: "📊", defaultSize: "large",  allowedSizes: ["small", "medium", "large"] },
+  "macro-protein": { label: "Protein Detail",       icon: "🥩", defaultSize: "small",  allowedSizes: ["small", "medium", "large"] },
+  "macro-carbs":   { label: "Carbs Detail",         icon: "🍞", defaultSize: "small",  allowedSizes: ["small", "medium", "large"] },
+  "macro-fat":     { label: "Fat Detail",           icon: "🥑", defaultSize: "small",  allowedSizes: ["small", "medium", "large"] },
+  "macro-fiber":   { label: "Fiber Detail",         icon: "🥦", defaultSize: "small",  allowedSizes: ["small", "medium", "large"] },
+  "micros":        { label: "Micronutrients",       icon: "💊", defaultSize: "large",  allowedSizes: ["small", "medium", "large"] },
+  "tip":           { label: "AI Tip",               icon: "🌿", defaultSize: "large",  allowedSizes: ["small", "medium", "large"] },
+  "training":      { label: "Training",             icon: "🏋️", defaultSize: "large",  allowedSizes: ["small", "medium", "large"] },
+  "meals":         { label: "Today's Meals",        icon: "🍽️", defaultSize: "large",  allowedSizes: ["small", "medium", "large"] },
+  "log-button":    { label: "Log Meal Button",      icon: "🎤", defaultSize: "large",  allowedSizes: ["small", "medium", "large"] },
 };
 
 const KEY = "nouri:widgetLayout";
