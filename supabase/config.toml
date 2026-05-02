@@ -18,5 +18,8 @@ verify_jwt = false
 [functions.weekly-checkin]
 verify_jwt = false
 
+[functions.detect-preference-update]
+verify_jwt = false
+
 [functions.weekly-report]
 verify_jwt = false
