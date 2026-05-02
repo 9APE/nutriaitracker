@@ -125,9 +125,9 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
 
       // Verification log — confirm restrictions are being read from localStorage
       console.log("[NouriRecommends] Profile restrictions being sent to API:", {
-        dietaryRestrictions: profile?.dietaryRestrictions,
+        dietaryRestrictions: profile?.restrictions,
         allergies: profile?.allergies,
-        healthConditions: profile?.healthConditions,
+        healthConditions: profile?.conditions,
         dislikes: profile?.dislikes,
         name: profile?.name,
       });

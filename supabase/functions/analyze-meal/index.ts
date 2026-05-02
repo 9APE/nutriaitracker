@@ -54,8 +54,8 @@ function buildSystemPrompt(opts: {
   return `You are a personalized nutrition AI called Nouri. Here is the user's profile:
 
 Goals: ${fmtList(p.goals)}
-Health conditions: ${fmtList(p.healthConditions)}
-Dietary restrictions: ${fmtList(p.dietaryRestrictions)}
+Health conditions: ${fmtList(p.conditions)}
+Dietary restrictions: ${fmtList(p.restrictions)}
 Activity level: ${fmtList(p.activityLevel)}
 Foods they eat regularly: ${fmtList(p.regularFoods)}
 Foods they dislike: ${fmtList(p.dislikedFoods)}

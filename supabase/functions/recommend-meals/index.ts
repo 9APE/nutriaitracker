@@ -28,21 +28,21 @@ function buildSystemPrompt(
 
   // Log restrictions server-side for debugging
   console.log("[recommend-meals] Profile restrictions:", {
-    dietaryRestrictions: p.dietaryRestrictions,
+    dietaryRestrictions: p.restrictions,
     allergies: p.allergies,
-    healthConditions: p.healthConditions,
+    healthConditions: p.conditions,
     dislikes: p.dislikes,
     name: p.name,
   });
 
   return `CRITICAL DIETARY RESTRICTIONS — YOU MUST NEVER VIOLATE THESE:
-${fmtList(p.dietaryRestrictions)}
+${fmtList(p.restrictions)}
 
 CRITICAL FOOD ALLERGIES — NEVER INCLUDE THESE INGREDIENTS:
 ${fmtList(p.allergies)}
 
 CRITICAL HEALTH CONDITIONS — ADAPT ALL RECOMMENDATIONS:
-${fmtList(p.healthConditions)}
+${fmtList(p.conditions)}
 
 If VEGETARIAN is listed above: every single suggestion must contain zero meat, zero poultry, zero fish, zero seafood. No exceptions.
 If VEGAN is listed above: every single suggestion must contain zero animal products including dairy and eggs.
