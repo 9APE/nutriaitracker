@@ -54,7 +54,12 @@ const Index = () => {
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsPickLang, setSettingsPickLang] = useState(false);
-  const [hasLanguage, setHasLanguage] = useState<boolean>(() => !!getLanguage());
+  const [hasLanguage, setHasLanguage] = useState<boolean>(() => {
+    // Show language picker only on very first use (never picked before)
+    if (localStorage.getItem("nouri:lang-picked")) return true;
+    if (getLanguage()) { localStorage.setItem("nouri:lang-picked", "1"); return true; }
+    return false;
+  });
   const currentLang = useLanguage();
   const langMeta = getLanguageMeta(currentLang);
 
@@ -271,7 +276,7 @@ const Index = () => {
 
   // Language selection — must come BEFORE any AI chat / onboarding
   if (!hasLanguage) {
-    return <LanguageSelect onDone={() => setHasLanguage(true)} />;
+    return <LanguageSelect onDone={() => { localStorage.setItem("nouri:lang-picked", "1"); setHasLanguage(true); }} />;
   }
 
   // Onboarding: always use AI chat (covers both needsOnboarding and !userProfile)
