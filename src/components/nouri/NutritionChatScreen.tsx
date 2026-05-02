@@ -495,47 +495,65 @@ The first 2 items must be type "${mealType}", the 3rd must be type "Snack". Resp
         </div>
       )}
 
+      {/* Suggested questions */}
+      {messages.length === 0 && !loading && (
+        <div className="px-4 pb-1 flex gap-2 overflow-x-auto scrollbar-none">
+          {[
+            "How much protein left?",
+            "What should I eat?",
+            "Am I on track today?",
+          ].map((q) => (
+            <button
+              key={q}
+              onClick={() => { setInput(q); inputRef.current?.focus(); }}
+              className="shrink-0 text-xs px-3 py-1.5 rounded-full border border-border bg-card hover:border-primary/40 transition-colors text-muted-foreground"
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Input bar */}
-      <div className="px-4 pb-4 pt-2 border-t border-border bg-background">
-        <div className="flex items-end gap-2 bg-card border border-border rounded-2xl px-3 py-2">
+      <div className="px-4 pb-2 pt-1.5 bg-background">
+        <div className="flex items-center gap-2 bg-card border border-border rounded-full px-3 py-1.5">
           <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder="Ask anything about nutrition…"
+            placeholder="Ask anything…"
             rows={1}
-            className="flex-1 bg-transparent text-sm resize-none outline-none max-h-32 leading-relaxed placeholder:text-muted-foreground"
+            className="flex-1 bg-transparent text-sm resize-none outline-none max-h-20 leading-relaxed placeholder:text-muted-foreground"
             style={{ fieldSizing: "content" } as any}
             disabled={loading || isRecording}
           />
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={loading || isTranscribing}
-              className={`p-2 rounded-xl transition-colors ${
-                isRecording
-                  ? "bg-red-500/15 text-red-500"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
-              aria-label={isRecording ? "Stop recording" : "Voice input"}
-            >
-              {isTranscribing ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : isRecording ? (
-                <Square size={16} />
-              ) : (
-                <Mic size={16} />
-              )}
-            </button>
-            <button
-              onClick={send}
-              disabled={!input.trim() || loading}
-              className="p-2 rounded-xl bg-primary text-primary-foreground disabled:opacity-40 transition-opacity"
-              aria-label="Send"
-            >
-              <Send size={16} />
-            </button>
+          <button
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={loading || isTranscribing}
+            className={`p-1.5 rounded-full transition-colors ${
+              isRecording
+                ? "bg-red-500/15 text-red-500"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            aria-label={isRecording ? "Stop recording" : "Voice input"}
+          >
+            {isTranscribing ? (
+              <Loader2 size={15} className="animate-spin" />
+            ) : isRecording ? (
+              <Square size={15} />
+            ) : (
+              <Mic size={15} />
+            )}
+          </button>
+          <button
+            onClick={send}
+            disabled={!input.trim() || loading}
+            className="p-1.5 rounded-full bg-primary text-primary-foreground disabled:opacity-40 transition-opacity"
+            aria-label="Send"
+          >
+            <Send size={15} />
+          </button>
           </div>
         </div>
       </div>
