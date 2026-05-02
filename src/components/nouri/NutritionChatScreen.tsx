@@ -273,11 +273,7 @@ The first 2 items must be type "${mealType}", the 3rd must be type "Snack". Resp
     }
   }, [goals, todayMeals.length]);
 
-  // Fetch suggestions on mount
-  useEffect(() => {
-    fetchSuggestions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // No longer auto-fetch — user triggers via button
 
   // ── Log suggestion as meal ─────────────────────────────────────────────────
 
