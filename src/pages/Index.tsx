@@ -8,6 +8,7 @@ import { TodayScreen } from "@/components/nouri/TodayScreen";
 import { LogScreen } from "@/components/nouri/LogScreen";
 import { HistoryScreen } from "@/components/nouri/HistoryScreen";
 import { InsightsScreen } from "@/components/nouri/InsightsScreen";
+import { NutritionChatScreen } from "@/components/nouri/NutritionChatScreen";
 import { NotificationBell } from "@/components/nouri/NotificationBell";
 import { useAutoSuggestions } from "@/hooks/useAutoSuggestions";
 import { notifStore } from "@/lib/nouri-suggestions";
@@ -414,6 +415,7 @@ const Index = () => {
             onPrefillConsumed={() => setLogPrefill(undefined)}
           />
         )}
+        {tab === "ask" && <NutritionChatScreen goals={goals} meals={meals} />}
         {tab === "history" && <HistoryScreen meals={meals} onDelete={handleDeleteMeal} />}
         {tab === "insights" && <InsightsScreen meals={meals} goals={goals} />}
       </main>
