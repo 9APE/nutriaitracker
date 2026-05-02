@@ -167,6 +167,9 @@ export function NutritionChatScreen({ goals, meals }: Props) {
       const withAI = [...next, aiMsg];
       setMessages(withAI);
       saveHistory(withAI);
+
+      // Detect preference updates in the background
+      detectPreferenceUpdate(text, profile);
     } catch (e: any) {
       const errMsg: ChatMessage = {
         id: uid(),
