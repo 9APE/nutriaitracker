@@ -56,18 +56,16 @@ function SortableWidget({ widget, editing, onRemove, onResize, children }: Sorta
   const sizeClass =
     widget.size === "large"
       ? "col-span-2"
-      : widget.size === "medium"
-        ? "col-span-2 sm:col-span-1"
-        : "col-span-1";
+      : "col-span-1";
 
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={cn(
-        "relative rounded-2xl transition-shadow",
+        "relative rounded-2xl transition-all duration-200",
         sizeClass,
-        editing && "animate-wiggle cursor-grab active:cursor-grabbing",
+        editing && "ring-2 ring-primary/30 cursor-grab active:cursor-grabbing",
         isDragging && "shadow-xl scale-[1.03]"
       )}
       {...attributes}
@@ -101,7 +99,9 @@ function SortableWidget({ widget, editing, onRemove, onResize, children }: Sorta
           className="absolute -top-2 -right-2 z-10 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md"
           aria-label={`Resize ${meta.label}`}
         >
-          {widget.size === "large" ? <Minimize2 size={10} /> : <Maximize2 size={10} />}
+          <span className="text-[9px] font-bold leading-none">
+            {widget.size === "small" ? "M" : widget.size === "medium" ? "L" : "S"}
+          </span>
         </button>
       )}
 
