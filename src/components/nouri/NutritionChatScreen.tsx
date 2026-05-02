@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useVoice } from "@/hooks/useVoice";
 import { todayISO } from "@/lib/nouri-storage";
 import { getLanguage, getLanguageName } from "@/lib/nouri-i18n";
+import { toast } from "sonner";
 import type { Goals, Meal } from "@/lib/nouri-storage";
 
 // ── Types ────────────────────────────────────────────────────────────────────
