@@ -415,7 +415,7 @@ const Index = () => {
             onPrefillConsumed={() => setLogPrefill(undefined)}
           />
         )}
-        {tab === "ask" && <NutritionChatScreen goals={goals} meals={meals} />}
+        {tab === "ask" && <NutritionChatScreen goals={goals} meals={meals} onAddMeal={handleAddMeal} />}
         {tab === "history" && <HistoryScreen meals={meals} onDelete={handleDeleteMeal} />}
         {tab === "insights" && <InsightsScreen meals={meals} goals={goals} />}
       </main>
