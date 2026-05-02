@@ -131,6 +131,44 @@ export function NutritionChatScreen({ goals, meals }: Props) {
     }
   }
 
+  async function detectPreferenceUpdate(message: string, profile: Record<string, any> | null) {
+    try {
+      const { data } = await supabase.functions.invoke("detect-preference-update", {
+        body: { message, profile: profile ?? {} },
+      });
+      if (!data || !data.field) return;
+
+      const { field, action, value } = data as { field: string; action: string; value: string };
+      const updatedProfile = { ...(profile ?? {}) };
+      const arr: string[] = Array.isArray(updatedProfile[field]) ? [...updatedProfile[field]] : [];
+
+      if (action === "add" && !arr.includes(value)) {
+        arr.push(value);
+      } else if (action === "remove") {
+        const idx = arr.indexOf(value);
+        if (idx >= 0) arr.splice(idx, 1);
+      }
+      updatedProfile[field] = arr;
+
+      // Save to localStorage
+      localStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+
+      // Save to Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("profiles")
+          .update({ user_profile_json: updatedProfile })
+          .eq("id", user.id);
+      }
+
+      const label = action === "remove" ? "removed from" : "added to";
+      toast.success(`✓ Preference saved: ${value} ${label} your ${field}`);
+    } catch (e) {
+      console.error("Preference detection failed:", e);
+    }
+  }
+
   async function send() {
     const text = input.trim();
     if (!text || loading) return;
