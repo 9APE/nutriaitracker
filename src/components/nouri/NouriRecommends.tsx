@@ -95,7 +95,25 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
     setLoading(true);
     setError(null);
     try {
-      const profile = readFresh("userProfile");
+      // Always fetch the freshest profile from Supabase so restriction changes
+      // (e.g. user becomes vegetarian) are respected immediately on any device.
+      let profile = readFresh("userProfile");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        try {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("user_profile_json")
+            .eq("id", user.id)
+            .maybeSingle();
+          if (prof?.user_profile_json) {
+            profile = prof.user_profile_json;
+            localStorage.setItem("userProfile", JSON.stringify(profile));
+          }
+        } catch {
+          // fall back to localStorage profile already set above
+        }
+      }
       const userGoals: any = readFresh("nouri:goals") ?? goals;
       const totals = buildTotals();
       const remaining = {
