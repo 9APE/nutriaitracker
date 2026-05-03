@@ -102,7 +102,7 @@ async function callAI(systemPrompt: string, userMsg: string): Promise<string> {
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-5",
-      max_tokens: 4000,
+      max_tokens: 3000,
       system: systemPrompt,
       messages: [{ role: "user", content: userMsg }],
     }),
