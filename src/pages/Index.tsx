@@ -422,6 +422,7 @@ const Index = () => {
           />
         )}
         {tab === "ask" && <NutritionChatScreen goals={goals} meals={meals} onAddMeal={handleAddMeal} />}
+        {tab === "plan" && <PlanScreen goals={goals} userProfile={userProfile} />}
         {tab === "history" && <HistoryScreen meals={meals} onDelete={handleDeleteMeal} />}
         {tab === "insights" && <InsightsScreen meals={meals} goals={goals} />}
       </main>
