@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { ConditionAlertCards } from "@/components/nouri/ConditionAlertCards";
 
 import { MealCard } from "@/components/nouri/MealCard";
 import { AdjustDashboardSheet } from "@/components/nouri/AdjustDashboardSheet";
@@ -451,6 +452,38 @@ export function TodayScreen({
       </div>
 
       <EveningNudge meals={meals} onGoLog={onGoLog} />
+
+      {/* Condition-specific nutrient alerts */}
+      {userProfile?.conditions?.length > 0 && (
+        <ConditionAlertCards
+          conditions={userProfile.conditions}
+          totals={{
+            iron: totalForMetric("iron" as any, meals),
+            calcium: totalForMetric("calcium" as any, meals),
+            vitamin_d: totalForMetric("vitamin_d" as any, meals),
+            vitamin_c: totalForMetric("vitamin_c" as any, meals),
+            fiber: totalForMetric("fiber" as any, meals),
+            sodium: totalForMetric("sodium" as any, meals),
+            potassium: totalForMetric("potassium" as any, meals),
+            protein: sum.protein,
+            fat: sum.fat,
+            b12: 0,
+            zinc: 0,
+            folate: 0,
+            selenium: 0,
+            sugar: totalForMetric("sugar" as any, meals),
+            cholesterol: totalForMetric("cholesterol" as any, meals),
+            omega3: 0,
+            magnesium: 0,
+            iodine: 0,
+          }}
+          goals={{
+            calories: eGoals.calories,
+            protein: eGoals.protein,
+            ...(effective as any),
+          }}
+        />
+      )}
 
       {isCheckinDue(localStorage.getItem("nouri:signupDate")) && onStartCheckin && (
         <button type="button" onClick={onStartCheckin}

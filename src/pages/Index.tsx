@@ -8,6 +8,7 @@ import { TodayScreen } from "@/components/nouri/TodayScreen";
 import { LogScreen } from "@/components/nouri/LogScreen";
 import { HistoryScreen } from "@/components/nouri/HistoryScreen";
 import { InsightsScreen } from "@/components/nouri/InsightsScreen";
+import { PlanScreen } from "@/components/nouri/PlanScreen";
 import { NutritionChatScreen } from "@/components/nouri/NutritionChatScreen";
 import { NotificationBell } from "@/components/nouri/NotificationBell";
 import { useAutoSuggestions } from "@/hooks/useAutoSuggestions";
@@ -421,6 +422,7 @@ const Index = () => {
           />
         )}
         {tab === "ask" && <NutritionChatScreen goals={goals} meals={meals} onAddMeal={handleAddMeal} />}
+        {tab === "plan" && <PlanScreen goals={goals} userProfile={userProfile} />}
         {tab === "history" && <HistoryScreen meals={meals} onDelete={handleDeleteMeal} />}
         {tab === "insights" && <InsightsScreen meals={meals} goals={goals} />}
       </main>

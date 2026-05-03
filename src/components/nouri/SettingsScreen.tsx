@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, ChevronRight, Monitor, Sun, Moon, UserCog, Sparkles } from "lucide-react";
+import { FamilySection } from "@/components/nouri/FamilySection";
 import { toast } from "sonner";
 import {
   LANGUAGES,
@@ -226,6 +227,9 @@ export function SettingsScreen({
               })}
             </div>
           </section>
+
+          {/* Family profiles */}
+          {!picking && <FamilySection />}
         </div>
       </div>
 
