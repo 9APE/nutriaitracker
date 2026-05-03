@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { ConditionAlertCards } from "@/components/nouri/ConditionAlertCards";
 
 import { MealCard } from "@/components/nouri/MealCard";
 import { AdjustDashboardSheet } from "@/components/nouri/AdjustDashboardSheet";
