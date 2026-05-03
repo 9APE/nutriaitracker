@@ -101,7 +101,7 @@ async function callAI(systemPrompt: string, userMsg: string): Promise<string> {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-5",
+      model: "claude-haiku-3-5",
       max_tokens: 4000,
       system: systemPrompt,
       messages: [{ role: "user", content: userMsg }],
