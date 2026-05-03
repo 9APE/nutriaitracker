@@ -227,6 +227,9 @@ export function SettingsScreen({
               })}
             </div>
           </section>
+
+          {/* Family profiles */}
+          {!picking && <FamilySection />}
         </div>
       </div>
 
