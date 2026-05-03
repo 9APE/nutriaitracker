@@ -51,11 +51,13 @@ export function PlanScreen({ goals, userProfile }: Props) {
     setGenerating(true);
 
     try {
-      let profile: Record<string, any> = {};
-      try {
-        const raw = localStorage.getItem("userProfile");
-        if (raw) profile = JSON.parse(raw);
-      } catch {}
+      let profile: Record<string, any> = userProfile ?? {};
+      if (!Object.keys(profile).length) {
+        try {
+          const raw = localStorage.getItem("userProfile");
+          if (raw) profile = JSON.parse(raw);
+        } catch {}
+      }
 
       const body: Record<string, any> = {
         profile,
