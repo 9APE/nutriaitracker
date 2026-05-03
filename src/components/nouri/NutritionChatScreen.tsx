@@ -210,12 +210,17 @@ export function NutritionChatScreen({ goals, meals, onAddMeal }: Props) {
   const today = todayISO();
   const todayMeals = meals.filter((m) => m.date === today);
 
-  const { isRecording, isTranscribing, startRecording, stopRecording } = useVoice({
-    onTranscript: (text) => {
+  const voice = useVoice();
+  const isRecording = voice.listening;
+  const isTranscribing = voice.transcribing;
+  const startRecording = voice.start;
+  const stopRecording = async () => {
+    const text = await voice.stop();
+    if (text) {
       setInput((prev) => (prev ? prev + " " + text : text));
       inputRef.current?.focus();
-    },
-  });
+    }
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
