@@ -453,6 +453,38 @@ export function TodayScreen({
 
       <EveningNudge meals={meals} onGoLog={onGoLog} />
 
+      {/* Condition-specific nutrient alerts */}
+      {userProfile?.conditions?.length > 0 && (
+        <ConditionAlertCards
+          conditions={userProfile.conditions}
+          totals={{
+            iron: totalForMetric("iron", meals),
+            calcium: totalForMetric("calcium", meals),
+            vitamin_d: totalForMetric("vitamin_d", meals),
+            vitamin_c: totalForMetric("vitamin_c", meals),
+            fiber: totalForMetric("fiber", meals),
+            sodium: totalForMetric("sodium", meals),
+            potassium: totalForMetric("potassium", meals),
+            protein: sum.protein,
+            fat: sum.fat,
+            b12: totalForMetric("b12", meals),
+            zinc: totalForMetric("zinc", meals),
+            folate: totalForMetric("folate", meals),
+            selenium: totalForMetric("selenium", meals),
+            sugar: totalForMetric("sugar", meals),
+            cholesterol: totalForMetric("cholesterol", meals),
+            omega3: totalForMetric("omega3", meals),
+            magnesium: totalForMetric("magnesium", meals),
+            iodine: totalForMetric("iodine", meals),
+          }}
+          goals={{
+            calories: eGoals.calories,
+            protein: eGoals.protein,
+            ...(effective as any),
+          }}
+        />
+      )}
+
       {isCheckinDue(localStorage.getItem("nouri:signupDate")) && onStartCheckin && (
         <button type="button" onClick={onStartCheckin}
           className="w-full text-left rounded-2xl border p-4 flex items-center gap-3 transition-transform active:scale-[0.99]"
