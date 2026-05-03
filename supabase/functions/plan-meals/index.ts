@@ -132,14 +132,6 @@ Deno.serve(async (req) => {
   if (authResult instanceof Response) return authResult;
 
   try {
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "Service configuration error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const {
       profile,
       goals,
@@ -170,7 +162,7 @@ Deno.serve(async (req) => {
     // Swap mode: regenerate only one meal slot (much cheaper than full plan)
     if (swapDay && swapMealType && existingPlan) {
       const swapMsg = `Regenerate only the ${swapMealType} for ${swapDay}. Do not change any other day or meal. The current ${swapMealType} for ${swapDay} is: ${JSON.stringify(existingPlan?.plan?.[swapDay]?.[swapMealType] ?? {})}. Return ONLY valid JSON for that one meal slot: { "meal_name": "...", "calories": 0, "protein": 0, "carbs": 0, "fat": 0, "why": "..." }`;
-      raw = await callClaude(ANTHROPIC_API_KEY, systemPrompt, swapMsg);
+      raw = await callAI(systemPrompt, swapMsg);
       try {
         const swapped = extractJson(raw);
         return new Response(JSON.stringify({ swapped, day: swapDay, mealType: swapMealType }), {
@@ -182,15 +174,14 @@ Deno.serve(async (req) => {
     }
 
     // Full 7-day plan
-    raw = await callClaude(ANTHROPIC_API_KEY, systemPrompt, "Generate the complete 7-day meal plan now. Return JSON only.");
+    raw = await callAI(systemPrompt, "Generate the complete 7-day meal plan now. Return JSON only.");
 
     let parsed: any;
     try {
       parsed = extractJson(raw);
     } catch {
-      // Single retry with explicit instruction
       console.warn("[plan-meals] JSON parse failed, retrying...");
-      const retryRaw = await callClaude(ANTHROPIC_API_KEY, systemPrompt,
+      const retryRaw = await callAI(systemPrompt,
         "Your previous response was not valid JSON. Return ONLY the JSON object with no other text, starting with { and ending with }.");
       try { parsed = extractJson(retryRaw); } catch {
         return new Response(JSON.stringify({ error: "Failed to parse AI response" }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
