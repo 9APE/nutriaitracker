@@ -236,12 +236,13 @@ export function NutritionChatScreen({ goals, meals, onAddMeal }: Props) {
       const { data } = await supabase.from("profiles").select("user_profile_json").eq("id", user.id).maybeSingle();
       if (data?.user_profile_json) {
         const remote = data.user_profile_json;
+        const r = remote as Record<string, any>;
         const merged = {
-          ...(local ?? {}), ...remote,
-          restrictions: remote.restrictions?.length ? remote.restrictions : (local?.restrictions ?? []),
-          conditions:   remote.conditions?.length   ? remote.conditions   : (local?.conditions   ?? []),
-          allergies:    remote.allergies?.length     ? remote.allergies    : (local?.allergies    ?? []),
-          dislikes:     remote.dislikes?.length      ? remote.dislikes     : (local?.dislikes     ?? []),
+          ...(local ?? {}), ...r,
+          restrictions: r.restrictions?.length ? r.restrictions : (local?.restrictions ?? []),
+          conditions:   r.conditions?.length   ? r.conditions   : (local?.conditions   ?? []),
+          allergies:    r.allergies?.length     ? r.allergies    : (local?.allergies    ?? []),
+          dislikes:     r.dislikes?.length      ? r.dislikes     : (local?.dislikes     ?? []),
         };
         localStorage.setItem("userProfile", JSON.stringify(merged));
         return merged;
