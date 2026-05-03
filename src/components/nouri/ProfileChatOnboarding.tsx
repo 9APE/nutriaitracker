@@ -24,6 +24,8 @@ export interface UserProfile {
   allergies: string[];
   /** Free-form list of preferred foods/cuisines. Optional — set via Edit Profile. */
   preferences?: string[];
+  /** ISO country code for nutritional guideline authority (AU, DE, FR, GB, US, IN, OTHER). */
+  country?: string;
 }
 
 export interface PlanResult {
