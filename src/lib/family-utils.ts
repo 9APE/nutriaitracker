@@ -3,10 +3,20 @@ export interface FamilyMember {
   name: string;
   age?: number;
   sex?: string;
+  height?: string;
+  weight?: string;
   restrictions: string[];
   conditions: string[];
   allergies: string[];
   dislikes: string[];
+  activityLevel?: string;
+  goals?: string;
+  dailyTargets?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
 }
 
 export interface MergedFamilyRestrictions {
@@ -21,9 +31,9 @@ export interface MergedFamilyRestrictions {
 
 const FAMILY_PROFILES_KEY = "nutriai:familyProfiles";
 const FAMILY_MODE_KEY = "nutriai:familyMode";
+const FAMILY_MERGED_KEY = "familyMergedRestrictions";
+const HOUSEHOLD_SIZE_KEY = "nutriai:householdSize";
 
-// Conditions that require opposite directions on the same nutrient.
-// Used to surface a conflict warning when both conditions exist in the household.
 const OPPOSING_NUTRIENT_CONDITIONS: Record<string, string[]> = {
   potassium: ["Kidney Disease", "Hypertension"],
   protein: ["Kidney Disease", "Obesity"],
@@ -39,13 +49,41 @@ export function getFamilyMembers(): FamilyMember[] {
 }
 
 export function saveFamilyMembers(members: FamilyMember[]) {
-  // Hard cap: 10 household members to prevent over-restriction of suggestions.
   const capped = members.slice(0, 10);
   localStorage.setItem(FAMILY_PROFILES_KEY, JSON.stringify(capped));
+  // Auto-regenerate merged restrictions whenever members change
+  regenerateMergedRestrictions();
+}
+
+export function addFamilyMember(member: FamilyMember) {
+  const members = getFamilyMembers();
+  members.push(member);
+  saveFamilyMembers(members);
+}
+
+export function updateFamilyMember(id: string, updates: Partial<FamilyMember>) {
+  const members = getFamilyMembers();
+  const idx = members.findIndex((m) => m.id === id);
+  if (idx >= 0) {
+    members[idx] = { ...members[idx], ...updates };
+    saveFamilyMembers(members);
+  }
+}
+
+export function removeFamilyMember(id: string) {
+  saveFamilyMembers(getFamilyMembers().filter((m) => m.id !== id));
 }
 
 export function getHouseholdSize(): number {
-  return getFamilyMembers().length + 1; // +1 for account owner
+  try {
+    const stored = localStorage.getItem(HOUSEHOLD_SIZE_KEY);
+    if (stored) return Math.max(1, Math.min(8, parseInt(stored, 10) || 1));
+  } catch {}
+  return getFamilyMembers().length + 1;
+}
+
+export function setHouseholdSize(size: number) {
+  localStorage.setItem(HOUSEHOLD_SIZE_KEY, String(Math.max(1, Math.min(8, size))));
 }
 
 export function isFamilyMode(): boolean {
@@ -57,6 +95,15 @@ export function setFamilyMode(enabled: boolean) {
 }
 
 export function getMergedFamilyRestrictions(): MergedFamilyRestrictions {
+  // Try to load cached merged restrictions first
+  try {
+    const cached = localStorage.getItem(FAMILY_MERGED_KEY);
+    if (cached) return JSON.parse(cached) as MergedFamilyRestrictions;
+  } catch {}
+  return computeMergedRestrictions();
+}
+
+function computeMergedRestrictions(): MergedFamilyRestrictions {
   const members = getFamilyMembers();
   let self: Record<string, any> = {};
   try {
@@ -67,7 +114,6 @@ export function getMergedFamilyRestrictions(): MergedFamilyRestrictions {
   const all: Array<Partial<FamilyMember>> = [self, ...members];
   const allConditions = [...new Set(all.flatMap((m) => m.conditions ?? []))];
 
-  // Detect conflicting nutrient guidelines within the household
   let hasConflictingConditions = false;
   let conflictNote: string | undefined;
   for (const [nutrient, conflictingConditions] of Object.entries(OPPOSING_NUTRIENT_CONDITIONS)) {
@@ -79,7 +125,6 @@ export function getMergedFamilyRestrictions(): MergedFamilyRestrictions {
     }
   }
 
-  // Cap dislikes at 15 to prevent over-restriction of suggestions
   const allDislikes = [...new Set(all.flatMap((m) => m.dislikes ?? []))].slice(0, 15);
 
   return {
@@ -91,6 +136,12 @@ export function getMergedFamilyRestrictions(): MergedFamilyRestrictions {
     hasConflictingConditions,
     conflictNote,
   };
+}
+
+export function regenerateMergedRestrictions(): MergedFamilyRestrictions {
+  const merged = computeMergedRestrictions();
+  localStorage.setItem(FAMILY_MERGED_KEY, JSON.stringify(merged));
+  return merged;
 }
 
 export function buildFamilyPromptBlock(merged: MergedFamilyRestrictions): string {
