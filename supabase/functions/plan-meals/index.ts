@@ -28,79 +28,51 @@ function buildSystemPrompt(
   const p = profile ?? {};
   const effectiveProfile = familyMode && familyRestrictions ? familyRestrictions : p;
 
-  const restrictionBlock = `CRITICAL DIETARY RESTRICTIONS — YOU MUST NEVER VIOLATE THESE:
-${fmtList(effectiveProfile.restrictions)}
-
-CRITICAL FOOD ALLERGIES — NEVER INCLUDE THESE INGREDIENTS:
-${fmtList(effectiveProfile.allergies)}
-
-CRITICAL HEALTH CONDITIONS — ADAPT ALL MEALS:
-${fmtList(effectiveProfile.conditions)}
-
-If VEGETARIAN is listed: every meal must contain zero meat, zero poultry, zero fish.
-If VEGAN is listed: every meal must contain zero animal products including dairy and eggs.
-If GLUTEN-FREE is listed: no wheat, pasta, bread, barley, or rye in any form.
-If KIDNEY DISEASE is listed: limit potassium, phosphorus, protein, and sodium in every meal.
-If DIABETES is listed: no high-sugar foods, no high-GI carbohydrates.
-If HYPERTENSION is listed: keep sodium under 600 mg per meal.`;
+  const restrictionBlock = `Restrictions: ${fmtList(effectiveProfile.restrictions)}
+Allergies: ${fmtList(effectiveProfile.allergies)}
+Conditions: ${fmtList(effectiveProfile.conditions)}
+NEVER violate these. Vegetarian=no meat/fish. Vegan=no animal products. Gluten-free=no wheat/barley/rye.`;
 
   const familyBlock = familyMode && familyRestrictions
-    ? `\nHousehold: ${fmtList(familyRestrictions.memberNames)} (${householdSize ?? 1} people). Add "servings: ${householdSize ?? 1}" to each meal.`
+    ? `\nHousehold: ${householdSize ?? 1} people. Add "servings": ${householdSize ?? 1} to each meal.`
     : "";
 
   const avoidBlock = recentMealNames.length
-    ? `\nDO NOT REPEAT THESE MEALS (recently used):\n${recentMealNames.slice(0, 60).join(", ")}`
+    ? `\nAvoid repeating: ${recentMealNames.slice(0, 30).join(", ")}`
     : "";
 
-  return `${restrictionBlock}
-${familyBlock}
-${avoidBlock}
+  return `${restrictionBlock}${familyBlock}${avoidBlock}
 
-USER PROFILE:
-Name: ${p.name || "User"} | Age: ${p.age || "unknown"} | Sex: ${p.sex || "unknown"}
-Activity: ${p.activityLevel || "unknown"} | Goals: ${fmtList(p.goals)}
-Foods to avoid: ${fmtList(p.dislikes)}
+${p.name || "User"} | ${p.age || "?"} | ${p.sex || "?"} | Activity: ${p.activityLevel || "?"} | Goals: ${fmtList(p.goals)} | Avoid: ${fmtList(p.dislikes)}
+Daily targets: ${goals.calories || 2000}kcal, ${goals.protein || 150}gP, ${goals.carbs || 200}gC, ${goals.fat || 70}gF
 
-DAILY NUTRITION TARGETS:
-Calories: ${goals.calories || 2000} kcal | Protein: ${goals.protein || 150}g | Carbs: ${goals.carbs || 200}g | Fat: ${goals.fat || 70}g
-
-TASK:
-Generate a 7-day meal plan (Monday to Sunday). Each day has exactly 4 meals: Breakfast, Lunch, Dinner, Snack.
-Rules:
-1. Every meal MUST comply with all restrictions listed above — check each one before including it.
-2. Vary protein sources across days (no chicken every day, no same dish twice in one week).
-3. Keep daily macros close to the targets above.
-4. Keep meal descriptions concise (5 words max for meal_name).
-5. Provide realistic macro estimates.
-${familyMode ? `6. Include "servings": ${householdSize ?? 1} in each meal object.` : ""}
-${languageName ? `7. All text must be in ${languageName}.` : ""}
-
-Return ONLY valid JSON — no markdown fences, no extra text. Exact schema:
-{
-  "plan": {
-    "Monday":    { "breakfast": { "meal_name": "...", "calories": 0, "protein": 0, "carbs": 0, "fat": 0, "why": "..." }, "lunch": {...}, "dinner": {...}, "snack": {...} },
-    "Tuesday":   { ... },
-    "Wednesday": { ... },
-    "Thursday":  { ... },
-    "Friday":    { ... },
-    "Saturday":  { ... },
-    "Sunday":    { ... }
-  }
-}`;
+Generate 7-day plan (Mon-Sun), 4 meals each (breakfast,lunch,dinner,snack). Vary proteins. Concise meal_name (5 words max).
+${languageName ? `All text in ${languageName}.` : ""}
+Return ONLY JSON: {"plan":{"Monday":{"breakfast":{"meal_name":"...","calories":0,"protein":0,"carbs":0,"fat":0},...},...}}`;
 }
 
-async function callClaude(apiKey: string, systemPrompt: string, userMsg: string): Promise<string> {
+async function callAI(systemPrompt: string, userMsg: string): Promise<string> {
+  const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not set");
+
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 4000,
+      model: "claude-sonnet-4-5",
+      max_tokens: 3000,
       system: systemPrompt,
       messages: [{ role: "user", content: userMsg }],
     }),
   });
-  if (!res.ok) throw new Error(`Anthropic error: ${res.status}`);
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Anthropic error ${res.status}: ${errText}`);
+  }
   const data = await res.json();
   return data?.content?.[0]?.text ?? "";
 }
@@ -121,14 +93,6 @@ Deno.serve(async (req) => {
   if (authResult instanceof Response) return authResult;
 
   try {
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "Service configuration error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const {
       profile,
       goals,
@@ -159,7 +123,7 @@ Deno.serve(async (req) => {
     // Swap mode: regenerate only one meal slot (much cheaper than full plan)
     if (swapDay && swapMealType && existingPlan) {
       const swapMsg = `Regenerate only the ${swapMealType} for ${swapDay}. Do not change any other day or meal. The current ${swapMealType} for ${swapDay} is: ${JSON.stringify(existingPlan?.plan?.[swapDay]?.[swapMealType] ?? {})}. Return ONLY valid JSON for that one meal slot: { "meal_name": "...", "calories": 0, "protein": 0, "carbs": 0, "fat": 0, "why": "..." }`;
-      raw = await callClaude(ANTHROPIC_API_KEY, systemPrompt, swapMsg);
+      raw = await callAI(systemPrompt, swapMsg);
       try {
         const swapped = extractJson(raw);
         return new Response(JSON.stringify({ swapped, day: swapDay, mealType: swapMealType }), {
@@ -171,15 +135,14 @@ Deno.serve(async (req) => {
     }
 
     // Full 7-day plan
-    raw = await callClaude(ANTHROPIC_API_KEY, systemPrompt, "Generate the complete 7-day meal plan now. Return JSON only.");
+    raw = await callAI(systemPrompt, "Generate the complete 7-day meal plan now. Return JSON only.");
 
     let parsed: any;
     try {
       parsed = extractJson(raw);
     } catch {
-      // Single retry with explicit instruction
       console.warn("[plan-meals] JSON parse failed, retrying...");
-      const retryRaw = await callClaude(ANTHROPIC_API_KEY, systemPrompt,
+      const retryRaw = await callAI(systemPrompt,
         "Your previous response was not valid JSON. Return ONLY the JSON object with no other text, starting with { and ending with }.");
       try { parsed = extractJson(retryRaw); } catch {
         return new Response(JSON.stringify({ error: "Failed to parse AI response" }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
