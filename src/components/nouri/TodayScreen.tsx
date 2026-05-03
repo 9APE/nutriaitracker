@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MealCard } from "@/components/nouri/MealCard";
 import { NouriRecommends } from "@/components/nouri/NouriRecommends";
 import { AdjustDashboardSheet } from "@/components/nouri/AdjustDashboardSheet";
+import { MicronutrientAlerts } from "@/components/nouri/MicronutrientAlerts";
 import {
   DEFAULT_LAYOUT,
   getStoredLayout,
@@ -435,6 +436,15 @@ export function TodayScreen({
   // Real fiber comes from AI-estimated micros on each meal
   const fiberCurrent = totalForMetric("fiber", meals);
 
+  const conditions: string[] = userProfile?.conditions ?? [];
+  const microTotals = todayMeals.reduce<Record<string, number>>((acc, m) => {
+    if (!m.micros) return acc;
+    for (const [k, v] of Object.entries(m.micros)) {
+      acc[k] = (acc[k] ?? 0) + (v as number);
+    }
+    return acc;
+  }, {});
+
   return (
     <div className="px-5 pt-4 pb-28 max-w-md mx-auto space-y-[14px]">
       {/* SECTION 1 — HEADER */}
@@ -811,6 +821,15 @@ export function TodayScreen({
         currentLayout={layout}
         onUpdated={(l) => setLayout(l)}
       />
+
+      {conditions.length > 0 && (
+        <MicronutrientAlerts
+          conditions={conditions}
+          macroTotals={{ protein: sum.protein, fat: sum.fat }}
+          microTotals={microTotals}
+          goals={eGoals as Record<string, number>}
+        />
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, ChevronRight, Monitor, Sun, Moon, UserCog, Sparkles } from "lucide-react";
+import { X, ChevronRight, Monitor, Sun, Moon, UserCog, Sparkles, Users, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   LANGUAGES,
@@ -18,6 +18,9 @@ import { EditProfileSheet } from "@/components/nouri/EditProfileSheet";
 import type { UserProfile } from "@/components/nouri/ProfileChatOnboarding";
 import type { Goals } from "@/lib/nouri-storage";
 import { loadUserGoals, onGoalsChange, type ExtendedGoals } from "@/lib/nouri-goals";
+import { getFamilyMembers, saveFamilyMembers, type FamilyMember } from "@/lib/family-utils";
+import { AddMemberSheet } from "@/components/nouri/AddMemberSheet";
+import { FamilyRestrictionsSummary } from "@/components/nouri/FamilyRestrictionsSummary";
 
 interface Props {
   onClose: () => void;
@@ -56,6 +59,17 @@ export function SettingsScreen({
   const [editingProfile, setEditingProfile] = useState(false);
   const themePref = useThemePreference();
   const canEditProfile = !!(userProfile && userId && onProfileSaved && onGoalsRecalculated);
+  const [members, setMembers] = useState<FamilyMember[]>(() => getFamilyMembers());
+  const [addingMember, setAddingMember] = useState(false);
+  const [editingMember, setEditingMember] = useState<FamilyMember | undefined>();
+
+  const refreshMembers = () => setMembers(getFamilyMembers());
+
+  const deleteMember = (id: string, name: string) => {
+    saveFamilyMembers(members.filter((m) => m.id !== id));
+    setMembers(getFamilyMembers());
+    toast.success(`${name} removed from your household`);
+  };
 
   const themeOptions: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
     { value: "system", label: t("themeSystem", lang), Icon: Monitor },
@@ -126,6 +140,61 @@ export function SettingsScreen({
               </div>
               <ChevronRight size={18} className="text-muted-foreground" />
             </button>
+          )}
+
+          {!picking && (
+            <section className="rounded-2xl border border-border bg-card px-4 py-3.5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users size={16} className="text-muted-foreground" />
+                  <span className="text-sm font-medium">Household members</span>
+                </div>
+                <button
+                  onClick={() => { setEditingMember(undefined); setAddingMember(true); }}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <Plus size={13} />
+                  Add
+                </button>
+              </div>
+
+              {members.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  No household members yet. Add family members to get tailored meal suggestions for your whole household.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {members.map((m) => (
+                    <li key={m.id} className="flex items-center justify-between gap-2 rounded-xl border border-border bg-background px-3 py-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{m.name}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {[m.age ? `${m.age} y/o` : null, m.sex, m.restrictions?.[0]].filter(Boolean).join(" · ")}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => { setEditingMember(m); setAddingMember(true); }}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                          aria-label={`Edit ${m.name}`}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          onClick={() => deleteMember(m.id, m.name)}
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          aria-label={`Remove ${m.name}`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {members.length > 0 && <FamilyRestrictionsSummary />}
+            </section>
           )}
 
           {!picking && reasoningEntries.length > 0 && (
@@ -236,6 +305,13 @@ export function SettingsScreen({
           onClose={() => setEditingProfile(false)}
           onProfileSaved={(p) => onProfileSaved!(p)}
           onGoalsRecalculated={(g, w) => onGoalsRecalculated!(g, w)}
+        />
+      )}
+
+      {addingMember && (
+        <AddMemberSheet
+          editMember={editingMember}
+          onClose={() => { setAddingMember(false); setEditingMember(undefined); refreshMembers(); }}
         />
       )}
     </div>

@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Goals, Meal } from "@/lib/nouri-storage";
 import { todayISO } from "@/lib/nouri-storage";
 import { Badge } from "@/components/ui/badge";
+import { getMergedFamilyRestrictions } from "@/lib/family-utils";
+import { FamilyModeToggle, useFamilyMode } from "@/components/nouri/FamilyModeToggle";
 
 interface Suggestion {
   meal_name: string;
@@ -73,6 +75,7 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const justShownRef = useRef<string[]>([]);
+  const [familyMode, setFamilyMode] = useFamilyMode();
 
   const today = todayISO();
   const todayMeals = meals.filter((m) => m.date === today);
@@ -91,7 +94,8 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
       { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 }
     );
 
-  const load = async (extraAvoid: string[] = []) => {
+  const load = async (extraAvoid: string[] = [], overrideFamilyMode?: boolean) => {
+    const isFamilyModeActive = overrideFamilyMode ?? familyMode;
     setLoading(true);
     setError(null);
     try {
@@ -133,6 +137,7 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
       });
 
       const { getLanguage, getLanguageName } = await import("@/lib/nouri-i18n");
+      const familyRestrictions = isFamilyModeActive ? getMergedFamilyRestrictions() : undefined;
       const { data, error: err } = await supabase.functions.invoke("recommend-meals", {
         body: {
           remaining,
@@ -145,6 +150,8 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
           currentHour: new Date().getHours(),
           language: getLanguage() ?? "en",
           languageName: getLanguageName(),
+          familyMode: isFamilyModeActive,
+          familyRestrictions,
         },
       });
       if (err) throw new Error(err.message || "Failed to load suggestions");
@@ -189,15 +196,18 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
         <h2 className="font-serif text-lg font-medium flex items-center gap-1.5">
           Nouri Recommends
         </h2>
-        <button
-          onClick={refresh}
-          disabled={loading}
-          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-2 py-1 rounded-full hover:bg-muted transition-colors disabled:opacity-50"
-          aria-label="Refresh suggestions"
-        >
-          <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <FamilyModeToggle value={familyMode} onChange={(v) => { setFamilyMode(v); setSuggestions(null); load([], v); }} />
+          <button
+            onClick={refresh}
+            disabled={loading}
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-2 py-1 rounded-full hover:bg-muted transition-colors disabled:opacity-50"
+            aria-label="Refresh suggestions"
+          >
+            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       <p className="text-xs text-muted-foreground px-1">
