@@ -89,20 +89,31 @@ Return ONLY valid JSON — no markdown fences, no extra text. Exact schema:
 }`;
 }
 
-async function callClaude(apiKey: string, systemPrompt: string, userMsg: string): Promise<string> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+async function callAI(systemPrompt: string, userMsg: string): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not set");
+
+  const res = await fetch("https://api.lovable.dev/v1/chat/completions", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+    },
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMsg },
+      ],
       max_tokens: 4000,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMsg }],
     }),
   });
-  if (!res.ok) throw new Error(`Anthropic error: ${res.status}`);
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`AI error ${res.status}: ${errText}`);
+  }
   const data = await res.json();
-  return data?.content?.[0]?.text ?? "";
+  return data?.choices?.[0]?.message?.content ?? "";
 }
 
 function extractJson(raw: string): any {
