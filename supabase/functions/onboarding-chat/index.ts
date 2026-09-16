@@ -113,28 +113,54 @@ Return ONLY a valid JSON object with no extra text:
   "warnings": ["list of things to watch based on conditions and goals"]
 }`;
 
-async function callClaude(apiKey: string, system: string, messages: any[]) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+async function callGateway(system: string, messages: any[]) {
+  const key = Deno.env.get("LOVABLE_API_KEY");
+  if (!key) throw new Error("AI request failed");
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: "claude-sonnet-4-5",
+      model: "google/gemini-2.5-flash",
       max_tokens: 1024,
-      system,
-      messages,
+      messages: [{ role: "system", content: system }, ...messages],
     }),
   });
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error("Anthropic error:", response.status, errText);
+  if (!res.ok) {
+    console.error("Gateway error:", res.status, await res.text());
     throw new Error("AI request failed");
   }
-  const data = await response.json();
-  return (data?.content?.[0]?.text ?? "") as string;
+  const data = await res.json();
+  return (data?.choices?.[0]?.message?.content ?? "") as string;
+}
+
+async function callClaude(apiKey: string | undefined, system: string, messages: any[]) {
+  if (apiKey) {
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-5",
+          max_tokens: 1024,
+          system,
+          messages,
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return (data?.content?.[0]?.text ?? "") as string;
+      }
+      console.error("Anthropic error:", response.status, await response.text());
+    } catch (e) {
+      console.error("Anthropic call failed:", e);
+    }
+  }
+  console.log("Falling back to Lovable AI gateway");
+  return await callGateway(system, messages);
 }
 
 function extractJson(raw: string): any | null {
@@ -158,12 +184,6 @@ Deno.serve(async (req) => {
 
   try {
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) {
-      return new Response(JSON.stringify({ error: "Service configuration error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const body = await req.json();
     const mode = body?.mode ?? "chat";
