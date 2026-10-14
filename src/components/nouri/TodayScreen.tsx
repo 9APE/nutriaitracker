@@ -14,7 +14,7 @@ import {
   type DashboardLayout,
   type Metric,
 } from "@/lib/nouri-dashboard-layout";
-import { AlertTriangle, Check, Flame, Mic, Dumbbell } from "lucide-react";
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, Flame, Mic, Dumbbell } from "lucide-react";
 import type { Goals, Meal, MealType } from "@/lib/nouri-storage";
 import { todayISO } from "@/lib/nouri-storage";
 import { getStreak, getFreezes } from "@/lib/nouri-streak";
@@ -183,18 +183,41 @@ function MicroCard({ metric, current, goal }: { metric: Metric; current: number;
 
 /* ═══════════════════ MAIN COMPONENT ═══════════════════ */
 
+function toLocalISO(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function parseLocalISO(iso: string): Date {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+function mondayOf(date: Date): Date {
+  const monday = new Date(date);
+  monday.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
 export function TodayScreen({
   goals, meals, userProfile, onDeleteMeal, onGoLog, onGoHistory, onPickSuggestion, onOpenXP, onStartCheckin,
 }: TodayScreenProps) {
   const lang = useLanguage();
   const today = todayISO();
-  const todayMeals = meals.filter((m) => m.date === today);
+  // The day being viewed (defaults to today) and the Monday of the week shown in the strip
+  const [selectedDate, setSelectedDate] = useState(() => todayISO());
+  const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
+  const isSelectedToday = selectedDate === today;
+  const todayMeals = meals.filter((m) => m.date === selectedDate);
   const sum = todayMeals.reduce(
     (a, m) => ({ calories: a.calories + m.calories, protein: a.protein + m.protein, carbs: a.carbs + m.carbs, fat: a.fat + m.fat }),
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   );
 
-  const dateLabel = new Date().toLocaleDateString(getLocale(lang), { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const dateLabel = parseLocalISO(selectedDate).toLocaleDateString(getLocale(lang), { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 
   const [streak, setStreak] = useState(() => getStreak());
   const [xp, setXp] = useState(() => getTotalXP());
@@ -249,22 +272,31 @@ export function TodayScreen({
   const calPct = (sum.calories / eGoals.calories) * 100;
 
   const weekDays = useMemo(() => {
-    const now = new Date();
-    const day = now.getDay();
-    const diffToMon = (day + 6) % 7;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - diffToMon);
-    monday.setHours(0, 0, 0, 0);
     const labels = ["M", "T", "W", "T", "F", "S", "S"];
     const todayStr = todayISO();
     const loggedDates = new Set(meals.map((m) => m.date));
     return labels.map((label, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      const iso = d.toISOString().slice(0, 10);
-      return { label, iso, isToday: iso === todayStr, isFuture: iso > todayStr, logged: loggedDates.has(iso) };
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      const iso = toLocalISO(d);
+      return {
+        label,
+        day: d.getDate(),
+        iso,
+        isSelected: iso === selectedDate,
+        isToday: iso === todayStr,
+        isFuture: iso > todayStr,
+        logged: loggedDates.has(iso),
+      };
     });
-  }, [meals]);
+  }, [meals, selectedDate, weekStart]);
+
+  const changeWeek = (direction: -1 | 1) =>
+    setWeekStart((current) => {
+      const next = new Date(current);
+      next.setDate(current.getDate() + direction * 7);
+      return next;
+    });
 
   const tip = useMemo(() => {
     const remP = Math.max(0, displayedProteinGoal - sum.protein);
@@ -376,7 +408,7 @@ export function TodayScreen({
         return (
           <section className="space-y-2 h-full">
             <div className="flex items-center justify-between px-1">
-              <h2 className="text-base font-semibold text-foreground">Today's meals</h2>
+              <h2 className="text-base font-semibold text-foreground">{isSelectedToday ? "Today's meals" : "Meals"}</h2>
               {onGoHistory && <button onClick={onGoHistory} className="text-xs text-primary hover:underline">View all</button>}
             </div>
             {todayMeals.length === 0 ? (
@@ -435,20 +467,50 @@ export function TodayScreen({
         </button>
       </header>
 
-      {/* Week strip */}
-      <div className="flex items-center justify-between">
-        {weekDays.map((d, i) => {
-          const base = "w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-medium transition-colors";
-          if (d.isToday) return <div key={i} className={`${base} bg-primary text-primary-foreground`}>{d.label}</div>;
-          if (d.logged) return (
-            <div key={i} className={`${base} border`}
-              style={{ backgroundColor: "hsl(var(--primary) / 0.15)", borderColor: "hsl(var(--primary) / 0.35)", color: "hsl(var(--primary))" }}>
-              <Check size={14} />
-            </div>
-          );
-          if (d.isFuture) return <div key={i} className={`${base} border border-border text-muted-foreground bg-transparent`}>{d.label}</div>;
-          return <div key={i} className={`${base} border border-border text-muted-foreground/70`}>{d.label}</div>;
-        })}
+      {/* Week strip: click a day to see its meals, arrows move between weeks */}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => changeWeek(-1)}
+          className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
+          aria-label="Previous week"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <div className="flex-1 grid grid-cols-7 gap-1.5">
+          {weekDays.map((d) => (
+            <button
+              key={d.iso}
+              type="button"
+              onClick={() => setSelectedDate(d.iso)}
+              aria-pressed={d.isSelected}
+              aria-label={parseLocalISO(d.iso).toLocaleDateString(getLocale(lang), { weekday: "long", month: "long", day: "numeric" })}
+              className={[
+                "relative h-14 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium tracking-wide uppercase transition-all active:scale-[0.92]",
+                d.isSelected
+                  ? "bg-foreground text-background shadow-md"
+                  : d.logged
+                    ? "bg-primary/10 text-foreground"
+                    : d.isFuture
+                      ? "bg-transparent text-muted-foreground/50"
+                      : "bg-muted/40 text-muted-foreground hover:bg-muted/70",
+              ].join(" ")}
+            >
+              <span className="opacity-70">{d.label}</span>
+              <span className="font-mono-data text-[13px] tabular-nums leading-none">{d.day}</span>
+              {d.isToday && !d.isSelected && <span className="absolute top-1.5 w-1 h-1 rounded-full bg-primary" aria-hidden />}
+              {d.logged && !d.isSelected && <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-primary" aria-hidden />}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => changeWeek(1)}
+          className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground active:scale-90 transition-transform"
+          aria-label="Next week"
+        >
+          <ChevronRight size={16} />
+        </button>
       </div>
 
       <EveningNudge meals={meals} onGoLog={onGoLog} />

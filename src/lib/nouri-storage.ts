@@ -92,7 +92,11 @@ export const storage = {
   },
 };
 
-export const todayISO = () => new Date().toISOString().slice(0, 10);
+// Local calendar date (toISOString is UTC and flips "today" for hours each day outside UTC)
+export const todayISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 export const mealTypeEmoji = (t: MealType) =>
   ({ Breakfast: "", Lunch: "", Dinner: "", Snack: "" }[t]);

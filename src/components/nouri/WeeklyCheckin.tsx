@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { renderMarkdown } from "@/lib/renderMarkdown";
 import { X, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -176,8 +177,8 @@ export function WeeklyCheckin({ goals, meals, profile, onClose, onGoalsUpdated }
             m.role === "assistant" ? (
               <div key={i} className="flex items-start gap-2 animate-bubble-in">
                 
-                <div className="bg-surface border border-border rounded-2xl rounded-tl-sm px-4 py-3 text-[15px] leading-relaxed text-foreground max-w-[85%] whitespace-pre-wrap">
-                  {m.content}
+                <div className="bg-surface border border-border rounded-2xl rounded-tl-sm px-4 py-3 text-[15px] leading-relaxed text-foreground max-w-[85%]">
+                  {renderMarkdown(m.content)}
                 </div>
               </div>
             ) : (
@@ -208,7 +209,7 @@ export function WeeklyCheckin({ goals, meals, profile, onClose, onGoalsUpdated }
                 
                 <div className="space-y-3 flex-1">
                   <p className="text-[15px] leading-relaxed">
-                    {result.summary}
+                    {renderMarkdown(result.summary)}
                   </p>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <Pill label="Calories" value={`${result.calories} kcal`} />

@@ -103,8 +103,13 @@ export function getMergedFamilyRestrictions(): MergedFamilyRestrictions {
   return computeMergedRestrictions();
 }
 
-function computeMergedRestrictions(): MergedFamilyRestrictions {
-  const members = getFamilyMembers();
+/** Merge restrictions for the user plus only the given family members. */
+export function computeMergedRestrictionsForMembers(members: FamilyMember[]): MergedFamilyRestrictions {
+  return computeMergedRestrictions(members);
+}
+
+function computeMergedRestrictions(membersOverride?: FamilyMember[]): MergedFamilyRestrictions {
+  const members = membersOverride ?? getFamilyMembers();
   let self: Record<string, any> = {};
   try {
     const raw = localStorage.getItem("userProfile");

@@ -86,8 +86,8 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 2000,
+        model: "claude-sonnet-4-5",
+        max_tokens: 4096,
         system: systemPrompt,
         messages: [{ role: "user", content: `Here is the 7-day meal plan:\n${mealList}\n\nGenerate the grocery list now. Return JSON only.` }],
       }),
@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       const errText = await response.text();
       console.error("Anthropic error:", response.status, errText);
       return new Response(
-        JSON.stringify({ error: "AI request failed" }),
+        JSON.stringify({ error: `AI request failed (${response.status})` }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

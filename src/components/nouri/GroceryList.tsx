@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { ArrowLeft, ShoppingCart, Share2, Plus, Trash2, Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getFunctionErrorMessage } from "@/lib/function-error";
 import {
   getGroceryList,
   saveGroceryList,
@@ -16,6 +17,7 @@ import {
   type GroceryItem,
 } from "@/lib/nouri-grocery";
 import type { WeeklyPlan } from "@/lib/nouri-meal-plan";
+import { getFamilyMembers } from "@/lib/family-utils";
 
 interface Props {
   plan: WeeklyPlan | null;
@@ -36,25 +38,50 @@ export function GroceryList({ plan, onBack }: Props) {
     if (!plan) return;
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-grocery-list", {
-        body: {
-          plan: plan.plan,
-          householdSize: plan.mode === "family"
-            ? parseInt(localStorage.getItem("nutriai:householdSize") || "1")
-            : 1,
-          familyMode: plan.mode === "family",
-        },
-      });
-      if (error) throw error;
+      const isFamily = plan.mode === "family";
+      const familyMembers = isFamily
+        ? getFamilyMembers().map((m) => ({
+            name: m.name,
+            restrictions: m.restrictions ?? [],
+            allergies: m.allergies ?? [],
+          }))
+        : [];
+      const householdSize = isFamily ? familyMembers.length + 1 : 1;
 
-      const groceryItems: GroceryItem[] = (data.items || []).map((item: any) => ({
-        id: crypto.randomUUID(),
-        name: item.name,
-        quantity: item.quantity || "",
-        category: item.category || "Other",
-        checked: false,
-        memberNote: item.memberNote,
-      }));
+      // The edge function expects `weeklyPlan.plan` and answers with
+      // `{ categories, special_items }`.
+      const { data, error } = await supabase.functions.invoke("generate-grocery-list", {
+        body: { weeklyPlan: { plan: plan.plan }, familyMembers, householdSize },
+      });
+      if (error) throw new Error(await getFunctionErrorMessage(error, "Failed to generate list"));
+      if (data?.error) throw new Error(data.error);
+
+      const groceryItems: GroceryItem[] = [];
+      for (const [category, list] of Object.entries(data?.categories ?? {})) {
+        if (!Array.isArray(list)) continue;
+        for (const item of list as any[]) {
+          if (!item?.item && !item?.name) continue;
+          groceryItems.push({
+            id: crypto.randomUUID(),
+            name: String(item.item ?? item.name),
+            quantity: String(item.qty ?? item.quantity ?? ""),
+            category,
+            checked: false,
+          });
+        }
+      }
+      for (const sp of (data?.special_items ?? []) as any[]) {
+        if (!sp?.item) continue;
+        groceryItems.push({
+          id: crypto.randomUUID(),
+          name: String(sp.item),
+          quantity: "",
+          category: sp.category || "Other",
+          checked: false,
+          memberNote: sp.reason,
+        });
+      }
+      if (!groceryItems.length) throw new Error("No items returned from AI");
 
       saveGroceryList(groceryItems);
       setGroceryWeek(weekKey);

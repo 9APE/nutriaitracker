@@ -24,6 +24,7 @@ function buildSystemPrompt(
   familyRestrictions?: Record<string, any>,
   householdSize?: number,
   languageName?: string,
+  planDays: string[] = DAYS,
 ): string {
   const p = profile ?? {};
   const effectiveProfile = familyMode && familyRestrictions ? familyRestrictions : p;
@@ -46,12 +47,12 @@ NEVER violate these. Vegetarian=no meat/fish. Vegan=no animal products. Gluten-f
 ${p.name || "User"} | ${p.age || "?"} | ${p.sex || "?"} | Activity: ${p.activityLevel || "?"} | Goals: ${fmtList(p.goals)} | Avoid: ${fmtList(p.dislikes)}
 Daily targets: ${goals.calories || 2000}kcal, ${goals.protein || 150}gP, ${goals.carbs || 200}gC, ${goals.fat || 70}gF
 
-Generate 7-day plan (Mon-Sun), 4 meals each (breakfast,lunch,dinner,snack). Vary proteins. Concise meal_name (5 words max).
+Generate a plan for exactly these days: ${planDays.join(", ")}. Include 4 meals each (breakfast,lunch,dinner,snack) and no other days. Vary proteins. Concise meal_name (5 words max).
 ${languageName ? `All text in ${languageName}.` : ""}
 Return ONLY JSON: {"plan":{"Monday":{"breakfast":{"meal_name":"...","calories":0,"protein":0,"carbs":0,"fat":0},...},...}}`;
 }
 
-async function callAI(systemPrompt: string, userMsg: string): Promise<string> {
+async function callAI(systemPrompt: string, userMsg: string, maxTokens = 3000): Promise<string> {
   const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not set");
 
@@ -64,7 +65,7 @@ async function callAI(systemPrompt: string, userMsg: string): Promise<string> {
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-5",
-      max_tokens: 3000,
+      max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: "user", content: userMsg }],
     }),
@@ -105,7 +106,15 @@ Deno.serve(async (req) => {
       existingPlan,
       language,
       languageName,
+      selectedDays,
     } = await req.json();
+
+    // Only generate the days the client asked for (indices into DAYS). Fewer days
+    // keeps the response small enough to avoid truncated JSON.
+    const requestedDays: string[] = Array.isArray(selectedDays)
+      ? DAYS.filter((_, i) => selectedDays.includes(i))
+      : [];
+    const planDays = requestedDays.length ? requestedDays : DAYS;
 
     const lang = resolveLanguage(language, languageName);
     const systemPrompt = buildSystemPrompt(
@@ -116,6 +125,7 @@ Deno.serve(async (req) => {
       familyRestrictions,
       householdSize,
       lang.name,
+      planDays,
     );
 
     let raw: string;
@@ -134,8 +144,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Full 7-day plan
-    raw = await callAI(systemPrompt, "Generate the complete 7-day meal plan now. Return JSON only.");
+    // 28 meals overflowed the old 3000-token cap and produced truncated JSON.
+    const maxTokens = Math.min(8000, 800 + planDays.length * 1100);
+    raw = await callAI(systemPrompt, `Generate the meal plan for ${planDays.join(", ")} now. Return JSON only.`, maxTokens);
 
     let parsed: any;
     try {
@@ -143,15 +154,16 @@ Deno.serve(async (req) => {
     } catch {
       console.warn("[plan-meals] JSON parse failed, retrying...");
       const retryRaw = await callAI(systemPrompt,
-        "Your previous response was not valid JSON. Return ONLY the JSON object with no other text, starting with { and ending with }.");
+        `Generate the meal plan for ${planDays.join(", ")}. Return ONLY the JSON object with no other text, starting with { and ending with }. Keep meal_name short.`,
+        maxTokens);
       try { parsed = extractJson(retryRaw); } catch {
         return new Response(JSON.stringify({ error: "Failed to parse AI response" }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
     }
 
-    // Validate structure — ensure all 7 days and 4 meal types are present
+    // Validate structure: every requested day and all 4 meal types present
     const plan = parsed?.plan ?? {};
-    for (const day of DAYS) {
+    for (const day of planDays) {
       if (!plan[day]) plan[day] = {};
       for (const slot of ["breakfast", "lunch", "dinner", "snack"]) {
         if (!plan[day][slot]) {

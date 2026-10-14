@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { renderMarkdown } from "@/lib/renderMarkdown";
 import { supabase } from "@/integrations/supabase/client";
 import type { Goals, Meal } from "@/lib/nouri-storage";
 import { getStreak } from "@/lib/nouri-streak";
@@ -132,8 +133,8 @@ export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps)
               <span className="ml-1">Nouri is writing your summary…</span>
             </div>
           ) : (
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">
-              {summary}
+            <p className="text-sm leading-relaxed ">
+              {renderMarkdown(summary)}
             </p>
           )}
         </div>

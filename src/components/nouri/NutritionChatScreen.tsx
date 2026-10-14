@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { renderMarkdown } from "@/lib/renderMarkdown";
 import { Send, Mic, Square, Loader2, ExternalLink, AlertTriangle, RefreshCw, Plus, UtensilsCrossed, Cookie } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoice } from "@/hooks/useVoice";
@@ -369,7 +370,7 @@ export function NutritionChatScreen({ goals, meals, onAddMeal }: Props) {
               </div>
             ) : (
               <div className="max-w-[88%] bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3">
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                <p className="text-sm leading-relaxed ">{renderMarkdown(msg.content)}</p>
                 {msg.citations && <CitationList citations={msg.citations} />}
               </div>
             )}
