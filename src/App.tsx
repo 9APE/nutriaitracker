@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
+import Demo from "./pages/Demo.tsx";
 import { Analytics } from "./pages/Analytics.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { AuthProvider } from "@/lib/auth-context";
@@ -22,6 +23,7 @@ const App = () => (
             <Route path="/home" element={<Navigate to="/" replace />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
+            <Route path="/demo" element={<Demo />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<Navigate to="/" replace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
