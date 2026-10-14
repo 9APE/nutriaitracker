@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { AuthShowcase } from "@/components/auth/AuthShowcase";
 
 type Mode = "signin" | "signup";
 
@@ -21,6 +22,7 @@ const Auth = () => {
     () => localStorage.getItem("nouri.staySignedIn") !== "false"
   );
   const [busy, setBusy] = useState(false);
+  const [guestBusy, setGuestBusy] = useState(false);
 
   if (loading) {
     return (
@@ -55,7 +57,7 @@ const Auth = () => {
           },
         });
         if (error) throw error;
-        toast.success("Welcome to Nouri");
+        toast.success("Welcome to NutriAI");
         if (prefChanged) {
           window.location.replace("/");
         } else {
@@ -84,12 +86,34 @@ const Auth = () => {
     }
   };
 
+  // "Try for Free": anonymous Supabase session, no email needed.
+  const handleGuest = async () => {
+    setGuestBusy(true);
+    try {
+      localStorage.setItem("nouri.staySignedIn", "true");
+      const { error } = await supabase.auth.signInAnonymously();
+      if (error) throw error;
+      toast.success("Welcome! You're exploring as a guest");
+      navigate("/");
+    } catch (err: any) {
+      const msg = String(err?.message || "");
+      toast.error(
+        /anonymous/i.test(msg)
+          ? "Guest mode isn't switched on yet. Enable anonymous sign-ins in Supabase Auth settings."
+          : msg || "Couldn't start guest mode",
+      );
+    } finally {
+      setGuestBusy(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen grid lg:grid-cols-[40%_60%] bg-background">
+      <div className="flex min-h-screen flex-col">
       <header className="px-5 py-4 border-b border-border">
         <div className="max-w-md mx-auto flex items-center gap-2">
           
-          <span className="font-serif text-lg font-medium">Nouri</span>
+          <span className="font-serif text-lg font-medium">NutriAI</span>
         </div>
       </header>
 
@@ -180,7 +204,7 @@ const Auth = () => {
               </>
             ) : (
               <>
-                New to Nouri?{" "}
+                New to NutriAI?{" "}
                 <button
                   type="button"
                   onClick={() => setMode("signup")}
@@ -191,8 +215,21 @@ const Auth = () => {
               </>
             )}
           </div>
+
+          <div className="relative py-1 text-center">
+            <span className="absolute inset-x-0 top-1/2 h-px bg-border" />
+            <span className="relative bg-card px-3 text-xs text-muted-foreground">or</span>
+          </div>
+          <Button type="button" variant="outline" onClick={handleGuest} disabled={guestBusy} className="w-full h-11">
+            {guestBusy ? <Loader2 className="animate-spin" size={16} /> : "Try for Free as a guest"}
+          </Button>
         </div>
       </main>
+      </div>
+
+      <div className="hidden lg:block">
+        <AuthShowcase onTryFree={handleGuest} tryFreeBusy={guestBusy} />
+      </div>
     </div>
   );
 };

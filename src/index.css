@@ -298,3 +298,40 @@
     animation: nouri-celebration-pop 2s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 }
+
+/* ---------- Auth landing showcase animations ---------- */
+@keyframes showcase-wave {
+  from { height: 4px; }
+  to { height: 34px; }
+}
+@keyframes showcase-progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+@keyframes showcase-press {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.82); }
+  100% { transform: scale(1); }
+}
+@keyframes showcase-ripple {
+  from { transform: translate(-50%, -50%) scale(0.2); opacity: 0.7; }
+  to { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+}
+@keyframes showcase-glow {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.0); }
+  50% { box-shadow: 0 0 22px 2px hsl(var(--primary) / 0.45); }
+}
+.showcase-ripple {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  background: hsl(var(--primary) / 0.45);
+  animation: showcase-ripple 600ms ease-out forwards;
+}
+.showcase-glow { animation: showcase-glow 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .showcase-ripple, .showcase-glow { animation: none; }
+}
