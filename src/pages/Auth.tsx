@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AuthShowcase } from "@/components/auth/AuthShowcase";
+import { prepareGuestDevice } from "@/lib/guest-mode";
 
 type Mode = "signin" | "signup";
 
@@ -90,7 +91,7 @@ const Auth = () => {
   const handleGuest = async () => {
     setGuestBusy(true);
     try {
-      localStorage.setItem("nouri.staySignedIn", "true");
+      prepareGuestDevice(); // skips the language picker and profile chat
       const { error } = await supabase.auth.signInAnonymously();
       if (error) throw error;
       toast.success("Welcome! You're exploring as a guest");

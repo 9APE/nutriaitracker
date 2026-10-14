@@ -34,6 +34,7 @@ import { SettingsScreen } from "@/components/nouri/SettingsScreen";
 import { getLanguage, getLanguageMeta, useLanguage, t } from "@/lib/nouri-i18n";
 import { Settings as SettingsIcon } from "lucide-react";
 import { generateLayout, saveLayout, getStoredLayout } from "@/lib/nouri-dashboard-layout";
+import { isGuestUser, GUEST_PROFILE, GUEST_GOALS } from "@/lib/guest-mode";
 import { saveUserGoals, parseWeightToKg, type ExtendedGoals } from "@/lib/nouri-goals";
 
 const MIGRATED_KEY = "nouri:migrated";
@@ -45,6 +46,7 @@ const Index = () => {
   const [goals, setGoals] = useState<Goals>(DEFAULT_GOALS);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const isGuest = isGuestUser(user);
   const [tab, setTab] = useState<TabKey>("today");
   const [notifKey, setNotifKey] = useState(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -146,6 +148,14 @@ const Index = () => {
         setGoals(g ?? DEFAULT_GOALS);
         setMeals(ms);
 
+        // Guests go straight into the app: no language picker, no profile chat
+        if (isGuestUser(user) && !prof?.user_profile_json) {
+          setGoals(g ?? GUEST_GOALS);
+          setUserProfile(GUEST_PROFILE);
+          setNeedsOnboarding(false);
+          return;
+        }
+
         // Hydrate the chat-onboarding profile from the cloud (per-user)
         if (prof?.user_profile_json) {
           setUserProfile(prof.user_profile_json as UserProfile);
@@ -167,7 +177,7 @@ const Index = () => {
       } finally {
         if (!cancelled) {
           setBootstrapping(false);
-          if (shouldShowWeeklyReport()) setShowWeeklyReport(true);
+          if (!isGuestUser(user) && shouldShowWeeklyReport()) setShowWeeklyReport(true);
         }
       }
     })();
@@ -179,7 +189,7 @@ const Index = () => {
 
   // Auto-generate dashboard layout once if missing for an existing user
   useEffect(() => {
-    if (!userProfile) return;
+    if (!userProfile || isGuest) return; // guests keep the default layout
     if (getStoredLayout()) return;
     let cancelled = false;
     (async () => {
@@ -276,12 +286,12 @@ const Index = () => {
   if (!user) return <Navigate to="/auth" replace />;
 
   // Language selection — must come BEFORE any AI chat / onboarding
-  if (!hasLanguage) {
+  if (!hasLanguage && !isGuest) {
     return <LanguageSelect onDone={() => { localStorage.setItem("nouri:lang-picked", "1"); setHasLanguage(true); }} />;
   }
 
   // Onboarding: always use AI chat (covers both needsOnboarding and !userProfile)
-  if (needsOnboarding || !userProfile || editingProfile) {
+  if ((!isGuest && (needsOnboarding || !userProfile)) || editingProfile) {
     return (
       <ProfileChatOnboarding
         initial={userProfile}
