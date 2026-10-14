@@ -26,7 +26,7 @@ export function FamilyMemberCard({ member, onEdit, onDelete }: Props) {
             <div className="text-sm font-medium">{member.name}</div>
             <div className="text-[11px] text-muted-foreground">
               {member.age ? `${member.age} yrs` : ""}
-              {member.sex ? ` · ${member.sex}` : ""}
+              {member.sex ? `  ${member.sex}` : ""}
             </div>
           </div>
         </div>
@@ -50,7 +50,7 @@ export function FamilyMemberCard({ member, onEdit, onDelete }: Props) {
 
       {member.dailyTargets && (
         <div className="text-[10px] text-muted-foreground">
-          {member.dailyTargets.calories} kcal · {member.dailyTargets.protein}g P · {member.dailyTargets.carbs}g C · {member.dailyTargets.fat}g F
+          {member.dailyTargets.calories} kcal  {member.dailyTargets.protein}g P  {member.dailyTargets.carbs}g C  {member.dailyTargets.fat}g F
         </div>
       )}
 

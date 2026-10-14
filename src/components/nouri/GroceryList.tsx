@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { ArrowLeft, ShoppingCart, Share2, Plus, Trash2, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Share2, Plus, Trash2, Check, Loader2, NotebookPen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getFunctionErrorMessage } from "@/lib/function-error";
@@ -12,12 +12,11 @@ import {
   clearGroceryList,
   formatGroceryListForShare,
   setGroceryWeek,
-  getGroceryWeek,
   GROCERY_CATEGORIES,
   type GroceryItem,
 } from "@/lib/nouri-grocery";
 import type { WeeklyPlan } from "@/lib/nouri-meal-plan";
-import { getFamilyMembers } from "@/lib/family-utils";
+import { getFamilyMembers, getHouseholdSize } from "@/lib/family-utils";
 
 interface Props {
   plan: WeeklyPlan | null;
@@ -25,41 +24,42 @@ interface Props {
 }
 
 export function GroceryList({ plan, onBack }: Props) {
-  const [items, setItems] = useState<GroceryItem[]>(() => getGroceryList());
+  const weekKey = plan?.weekKey || "";
+  const [items, setItems] = useState<GroceryItem[]>(() => getGroceryList(weekKey || undefined));
   const [generating, setGenerating] = useState(false);
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [newItemName, setNewItemName] = useState("");
 
-  const weekKey = plan?.weekKey || "";
-  const existingWeek = getGroceryWeek();
-  const hasListForWeek = items.length > 0 && existingWeek === weekKey;
+  const hasListForWeek = items.length > 0;
 
   const generateList = useCallback(async () => {
     if (!plan) return;
     setGenerating(true);
     try {
-      const isFamily = plan.mode === "family";
-      const familyMembers = isFamily
+      const familyMembers = plan.mode === "family"
         ? getFamilyMembers().map((m) => ({
             name: m.name,
             restrictions: m.restrictions ?? [],
             allergies: m.allergies ?? [],
           }))
         : [];
-      const householdSize = isFamily ? familyMembers.length + 1 : 1;
+      const householdSize = plan.mode === "family" ? getHouseholdSize() : 1;
 
-      // The edge function expects `weeklyPlan.plan` and answers with
-      // `{ categories, special_items }`.
       const { data, error } = await supabase.functions.invoke("generate-grocery-list", {
-        body: { weeklyPlan: { plan: plan.plan }, familyMembers, householdSize },
+        body: {
+          weeklyPlan: { plan: plan.plan },
+          familyMembers,
+          householdSize,
+        },
       });
       if (error) throw new Error(await getFunctionErrorMessage(error, "Failed to generate list"));
       if (data?.error) throw new Error(data.error);
 
       const groceryItems: GroceryItem[] = [];
-      for (const [category, list] of Object.entries(data?.categories ?? {})) {
-        if (!Array.isArray(list)) continue;
-        for (const item of list as any[]) {
+      const categories = data?.categories ?? {};
+      for (const [category, items] of Object.entries(categories)) {
+        if (!Array.isArray(items)) continue;
+        for (const item of items as any[]) {
           if (!item?.item && !item?.name) continue;
           groceryItems.push({
             id: crypto.randomUUID(),
@@ -76,18 +76,22 @@ export function GroceryList({ plan, onBack }: Props) {
           id: crypto.randomUUID(),
           name: String(sp.item),
           quantity: "",
-          category: sp.category || "Other",
+          category: sp.category || "Special Items",
           checked: false,
           memberNote: sp.reason,
         });
       }
-      if (!groceryItems.length) throw new Error("No items returned from AI");
 
-      saveGroceryList(groceryItems);
+      if (!groceryItems.length) {
+        throw new Error("No items returned from AI");
+      }
+
+      saveGroceryList(groceryItems, weekKey);
       setGroceryWeek(weekKey);
       setItems(groceryItems);
       toast.success("Shopping list generated!");
     } catch (e: any) {
+      console.error("[grocery] generation failed", e);
       toast.error(e?.message || "Failed to generate list");
     } finally {
       setGenerating(false);
@@ -95,20 +99,20 @@ export function GroceryList({ plan, onBack }: Props) {
   }, [plan, weekKey]);
 
   const handleToggle = (id: string) => {
-    const updated = toggleGroceryItem(id);
+    const updated = toggleGroceryItem(id, weekKey || undefined);
     setItems([...updated]);
   };
 
   const handleAdd = (category: string) => {
     if (!newItemName.trim()) return;
-    const updated = addGroceryItem({ name: newItemName.trim(), quantity: "", category });
+    const updated = addGroceryItem({ name: newItemName.trim(), quantity: "", category }, weekKey || undefined);
     setItems([...updated]);
     setNewItemName("");
     setAddingTo(null);
   };
 
   const handleRemove = (id: string) => {
-    const updated = removeGroceryItem(id);
+    const updated = removeGroceryItem(id, weekKey || undefined);
     setItems([...updated]);
   };
 
@@ -118,7 +122,32 @@ export function GroceryList({ plan, onBack }: Props) {
       await navigator.clipboard.writeText(text);
       toast.success("Shopping list copied to clipboard!");
     } catch {
-      toast.error("Couldn't copy — try selecting the text manually");
+      toast.error("Couldn't copy  try selecting the text manually");
+    }
+  };
+
+  const handleExportToNotes = async () => {
+    const text = formatGroceryListForShare(items, weekKey);
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = true;
+    } catch {
+      // ignore
+    }
+    // Try to open the native Notes app (works on iOS/macOS via mobilenotes:// or notes://)
+    const isApple = /iPad|iPhone|iPod|Mac/.test(navigator.userAgent);
+    if (isApple) {
+      // iOS doesn't support a "create note with body" URL scheme reliably,
+      // so we just open Notes and rely on the clipboard for paste.
+      window.location.href = "mobilenotes://";
+      setTimeout(() => {
+        // Fallback for macOS / desktop
+        window.location.href = "notes://";
+      }, 300);
+      toast.success(copied ? "Copied  paste into Notes" : "Open Notes and paste your list");
+    } else {
+      toast.success(copied ? "Copied! Paste into your notes app" : "Couldn't copy  try Share instead");
     }
   };
 
@@ -131,7 +160,7 @@ export function GroceryList({ plan, onBack }: Props) {
   }
 
   return (
-    <div className="px-4 pt-4 pb-28 max-w-md mx-auto space-y-4">
+    <div className="px-4 pt-4 pb-36 max-w-md mx-auto space-y-4">
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
@@ -140,12 +169,20 @@ export function GroceryList({ plan, onBack }: Props) {
           <ArrowLeft size={16} /> Back to Plan
         </button>
         {items.length > 0 && (
-          <button
-            onClick={handleShare}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs hover:border-primary/40"
-          >
-            <Share2 size={12} /> Share
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportToNotes}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs hover:border-primary/40"
+            >
+              <NotebookPen size={12} /> Notes
+            </button>
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs hover:border-primary/40"
+            >
+              <Share2 size={12} /> Share
+            </button>
+          </div>
         )}
       </div>
 
@@ -236,7 +273,7 @@ export function GroceryList({ plan, onBack }: Props) {
                   <span className="text-xs text-muted-foreground ml-1.5">{item.quantity}</span>
                 )}
                 {item.memberNote && (
-                  <span className="text-[10px] text-primary/60 ml-1.5">— {item.memberNote}</span>
+                  <span className="text-[10px] text-primary/60 ml-1.5"> {item.memberNote}</span>
                 )}
               </div>
               <button
@@ -255,7 +292,7 @@ export function GroceryList({ plan, onBack }: Props) {
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>{items.filter((i) => i.checked).length}/{items.length} items checked</span>
             <button
-              onClick={() => { clearGroceryList(); setItems([]); }}
+              onClick={() => { clearGroceryList(weekKey || undefined); setItems([]); }}
               className="text-destructive/70 hover:text-destructive"
             >
               Clear list

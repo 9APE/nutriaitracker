@@ -11,6 +11,12 @@ import { AuthShowcase } from "@/components/auth/AuthShowcase";
 
 type Mode = "signin" | "signup";
 
+const createVerificationCode = () => {
+  const value = new Uint32Array(1);
+  crypto.getRandomValues(value);
+  return String(value[0] % 1_000_000).padStart(6, "0");
+};
+
 const Auth = () => {
   const { user, loading, startGuest } = useAuth();
   const navigate = useNavigate();
@@ -19,7 +25,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [staySignedIn, setStaySignedIn] = useState<boolean>(
-    () => localStorage.getItem("nouri.staySignedIn") !== "false"
+    () => localStorage.getItem("Nutri AI.staySignedIn") !== "false"
   );
   const [busy, setBusy] = useState(false);
 
@@ -42,21 +48,27 @@ const Auth = () => {
     setBusy(true);
     // Persist the preference BEFORE the auth call so the next reload picks
     // the correct storage (localStorage vs sessionStorage).
-    const prevPref = localStorage.getItem("nouri.staySignedIn") !== "false";
-    localStorage.setItem("nouri.staySignedIn", staySignedIn ? "true" : "false");
+    const prevPref = localStorage.getItem("Nutri AI.staySignedIn") !== "false";
+    localStorage.setItem("Nutri AI.staySignedIn", staySignedIn ? "true" : "false");
     const prefChanged = prevPref !== staySignedIn;
     try {
       if (mode === "signup") {
+        const verificationCode = createVerificationCode();
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/`,
-            data: { display_name: displayName || email.split("@")[0] },
+            data: {
+              display_name: displayName || email.split("@")[0],
+              email_verification_required: true,
+              email_verification_code: verificationCode,
+              email_verified_by_code: false,
+            },
           },
         });
         if (error) throw error;
-        toast.success("Welcome to NutriAI");
+        toast.success("Account created. Enter the email verification code to continue.");
         if (prefChanged) {
           window.location.replace("/");
         } else {
@@ -101,7 +113,7 @@ const Auth = () => {
       <header className="px-5 py-4 border-b border-border">
         <div className="max-w-md mx-auto flex items-center gap-2">
           
-          <span className="font-serif text-lg font-medium">NutriAI</span>
+          <span className="font-serif text-lg font-medium">Nutri AI</span>
         </div>
       </header>
 
@@ -192,7 +204,7 @@ const Auth = () => {
               </>
             ) : (
               <>
-                New to NutriAI?{" "}
+                New to Nutri AI?{" "}
                 <button
                   type="button"
                   onClick={() => setMode("signup")}
@@ -226,3 +238,4 @@ const Auth = () => {
 };
 
 export default Auth;
+

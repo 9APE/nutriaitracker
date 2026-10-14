@@ -1,7 +1,8 @@
 // Suggest meals tailored to remaining macros for the day
 import { resolveLanguage } from "../_shared/language.ts";
 import { EVIDENCE_SOURCES_INSTRUCTION } from "../_shared/evidence.ts";
-import { requireAuth } from "../_shared/auth.ts";
+import { formatNutritionistContext } from "../_shared/nutritionist-context.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,13 +28,28 @@ Return ONLY a JSON object with this shape:
 
 Aim each suggestion at roughly 1/3 of the remaining calories (or appropriate portion for the meal type). Prefer whole-food, balanced meals. Avoid repeating the same meals the user already logged today.`;
 
+function fmtList(v: unknown, fallback = "None"): string {
+  if (Array.isArray(v) && v.length) return v.join(", ");
+  if (typeof v === "string" && v.trim()) return v;
+  return fallback;
+}
+
+function buildFamilyMembersBlock(familyMembers?: Record<string, any>[]): string {
+  if (!Array.isArray(familyMembers) || familyMembers.length === 0) return "";
+  return `\nHousehold members:\n${familyMembers.map((member) => {
+    const targets = member.dailyTargets && typeof member.dailyTargets === "object"
+      ? `${Number(member.dailyTargets.calories) || 0} kcal, ${Number(member.dailyTargets.protein) || 0}g protein`
+      : "targets not set";
+    return `- ${member.name || "Family member"} | age ${member.age ?? "unknown"} | goals: ${fmtList(member.goals)} | restrictions: ${fmtList(member.restrictions)} | allergies: ${fmtList(member.allergies)} | conditions: ${fmtList(member.conditions)} | dislikes: ${fmtList(member.dislikes)} | targets: ${targets}`;
+  }).join("\n")}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const authResult = await requireAuth(req);
-  if (authResult instanceof Response) return authResult;
+
 
   try {
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -44,7 +60,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { goals, eatenToday, mealType, language, languageName } = await req.json();
+    const {
+      goals,
+      eatenToday,
+      mealType,
+      profile,
+      familyMode,
+      familyRestrictions,
+      familyMembers,
+      nutritionistContext,
+      language,
+      languageName,
+    } = await req.json();
     const lang = resolveLanguage(language, languageName);
 
     if (!goals || !mealType) {
@@ -83,7 +110,25 @@ Remaining for the rest of the day:
 - Carbs: ${remaining.carbs}g
 - Fat: ${remaining.fat}g
 
-Suggest 3 ${mealType.toLowerCase()} ideas to help hit these targets. Return JSON only.`;
+User profile:
+- Goals: ${fmtList(profile?.goals)}
+- Restrictions: ${fmtList(profile?.restrictions)}
+- Allergies: ${fmtList(profile?.allergies)}
+- Conditions: ${fmtList(profile?.conditions)}
+- Dislikes: ${fmtList(profile?.dislikes)}
+${formatNutritionistContext(nutritionistContext)}
+${familyMode ? `
+Household combined restrictions:
+- Restrictions: ${fmtList(familyRestrictions?.restrictions)}
+- Allergies: ${fmtList(familyRestrictions?.allergies)}
+- Conditions: ${fmtList(familyRestrictions?.conditions)}
+${buildFamilyMembersBlock(familyMembers)}
+` : ""}
+
+Suggest 3 ${mealType.toLowerCase()} ideas to help hit these targets.
+Never violate any restriction or allergy above.
+Use the Nutri AI colour context to avoid RED/ORANGE limit nutrients and help RED/ORANGE target nutrients where food can realistically help.
+Return JSON only.`;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

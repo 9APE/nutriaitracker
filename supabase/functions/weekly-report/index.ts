@@ -1,6 +1,7 @@
-// Weekly report — generates an encouraging summary via Claude
+// Weekly report - generates an encouraging summary via Claude
 import { resolveLanguage } from "../_shared/language.ts";
 import { requireAuth } from "../_shared/auth.ts";
+import { formatNutritionistContext } from "../_shared/nutritionist-context.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,7 +19,7 @@ interface Stats {
   calorieGoal?: number;
 }
 
-function buildPrompt(name: string, stats: Stats) {
+function buildPrompt(name: string, stats: Stats, nutritionistContext?: Record<string, any>) {
   return `Generate an encouraging 2-3 sentence weekly summary for ${name || "friend"} based on these stats:
 - Meals logged this week: ${stats.totalMeals}
 - Days protein goal hit: ${stats.proteinDaysHit} / 7${stats.proteinGoal ? ` (goal: ${stats.proteinGoal}g)` : ""}
@@ -26,7 +27,9 @@ function buildPrompt(name: string, stats: Stats) {
 - Current streak: ${stats.streak} days
 - XP earned this week: ${stats.xpThisWeek}
 
-Mention one thing they did well and one gentle suggestion for next week. Warm, personal tone. No emojis except at most one. Plain text only — no markdown, no bullet points.`;
+${formatNutritionistContext(nutritionistContext)}
+
+Mention one thing they did well and one gentle suggestion for next week. Use the Nutri AI colour context to choose the suggestion, but do not mention every nutrient. Warm, personal tone. No emojis except at most one. Plain text only - no markdown, no bullet points.`;
 }
 
 Deno.serve(async (req) => {
@@ -68,9 +71,9 @@ Deno.serve(async (req) => {
         model: "claude-sonnet-4-5",
         max_tokens: 400,
         system:
-          "You are Nouri, a warm, supportive nutrition coach. Speak directly to the user in a friendly, encouraging tone." +
+          "You are Nutri AI, a warm, supportive nutrition coach. Speak directly to the user in a friendly, encouraging tone." +
           lang.suffix,
-        messages: [{ role: "user", content: buildPrompt(name, stats) }],
+        messages: [{ role: "user", content: buildPrompt(name, stats, body?.nutritionistContext) }],
       }),
     });
 

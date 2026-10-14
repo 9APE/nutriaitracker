@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { getTotalXP, getLevelInfo, XP_SOURCES } from "@/lib/nouri-xp";
 
@@ -6,8 +7,14 @@ interface Props {
 }
 
 export function XPScreen({ onClose }: Props) {
-  const xp = getTotalXP();
+  const [xp, setXp] = useState(() => getTotalXP());
   const info = getLevelInfo(xp);
+
+  useEffect(() => {
+    const refresh = () => setXp(getTotalXP());
+    window.addEventListener("xp:awarded", refresh);
+    return () => window.removeEventListener("xp:awarded", refresh);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background overflow-y-auto animate-bubble-in">

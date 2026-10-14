@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { setActiveUserScope } from "@/lib/user-scoped-storage";
 import {
   GUEST_USER,
+  GUEST_USER_ID,
   cleanUpAbandonedGuestSession,
   endGuestSession,
   isGuestSessionActive,
@@ -58,11 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (sess) setGuest(false); // a real sign-in always wins over the preview
       setSession(sess);
       setUser(sess?.user ?? null);
+      setActiveUserScope(sess?.user?.id ?? null);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setActiveUserScope(session?.user?.id ?? null);
       setLoading(false);
     });
 
@@ -72,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isGuest = guest && !session;
   useEffect(() => {
     setAiBlocked(isGuest);
+    if (isGuest) setActiveUserScope(GUEST_USER_ID);
   }, [isGuest]);
 
   const startGuest = () => {

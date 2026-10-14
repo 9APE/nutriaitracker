@@ -20,22 +20,25 @@ import type { Goals, Meal, MealType } from "@/lib/nouri-storage";
 import { todayISO, mealTypeEmoji } from "@/lib/nouri-storage";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 interface NotificationBellProps {
   goals: Goals;
   meals: Meal[];
+  profile?: Record<string, any> | null;
   onAddMeal: (m: Meal) => void;
   refreshKey: number;
 }
 
-export function NotificationBell({ goals, meals, onAddMeal, refreshKey }: NotificationBellProps) {
+export function NotificationBell({ goals, meals, profile, onAddMeal, refreshKey }: NotificationBellProps) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState<SuggestionNotification[]>(() => notifStore.list());
+  const [items, setItems] = useState<SuggestionNotification[]>(() => notifStore.hydrate(user?.id));
   const [generatingType, setGeneratingType] = useState<MealType | null>(null);
 
   useEffect(() => {
-    setItems(notifStore.list());
-  }, [refreshKey, open]);
+    setItems(notifStore.hydrate(user?.id));
+  }, [refreshKey, open, user?.id]);
 
   // Ask for notification permission once when the bell first appears
   useEffect(() => {
@@ -47,8 +50,8 @@ export function NotificationBell({ goals, meals, onAddMeal, refreshKey }: Notifi
   const handleOpen = (next: boolean) => {
     setOpen(next);
     if (next && unread > 0) {
-      notifStore.markAllRead();
-      setItems(notifStore.list());
+      notifStore.markAllRead(user?.id);
+      setItems(notifStore.list(user?.id));
     }
   };
 
@@ -56,7 +59,10 @@ export function NotificationBell({ goals, meals, onAddMeal, refreshKey }: Notifi
     const mealType: MealType = currentMealWindow() ?? "Snack";
     setGeneratingType(mealType);
     try {
-      const suggestions = await fetchSuggestions(goals, meals, mealType);
+      const suggestions = await fetchSuggestions(goals, meals, mealType, {
+        userId: user?.id,
+        profile: profile ?? null,
+      });
       const notif: SuggestionNotification = {
         id: crypto.randomUUID(),
         created_at: Date.now(),
@@ -64,9 +70,9 @@ export function NotificationBell({ goals, meals, onAddMeal, refreshKey }: Notifi
         suggestions,
         read: true,
       };
-      notifStore.add(notif);
-      triggerStore.markFired(mealType);
-      setItems(notifStore.list());
+      notifStore.add(notif, user?.id);
+      triggerStore.markFired(mealType, user?.id);
+      setItems(notifStore.list(user?.id));
       toast(`${mealType} ideas ready`);
     } catch (e: any) {
       toast.error(e?.message || "Couldn't get suggestions");
@@ -91,8 +97,8 @@ export function NotificationBell({ goals, meals, onAddMeal, refreshKey }: Notifi
   };
 
   const handleDismiss = (id: string) => {
-    notifStore.remove(id);
-    setItems(notifStore.list());
+    notifStore.remove(id, user?.id);
+    setItems(notifStore.list(user?.id));
   };
 
   return (
@@ -145,7 +151,7 @@ export function NotificationBell({ goals, meals, onAddMeal, refreshKey }: Notifi
           <div className="overflow-y-auto px-5 py-4 space-y-4 max-h-[calc(100vh-180px)]">
             {items.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-12">
-                No suggestions yet. Nouri will nudge you around meal times.
+                No suggestions yet. Nutri AI will nudge you around meal times.
               </p>
             )}
 
@@ -205,3 +211,5 @@ export function NotificationBell({ goals, meals, onAddMeal, refreshKey }: Notifi
     </>
   );
 }
+
+

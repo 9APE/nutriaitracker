@@ -7,7 +7,7 @@ import { DEFAULT_GOALS, type Goals } from "@/lib/nouri-storage";
 import { Loader2 } from "lucide-react";
 
 const messages = [
-  "Hi there. I'm Nouri, your personal nutrition assistant.",
+  "Hi there. I'm Nutri AI, your personal nutrition assistant.",
   "Tracking what you eat is simple — just describe what you had and I'll calculate all the calories and macros automatically.",
   "For the most accurate results, be specific with quantities. Instead of 'I had chicken and rice', try: '100g of jasmine rice, 150g of grilled chicken breast, two handfuls of mixed vegetables with olive oil.'",
   "Before we start — tell me a little about you so I can personalise your plan.",
@@ -91,7 +91,7 @@ export function Onboarding({ initialGoals, initialStats, onDone }: OnboardingPro
       <header className="px-5 py-4 border-b border-border">
         <div className="max-w-md mx-auto flex items-center gap-2">
           
-          <span className="font-serif text-lg font-medium">Nouri</span>
+          <span className="font-serif text-lg font-medium">Nutri AI</span>
         </div>
       </header>
 
@@ -305,3 +305,5 @@ function GoalSlider({
     </div>
   );
 }
+
+

@@ -1,4 +1,5 @@
 /** Recipe library localStorage helpers */
+import { userScopedKey } from "@/lib/user-scoped-storage";
 
 export interface SavedRecipe {
   id: string;
@@ -21,7 +22,7 @@ const RECIPES_KEY = "nouri:recipes";
 
 export function getSavedRecipes(): SavedRecipe[] {
   try {
-    const raw = localStorage.getItem(RECIPES_KEY);
+    const raw = localStorage.getItem(userScopedKey(RECIPES_KEY)) ?? localStorage.getItem(RECIPES_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -33,12 +34,12 @@ export function saveRecipe(recipe: SavedRecipe) {
   // Prevent duplicates by name
   if (all.some((r) => r.meal_name.toLowerCase() === recipe.meal_name.toLowerCase())) return;
   all.unshift(recipe);
-  localStorage.setItem(RECIPES_KEY, JSON.stringify(all.slice(0, 200)));
+  localStorage.setItem(userScopedKey(RECIPES_KEY), JSON.stringify(all.slice(0, 200)));
 }
 
 export function removeRecipe(id: string) {
   const all = getSavedRecipes().filter((r) => r.id !== id);
-  localStorage.setItem(RECIPES_KEY, JSON.stringify(all));
+  localStorage.setItem(userScopedKey(RECIPES_KEY), JSON.stringify(all));
 }
 
 export function updateRecipeRating(id: string, rating: number) {
@@ -46,7 +47,7 @@ export function updateRecipeRating(id: string, rating: number) {
   const idx = all.findIndex((r) => r.id === id);
   if (idx >= 0) {
     all[idx].rating = rating;
-    localStorage.setItem(RECIPES_KEY, JSON.stringify(all));
+    localStorage.setItem(userScopedKey(RECIPES_KEY), JSON.stringify(all));
   }
 }
 

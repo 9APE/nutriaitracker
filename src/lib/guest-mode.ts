@@ -2,6 +2,7 @@ import type { User } from "@supabase/supabase-js";
 import type { UserProfile } from "@/components/nouri/ProfileChatOnboarding";
 import { DEFAULT_GOALS, type Goals } from "@/lib/nouri-storage";
 import { setLanguage, getLanguage, LANGUAGES, type LangCode } from "@/lib/nouri-i18n";
+import { setActiveUserScope } from "@/lib/user-scoped-storage";
 
 /**
  * Guest ("Try for Free") mode: a temporary, local-only preview.
@@ -50,6 +51,19 @@ export const GUEST_PROFILE: UserProfile = {
 
 export const GUEST_GOALS: Goals = { ...DEFAULT_GOALS };
 
+/** Profile row served to guests so the app never routes them into onboarding. */
+export const GUEST_PROFILE_ROW = {
+  id: GUEST_USER_ID,
+  age: GUEST_PROFILE.age,
+  weight_kg: 70,
+  height_cm: 170,
+  activity_level: GUEST_PROFILE.activityLevel,
+  user_profile_json: GUEST_PROFILE,
+  user_warnings_json: [],
+} as any;
+
+export const GUEST_SAVE_MESSAGE = "Create a free account to save changes. This is a temporary preview.";
+
 function detectLanguage(): LangCode {
   const nav = (typeof navigator !== "undefined" ? navigator.language : "en") || "en";
   const base = nav.toLowerCase().split("-")[0];
@@ -89,6 +103,7 @@ export function startGuestSession(): boolean {
       .filter((k) => k !== BACKUP_KEY)
       .forEach((k) => localStorage.removeItem(k));
     sessionStorage.setItem(GUEST_FLAG, "1");
+    setActiveUserScope(GUEST_USER_ID);
     // No language picker for guests
     if (!getLanguage()) setLanguage(detectLanguage());
     localStorage.setItem("nouri:lang-picked", "1");
@@ -106,6 +121,7 @@ export function endGuestSession() {
     /* ignore */
   }
   restoreDeviceData();
+  setActiveUserScope(null);
 }
 
 /**

@@ -61,7 +61,7 @@ export function EveningNudge({ meals, onGoLog }: EveningNudgeProps) {
     >
       <div className="flex-1 min-w-0">
         <p className="text-sm" style={{ color: "hsl(var(--tone-warm-fg))" }}>
-          Hey {name}, I haven't heard from you since this afternoon. How's dinner going? Keep your 🔥 streak alive.
+          Hey {name}, I haven't heard from you since this afternoon. How's dinner going? Keep your  streak alive.
         </p>
         <div className="flex gap-2 mt-3">
           <button

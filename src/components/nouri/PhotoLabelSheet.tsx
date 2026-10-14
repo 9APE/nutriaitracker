@@ -144,7 +144,7 @@ export function PhotoLabelSheet({ file, barcode, onClose, onMealReady }: Props) 
         <header className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h3 className="font-serif text-lg font-medium">
             {phase === "ocr"
-              ? "Reading the label…"
+              ? "Reading the label"
               : phase === "review"
                 ? "Check the values"
                 : "Choose portion"}
@@ -172,7 +172,7 @@ export function PhotoLabelSheet({ file, barcode, onClose, onMealReady }: Props) 
           {phase === "ocr" && (
             <div className="flex flex-col items-center justify-center gap-3 py-6 text-muted-foreground">
               <Loader2 size={28} className="animate-spin text-primary" />
-              <p className="text-sm">Extracting text from the photo…</p>
+              <p className="text-sm">Extracting text from the photo</p>
               <div className="w-40 h-1.5 rounded-full bg-muted overflow-hidden">
                 <div
                   className="h-full bg-primary transition-[width]"

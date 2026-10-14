@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { Bell, CalendarDays, BarChart3, ClipboardList, Home, MessageCircle, Mic, Settings, Flame } from "lucide-react";
+import { Bell, CalendarDays, Home, MessageSquarePlus, Settings, Flame, UserCircle } from "lucide-react";
 
-export type TabId = "today" | "log" | "ask" | "plan" | "history" | "insights";
+export type TabId = "today" | "log" | "plan" | "me";
 
 export const PHONE_W = 340;
 export const PHONE_H = 640;
@@ -72,7 +72,7 @@ export function PhoneFrame({ children, cursor }: { children: ReactNode; cursor: 
 export function AppHeader() {
   return (
     <div className="flex h-12 items-center justify-between border-b border-border bg-background px-4">
-      <span className="text-[15px] font-semibold tracking-tight">NutriAI</span>
+      <span className="text-[15px] font-semibold tracking-tight">Nutri AI</span>
       <div className="flex items-center gap-3 text-muted-foreground">
         <span className="text-[10px] font-semibold text-foreground">GB</span>
         <Settings size={14} />
@@ -84,29 +84,20 @@ export function AppHeader() {
 
 const TABS: { id: TabId; label: string; Icon: typeof Home }[] = [
   { id: "today", label: "Today", Icon: Home },
-  { id: "log", label: "Log Meal", Icon: Mic },
-  { id: "ask", label: "Ask AI", Icon: MessageCircle },
+  { id: "log", label: "Nutri AI", Icon: MessageSquarePlus },
   { id: "plan", label: "Plan", Icon: CalendarDays },
-  { id: "history", label: "History", Icon: ClipboardList },
-  { id: "insights", label: "Insights", Icon: BarChart3 },
+  { id: "me", label: "Me", Icon: UserCircle },
 ];
 
 export function TabBar({ active }: { active: TabId }) {
   return (
-    <div className="absolute inset-x-0 bottom-0 z-10 flex h-[60px] items-end justify-around border-t border-border bg-background/95 pb-1.5 backdrop-blur">
+    <div className="absolute inset-x-0 bottom-0 z-10 flex h-[58px] items-center justify-around border-t border-border bg-background/95 pb-1 backdrop-blur">
       {TABS.map(({ id, label, Icon }) => {
         const on = id === active;
-        const fab = id === "ask";
         return (
-          <div key={id} data-t={`tab-${id}`} className={`flex w-12 flex-col items-center gap-0.5 ${on ? "text-primary" : "text-muted-foreground"}`}>
-            {fab ? (
-              <span className="-mt-5 mb-0.5 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background shadow-md">
-                <Icon size={18} className="text-primary" />
-              </span>
-            ) : (
-              <Icon size={17} />
-            )}
-            <span className="text-[8.5px] font-medium">{label}</span>
+          <div key={id} data-t={`tab-${id}`} className={`flex w-16 flex-col items-center gap-0.5 ${on ? "text-primary" : "text-muted-foreground"}`}>
+            <Icon size={19} />
+            <span className="text-[9px] font-medium">{label}</span>
           </div>
         );
       })}

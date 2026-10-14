@@ -1,46 +1,107 @@
-import { useState } from "react";
-import { Plus, Users } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Plus, Users, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  getFamilyMembers,
-  addFamilyMember,
-  updateFamilyMember,
-  removeFamilyMember,
   getHouseholdSize,
   setHouseholdSize,
+  saveFamilyMembers,
   type FamilyMember,
 } from "@/lib/family-utils";
 import { FamilyMemberCard } from "@/components/nouri/FamilyMemberCard";
 import { FamilyMemberOnboarding } from "@/components/nouri/FamilyMemberOnboarding";
 import { FamilyRestrictionsSummary } from "@/components/nouri/FamilyRestrictionsSummary";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 
 export function FamilySection() {
-  const [members, setMembers] = useState<FamilyMember[]>(() => getFamilyMembers());
+  const { user } = useAuth();
+  const [members, setMembers] = useState<FamilyMember[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
   const [householdSz, setHouseholdSz] = useState(() => getHouseholdSize());
 
-  const refresh = () => setMembers(getFamilyMembers());
+  // Load from Supabase + cache to localStorage so the rest of the app
+  // (meal planner, grocery list, restrictions summary) stays in sync.
+  const load = useCallback(async () => {
+    if (!user) {
+      setMembers([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("family_members")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true });
+    if (error) {
+      console.error("Failed to load family", error);
+      toast.error("Couldn't load family members");
+      setLoading(false);
+      return;
+    }
+    const list: FamilyMember[] = (data ?? []).map((row: any) => ({
+      ...(row.profile ?? {}),
+      id: row.member_id,
+      name: row.name ?? (row.profile?.name ?? "Family member"),
+    } as FamilyMember));
+    setMembers(list);
+    saveFamilyMembers(list); // refresh local cache + merged restrictions
+    setLoading(false);
+  }, [user]);
 
-  const handleAddDone = (member: FamilyMember) => {
-    addFamilyMember(member);
-    refresh();
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleAddDone = async (member: FamilyMember) => {
+    if (!user) return;
+    const { error } = await supabase.from("family_members").insert({
+      user_id: user.id,
+      member_id: member.id,
+      name: member.name,
+      profile: member as any,
+    });
+    if (error) {
+      toast.error(error.message || "Couldn't save family member");
+      return;
+    }
     setShowOnboarding(false);
     toast.success(`${member.name} added to your family`);
+    await load();
   };
 
-  const handleEditDone = (member: FamilyMember) => {
-    updateFamilyMember(member.id, member);
-    refresh();
+  const handleEditDone = async (member: FamilyMember) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from("family_members")
+      .update({ name: member.name, profile: member as any })
+      .eq("user_id", user.id)
+      .eq("member_id", member.id);
+    if (error) {
+      toast.error(error.message || "Couldn't update family member");
+      return;
+    }
     setEditingMember(null);
     toast.success(`${member.name}'s profile updated`);
+    await load();
   };
 
-  const handleDelete = (member: FamilyMember) => {
+  const handleDelete = async (member: FamilyMember) => {
+    if (!user) return;
     if (!confirm(`Remove ${member.name} from your family?`)) return;
-    removeFamilyMember(member.id);
-    refresh();
+    const { error } = await supabase
+      .from("family_members")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("member_id", member.id);
+    if (error) {
+      toast.error(error.message || "Couldn't remove family member");
+      return;
+    }
     toast(`${member.name} removed`);
+    await load();
   };
 
   const handleHouseholdChange = (size: number) => {
@@ -90,18 +151,23 @@ export function FamilySection() {
         </div>
       </div>
 
-      {/* Family members */}
-      {members.length > 0 && (
-        <div className="space-y-2">
-          {members.map((m) => (
-            <FamilyMemberCard
-              key={m.id}
-              member={m}
-              onEdit={() => setEditingMember(m)}
-              onDelete={() => handleDelete(m)}
-            />
-          ))}
+      {loading ? (
+        <div className="flex justify-center py-6">
+          <Loader2 size={18} className="animate-spin text-muted-foreground" />
         </div>
+      ) : (
+        members.length > 0 && (
+          <div className="space-y-2">
+            {members.map((m) => (
+              <FamilyMemberCard
+                key={m.id}
+                member={m}
+                onEdit={() => setEditingMember(m)}
+                onDelete={() => handleDelete(m)}
+              />
+            ))}
+          </div>
+        )
       )}
 
       {/* Add member button */}

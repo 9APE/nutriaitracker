@@ -26,8 +26,7 @@ export const cloud = {
   async updateProfile(userId: string, patch: Partial<Profile>) {
     const { error } = await supabase
       .from("profiles")
-      .update(patch)
-      .eq("id", userId);
+      .upsert({ id: userId, ...patch }, { onConflict: "id" });
     if (error) throw error;
   },
 

@@ -1,10 +1,10 @@
-// Extended personalised daily goals — macros + micros + reasoning.
-// Stored locally as JSON; the 4 base macros are also synced to the cloud `goals` table
-// via existing cloud.upsertGoals (in nouri-cloud.ts). All extra micros + reasoning live
-// only in localStorage as they are derived from Claude per-user.
+// Extended personalised daily goals  macros + micros + reasoning.
+// Types + pure helpers only. Persistence is now handled by Supabase via
+// `useGoals` / `useUpdateGoals` (see src/hooks/queries/useGoals.ts).
+// Training-day adjustments are computed on the fly from base goals + the
+// current `nouri-training` entry  no longer mirrored to a separate cache.
 
 import type { Goals } from "./nouri-storage";
-import { todayISO } from "./nouri-storage";
 
 export interface GoalReasoning {
   calories?: string;
@@ -25,12 +25,10 @@ export interface GoalReasoning {
 }
 
 export interface ExtendedGoals {
-  // Macros (mirrored to DB)
   calories: number;
   protein: number;
   carbs: number;
   fat: number;
-  // Micros — all daily targets
   fiber?: number;
   sugar_max?: number;
   saturated_fat_max?: number;
@@ -43,82 +41,19 @@ export interface ExtendedGoals {
   vitamin_d?: number;
   vitamin_a?: number;
   reasoning?: GoalReasoning;
-  /** Snapshot of the profile that produced these goals — useful for training adjustments */
+  /** Snapshot of the profile that produced these goals  useful for training adjustments */
   bodyweight_kg?: number;
   /** ISO date when the user last calibrated */
   calibrated_at?: string;
 }
 
-const USER_GOALS_KEY = "userGoals";
-const TODAY_GOALS_KEY = "todayGoals";
-const TODAY_GOALS_DATE_KEY = "todayGoalsDate";
-const EVENT = "goals:updated";
-
-// ── Persistence ────────────────────────────────────────────────────────────
-export function loadUserGoals(): ExtendedGoals | null {
-  try {
-    const raw = localStorage.getItem(USER_GOALS_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as ExtendedGoals;
-  } catch {
-    return null;
-  }
-}
-
-export function saveUserGoals(g: ExtendedGoals) {
-  localStorage.setItem(USER_GOALS_KEY, JSON.stringify(g));
-  // Reset today goals so they recompute against the new base
-  localStorage.removeItem(TODAY_GOALS_KEY);
-  localStorage.removeItem(TODAY_GOALS_DATE_KEY);
-  window.dispatchEvent(new Event(EVENT));
-}
-
-export function loadTodayGoals(): ExtendedGoals | null {
-  try {
-    const date = localStorage.getItem(TODAY_GOALS_DATE_KEY);
-    if (date && date !== todayISO()) {
-      // Stale — clear so we fall back to base
-      localStorage.removeItem(TODAY_GOALS_KEY);
-      localStorage.removeItem(TODAY_GOALS_DATE_KEY);
-      return null;
-    }
-    const raw = localStorage.getItem(TODAY_GOALS_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as ExtendedGoals;
-  } catch {
-    return null;
-  }
-}
-
-export function saveTodayGoals(g: ExtendedGoals) {
-  localStorage.setItem(TODAY_GOALS_KEY, JSON.stringify(g));
-  localStorage.setItem(TODAY_GOALS_DATE_KEY, todayISO());
-  window.dispatchEvent(new Event(EVENT));
-}
-
-export function clearTodayGoals() {
-  localStorage.removeItem(TODAY_GOALS_KEY);
-  localStorage.removeItem(TODAY_GOALS_DATE_KEY);
-  window.dispatchEvent(new Event(EVENT));
-}
-
-export function onGoalsChange(cb: () => void): () => void {
-  window.addEventListener(EVENT, cb);
-  return () => window.removeEventListener(EVENT, cb);
-}
-
-// ── Effective goals (training-aware) ───────────────────────────────────────
-/** Returns todayGoals if present (training day), else base userGoals, else legacy 4-macro Goals. */
-export function effectiveGoals(baseGoals: Goals): ExtendedGoals {
-  return loadTodayGoals() ?? loadUserGoals() ?? { ...baseGoals };
-}
-
-// ── Training-day adjustment ────────────────────────────────────────────────
+//  Training-day adjustment 
 const INTENSE_TRAINING = new Set(["Strength", "Cardio", "Cycling"]);
 
 /**
  * Compute today's adjusted goals from base goals + a training session.
- * Bodyweight is read from the saved userGoals snapshot; falls back to 70 kg.
+ * Pure function  no storage. Bodyweight comes from the saved
+ * `bodyweight_kg` on ExtendedGoals; falls back to 70 kg.
  */
 export function computeTodayGoals(
   base: ExtendedGoals,
@@ -142,8 +77,8 @@ export function computeTodayGoals(
   };
 }
 
-// ── Helpers to extract a body weight from the user profile ─────────────────
-/** Parse strings like "78", "78kg", "172 lbs" — returns kilograms or undefined. */
+//  Helpers 
+/** Parse strings like "78", "78kg", "172 lbs"  returns kilograms or undefined. */
 export function parseWeightToKg(weight: string | number | undefined): number | undefined {
   if (typeof weight === "number" && isFinite(weight)) return weight;
   if (!weight || typeof weight !== "string") return undefined;
@@ -152,4 +87,37 @@ export function parseWeightToKg(weight: string | number | undefined): number | u
   if (!isFinite(num)) return undefined;
   if (s.includes("lb") || s.includes("pound")) return Math.round(num * 0.4536);
   return Math.round(num);
+}
+
+/** Build an ExtendedGoals from a base Goals plus an optional plan blob from the AI. */
+export function buildExtendedGoals(
+  base: Goals,
+  plan: any,
+  bodyweightKg: number | undefined,
+): ExtendedGoals {
+  return {
+    calories: base.calories,
+    protein: base.protein,
+    carbs: base.carbs,
+    fat: base.fat,
+    fiber: plan?.fiber,
+    sugar_max: plan?.sugar_max,
+    saturated_fat_max: plan?.saturated_fat_max,
+    sodium_max: plan?.sodium_max,
+    cholesterol_max: plan?.cholesterol_max,
+    potassium: plan?.potassium,
+    calcium: plan?.calcium,
+    iron: plan?.iron,
+    vitamin_c: plan?.vitamin_c,
+    vitamin_d: plan?.vitamin_d,
+    vitamin_a: plan?.vitamin_a,
+    reasoning:
+      plan?.reasoning && typeof plan.reasoning === "object"
+        ? plan.reasoning
+        : plan?.reasoning
+        ? { calories: String(plan.reasoning) }
+        : undefined,
+    bodyweight_kg: bodyweightKg,
+    calibrated_at: new Date().toISOString(),
+  };
 }

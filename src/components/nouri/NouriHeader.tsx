@@ -13,11 +13,11 @@ export function NouriHeader({
 }) {
   const lang = useLanguage();
   return (
-    <header className="sticky top-0 z-20 bg-background/90 backdrop-blur border-b border-border">
+    <header className="sticky top-0 z-20 border-b border-border/60 bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-md mx-auto px-5 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           
-          <span className="font-serif text-lg font-medium tracking-tight">NutriAI</span>
+          <span className="font-serif text-lg font-medium tracking-tight">Nutri AI</span>
         </div>
         <div className="flex items-center gap-1">
           {rightSlot}
@@ -33,3 +33,4 @@ export function NouriHeader({
     </header>
   );
 }
+

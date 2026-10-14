@@ -21,6 +21,15 @@ const examples = [
   "Snack: 200g of Greek yoghurt, a handful of mixed berries, and 30g of granola",
 ];
 
+const DEFAULT_CLARIFY_QUESTION =
+  "Roughly how much did you have? A handful, bowl, pieces, grams, or cups all work.";
+const DEFAULT_CLARIFY_OPTIONS = [
+  "A few bites",
+  "Small portion",
+  "Medium portion",
+  "Large portion",
+];
+
 interface LogScreenProps {
   onLogged: (m: Meal) => void;
   prefillText?: string;
@@ -65,15 +74,26 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzed, setAnalyzed] = useState<Omit<Meal, "id" | "created_at"> | null>(null);
   const [chat, setChat] = useState<ChatMsg[]>([]);
-  const [pendingClarify, setPendingClarify] = useState<{ original: string; messageId: string } | null>(null);
+  const [pendingClarify, setPendingClarify] = useState<{ original: string; messageId: string; source: "voice" | "text"; askedAt: number } | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState<string | null>(null);
   const [photoCapture, setPhotoCapture] = useState<{ file: File; barcode: string } | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const resumedClarifyAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [chat, analyzing, voice.transcribing]);
+
+  useEffect(() => {
+    if (!pendingClarify || pendingClarify.source !== "voice") return;
+    if (resumedClarifyAtRef.current === pendingClarify.askedAt) return;
+    resumedClarifyAtRef.current = pendingClarify.askedAt;
+    void (async () => {
+      voice.reset();
+      await voice.start();
+    })();
+  }, [pendingClarify, voice]);
 
   useEffect(() => {
     if (prefillText) {
@@ -98,7 +118,7 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
 
   const runAnalyze = async (
     input: string,
-    opts?: { alreadyClarified?: boolean; originalForClarify?: string }
+    opts?: { alreadyClarified?: boolean; originalForClarify?: string; source?: "voice" | "text" }
   ) => {
     const payload = input.trim();
     if (!payload) {
@@ -114,7 +134,10 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
       const result = await analyzeWithRetry(payload, 2, { alreadyClarified: opts?.alreadyClarified });
 
       if (result.kind === "clarification") {
-        const { question, options } = result.clarification;
+        const question = result.clarification.question || DEFAULT_CLARIFY_QUESTION;
+        const options = Array.isArray(result.clarification.options) && result.clarification.options.length > 0
+          ? result.clarification.options
+          : DEFAULT_CLARIFY_OPTIONS;
         setChat((c) =>
           c.map((m) =>
             m.id === thinkingId && m.role === "assistant"
@@ -122,12 +145,12 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
               : m
           )
         );
-        setPendingClarify({ original: payload, messageId: thinkingId });
+        setPendingClarify({ original: payload, messageId: thinkingId, source: opts?.source ?? "text", askedAt: Date.now() });
       } else {
         const meal = result.meal;
         updateAssistant(
           thinkingId,
-          `${t("gotItPrefix", lang)} — **${meal.meal_name}** (${meal.type}). ~ **${meal.calories} ${t("kcalShort", lang)}**, ${meal.protein}${t("gShort", lang)} ${t("protein", lang)}, ${meal.carbs}${t("gShort", lang)} ${t("carbs", lang)}, ${meal.fat}${t("gShort", lang)} ${t("fat", lang)}. ${t("tapLogIt", lang)}`,
+          `${t("gotItPrefix", lang)}  **${meal.meal_name}** (${meal.type}). ~ **${meal.calories} ${t("kcalShort", lang)}**, ${meal.protein}${t("gShort", lang)} ${t("protein", lang)}, ${meal.carbs}${t("gShort", lang)} ${t("carbs", lang)}, ${meal.fat}${t("gShort", lang)} ${t("fat", lang)}. ${t("tapLogIt", lang)}`,
           false
         );
         setAnalyzed(meal);
@@ -150,8 +173,8 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
     const { original, messageId } = pendingClarify;
     consumeOptions(messageId);
     setPendingClarify(null);
-    const combined = `${original} — ${answer}`;
-    await runAnalyze(combined, { alreadyClarified: true });
+    const combined = `${original}  ${answer}`;
+    await runAnalyze(combined, { alreadyClarified: true, source: "text" });
   };
 
   const handleMicTap = async () => {
@@ -159,7 +182,7 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
       const finalText = await voice.stop();
       setText("");
       // Always respond, even if empty
-      await runAnalyze(finalText || "");
+      await runAnalyze(finalText || "", { source: "voice" });
     } else {
       voice.reset();
       setText("");
@@ -177,7 +200,7 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
     if (pendingClarify) {
       await handleClarifyAnswer(tx);
     } else {
-      await runAnalyze(tx);
+      await runAnalyze(tx, { source: "text" });
     }
   };
 
@@ -191,7 +214,7 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
     onLogged(meal);
     recordMealLogged();
     setAnalyzed(null);
-    pushAssistant(`${t("logged", lang)} **${meal.meal_name}** — ${t("anythingElse", lang)}`);
+    pushAssistant(`${t("logged", lang)} **${meal.meal_name}**  ${t("anythingElse", lang)}`);
     voice.reset();
     toast.success(t("loggedToast", lang, { name: meal.meal_name }));
   };
@@ -199,7 +222,7 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
   const busy = analyzing || voice.transcribing;
 
   return (
-    <div className="px-5 pt-4 pb-28 max-w-md mx-auto">
+    <div className="px-5 pt-4 pb-36 max-w-md mx-auto">
       <div className="mb-6">
         <h1 className="font-serif text-2xl font-medium">{t("logMealTitle", lang)}</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -289,17 +312,35 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
                 m.options &&
                 m.options.length > 0 &&
                 !m.optionsConsumed && (
-                  <div className="flex flex-wrap gap-2 mt-2 ml-1">
-                    {m.options.map((opt, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleClarifyAnswer(opt)}
-                        disabled={analyzing}
-                        className="text-xs px-3 py-1.5 rounded-full border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
-                      >
-                        {opt}
-                      </button>
-                    ))}
+                  <div className="ml-1 mt-2 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-3 space-y-2 animate-[nouri-bubble-in_0.18s_ease]">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-primary">
+                        Amount check
+                      </p>
+                      <span className="rounded-full bg-background/80 px-2 py-0.5 text-[10px] text-muted-foreground">
+                        Quick estimate is fine
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      A rough amount is enough. You can reply with pieces, cups, grams, or a quick estimate.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {m.options.map((opt, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleClarifyAnswer(opt)}
+                          disabled={analyzing}
+                          className="text-xs px-3 py-1.5 rounded-full border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                    {pendingClarify?.source === "voice" && pendingClarify.messageId === m.id && (
+                      <p className="text-[11px] text-primary">
+                        Voice is ready again. Say the amount or type it below.
+                      </p>
+                    )}
                   </div>
                 )}
             </div>
@@ -317,7 +358,7 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder={t("logExamplePlaceholder", lang)}
+        placeholder={pendingClarify ? DEFAULT_CLARIFY_QUESTION : t("logExamplePlaceholder", lang)}
         className="min-h-[90px] text-[15px] leading-relaxed bg-surface"
         onKeyDown={(e) => {
           if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
@@ -380,7 +421,7 @@ export function LogScreen({ onLogged, prefillText, onPrefillConsumed }: LogScree
           }}
           onPhotoCaptured={(file) => {
             setScannerOpen(false);
-            // No barcode was read — synthesize a stable local key so future
+            // No barcode was read  synthesize a stable local key so future
             // photo-added entries don't collide.
             const localBarcode = `local-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
             setPhotoCapture({ file, barcode: localBarcode });

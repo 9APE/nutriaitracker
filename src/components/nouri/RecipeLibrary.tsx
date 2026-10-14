@@ -39,7 +39,7 @@ export function RecipeLibrary({ onBack }: Props) {
   });
 
   return (
-    <div className="px-4 pt-4 pb-28 max-w-md mx-auto space-y-4">
+    <div className="px-4 pt-4 pb-36 max-w-md mx-auto space-y-4">
       <button
         onClick={onBack}
         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -110,7 +110,7 @@ export function RecipeLibrary({ onBack }: Props) {
               <div>
                 <div className="text-sm font-medium">{recipe.meal_name}</div>
                 <div className="text-[10px] text-muted-foreground">
-                  {recipe.meal_type} · {recipe.source}
+                  {recipe.meal_type}  {recipe.source}
                 </div>
               </div>
               <button
@@ -126,7 +126,7 @@ export function RecipeLibrary({ onBack }: Props) {
               <span>{recipe.protein}g P</span>
               <span>{recipe.carbs}g C</span>
               <span>{recipe.fat}g F</span>
-              {recipe.prep_time && <span>⏱ {recipe.prep_time}</span>}
+              {recipe.prep_time && <span> {recipe.prep_time}</span>}
             </div>
 
             {recipe.badges && recipe.badges.length > 0 && (

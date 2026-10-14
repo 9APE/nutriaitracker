@@ -1,6 +1,9 @@
 import type { Goals, Meal, MealType } from "./nouri-storage";
 import { supabase } from "@/integrations/supabase/client";
 import { todayISO } from "./nouri-storage";
+import { getFamilyContext } from "@/lib/family-context";
+import { dayScopedUserKey, userScopedKey } from "@/lib/user-scoped-storage";
+import { buildNutritionistContext } from "@/lib/nutri-ai/nutritionist-context";
 
 export interface MealSuggestion {
   meal_name: string;
@@ -22,52 +25,80 @@ export interface SuggestionNotification {
 const NOTIF_KEY = "nouri:notifications";
 const LAST_TRIGGER_KEY = "nouri:lastTrigger"; // map of mealType -> YYYY-MM-DD
 
+function notificationPrefix(userId?: string | null): string {
+  return `${userScopedKey(NOTIF_KEY, userId)}:`;
+}
+
+function notificationKey(userId?: string | null): string {
+  return dayScopedUserKey(NOTIF_KEY, todayISO(), userId);
+}
+
+function pruneNotificationDays(userId?: string | null) {
+  try {
+    const prefix = notificationPrefix(userId);
+    const todayKey = notificationKey(userId);
+    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix) && key !== todayKey) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch {}
+}
+
 export const notifStore = {
-  list(): SuggestionNotification[] {
+  list(userId?: string | null): SuggestionNotification[] {
+    pruneNotificationDays(userId);
     try {
-      const raw = localStorage.getItem(NOTIF_KEY);
+      const raw = localStorage.getItem(notificationKey(userId));
       if (raw) return JSON.parse(raw);
     } catch {}
     return [];
   },
-  save(items: SuggestionNotification[]) {
-    localStorage.setItem(NOTIF_KEY, JSON.stringify(items.slice(0, 30)));
+  save(items: SuggestionNotification[], userId?: string | null) {
+    pruneNotificationDays(userId);
+    localStorage.setItem(notificationKey(userId), JSON.stringify(items.slice(0, 30)));
   },
-  add(n: SuggestionNotification) {
-    const all = notifStore.list();
+  add(n: SuggestionNotification, userId?: string | null) {
+    const all = notifStore.list(userId);
     all.unshift(n);
-    notifStore.save(all);
+    notifStore.save(all, userId);
   },
-  markAllRead() {
-    notifStore.save(notifStore.list().map((n) => ({ ...n, read: true })));
+  markAllRead(userId?: string | null) {
+    notifStore.save(notifStore.list(userId).map((n) => ({ ...n, read: true })), userId);
   },
-  remove(id: string) {
-    notifStore.save(notifStore.list().filter((n) => n.id !== id));
+  remove(id: string, userId?: string | null) {
+    notifStore.save(notifStore.list(userId).filter((n) => n.id !== id), userId);
   },
-  clear() {
-    localStorage.removeItem(NOTIF_KEY);
-    localStorage.removeItem(LAST_TRIGGER_KEY);
+  clear(userId?: string | null) {
+    pruneNotificationDays(userId);
+    localStorage.removeItem(notificationKey(userId));
+    localStorage.removeItem(userScopedKey(LAST_TRIGGER_KEY, userId));
+  },
+  hydrate(userId?: string | null) {
+    pruneNotificationDays(userId);
+    return notifStore.list(userId);
   },
 };
 
 export const triggerStore = {
-  get(): Record<string, string> {
+  get(userId?: string | null): Record<string, string> {
     try {
-      const raw = localStorage.getItem(LAST_TRIGGER_KEY);
+      const raw = localStorage.getItem(userScopedKey(LAST_TRIGGER_KEY, userId));
       if (raw) return JSON.parse(raw);
     } catch {}
     return {};
   },
-  set(map: Record<string, string>) {
-    localStorage.setItem(LAST_TRIGGER_KEY, JSON.stringify(map));
+  set(map: Record<string, string>, userId?: string | null) {
+    localStorage.setItem(userScopedKey(LAST_TRIGGER_KEY, userId), JSON.stringify(map));
   },
-  markFired(mealType: MealType) {
-    const m = triggerStore.get();
+  markFired(mealType: MealType, userId?: string | null) {
+    const m = triggerStore.get(userId);
     m[mealType] = todayISO();
-    triggerStore.set(m);
+    triggerStore.set(m, userId);
   },
-  hasFiredToday(mealType: MealType): boolean {
-    return triggerStore.get()[mealType] === todayISO();
+  hasFiredToday(mealType: MealType, userId?: string | null): boolean {
+    return triggerStore.get(userId)[mealType] === todayISO();
   },
 };
 
@@ -88,7 +119,11 @@ export function currentMealWindow(now = new Date()): MealType | null {
 export async function fetchSuggestions(
   goals: Goals,
   meals: Meal[],
-  mealType: MealType
+  mealType: MealType,
+  opts?: {
+    userId?: string | null;
+    profile?: Record<string, any> | null;
+  },
 ): Promise<MealSuggestion[]> {
   const today = todayISO();
   const todayMeals = meals.filter((m) => m.date === today);
@@ -104,8 +139,25 @@ export async function fetchSuggestions(
   );
 
   const { getLanguage, getLanguageName } = await import("@/lib/nouri-i18n");
+  const family = await getFamilyContext(opts?.profile ?? null, opts?.userId);
+  const nutritionistContext = buildNutritionistContext({
+    meals,
+    goals,
+    userProfile: opts?.profile ?? null,
+  }).aiContext;
   const { data, error } = await supabase.functions.invoke("suggest-meals", {
-    body: { goals, eatenToday, mealType, language: getLanguage() ?? "en", languageName: getLanguageName() },
+    body: {
+      goals,
+      eatenToday,
+      mealType,
+      profile: opts?.profile ?? null,
+      nutritionistContext,
+      familyMode: family.familyMode,
+      familyRestrictions: family.mergedRestrictions,
+      familyMembers: family.memberProfiles,
+      language: getLanguage() ?? "en",
+      languageName: getLanguageName(),
+    },
   });
   if (error) throw new Error(error.message || "Failed to suggest meals");
   if (!data?.suggestions) throw new Error(data?.error || "No suggestions returned");

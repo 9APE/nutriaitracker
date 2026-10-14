@@ -12,12 +12,12 @@
   :root {
     /* Light mode — kept clean and neutral, paired with new accents */
     /* Light mode — warm off-white, gently tinted, more "alive" */
-    --background: 36 22% 96%;          /* warm cream #F4F1EC */
+    --background: 240 12% 97%;         /* ~#F5F5F7 */
     --surface: 0 0% 100%;
-    --foreground: 30 10% 14%;          /* warm near-black */
+    --foreground: 240 6% 12%;          /* ~#1D1D1F */
 
-    --card: 36 30% 99%;                /* slight warm lift vs background */
-    --card-foreground: 30 10% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 6% 12%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 30 10% 14%;
@@ -27,11 +27,11 @@
     --primary-foreground: 0 0% 100%;
     --primary-soft: 148 40% 90%;
 
-    --secondary: 36 18% 92%;
-    --secondary-foreground: 30 10% 18%;
+    --secondary: 240 10% 94%;
+    --secondary-foreground: 240 6% 16%;
 
-    --muted: 36 16% 91%;
-    --muted-foreground: 30 6% 38%;
+    --muted: 240 10% 94%;
+    --muted-foreground: 240 4% 52%;
 
     --accent: 148 44% 46%;
     --accent-foreground: 0 0% 100%;
@@ -39,8 +39,8 @@
     --destructive: 354 56% 54%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 14% 86%;
-    --input: 30 14% 86%;
+    --border: 240 8% 88%;
+    --input: 240 8% 88%;
     --ring: 148 44% 46%;
 
     /* Macro / metric accent palette (richer, still grounded) */
@@ -51,18 +51,18 @@
     --macro-sugar: 354 56% 54%;        /* dusty rose */
     --macro-water: 211 62% 52%;        /* steel blue */
 
-    --radius: 1.125rem;                /* 18px cards */
+    --radius: 1rem;                    /* 16px cards */
 
-    --shadow-soft: 0 2px 12px -4px hsl(30 15% 20% / 0.08);
-    --shadow-card: 0 1px 2px hsl(30 15% 20% / 0.05), 0 10px 28px -14px hsl(30 15% 20% / 0.12);
+    --shadow-soft: 0 1px 2px hsl(240 10% 10% / 0.04), 0 10px 24px -18px hsl(240 10% 10% / 0.20);
+    --shadow-card: 0 1px 2px hsl(240 10% 10% / 0.06), 0 18px 40px -28px hsl(240 10% 10% / 0.30);
 
-    --sidebar-background: 36 22% 97%;
-    --sidebar-foreground: 30 8% 26%;
-    --sidebar-primary: 30 10% 14%;
+    --sidebar-background: 240 12% 97%;
+    --sidebar-foreground: 240 5% 28%;
+    --sidebar-primary: 240 6% 12%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 36 16% 91%;
-    --sidebar-accent-foreground: 30 10% 14%;
-    --sidebar-border: 30 14% 86%;
+    --sidebar-accent: 240 10% 94%;
+    --sidebar-accent-foreground: 240 6% 12%;
+    --sidebar-border: 240 8% 88%;
     --sidebar-ring: 148 44% 46%;
 
     /* Themed accent surfaces — auto-flip in dark mode */
@@ -88,12 +88,12 @@
      - sage on bg → 5.4:1 (AA)
   */
   .dark {
-    --background: 30 5% 11%;            /* warm charcoal */
-    --surface: 30 5% 16%;               /* lifted surface */
-    --foreground: 36 18% 94%;           /* warm off-white */
+    --background: 240 6% 10%;
+    --surface: 240 6% 14%;
+    --foreground: 240 10% 94%;
 
-    --card: 30 5% 16%;                  /* visibly lifted vs background */
-    --card-foreground: 36 18% 94%;
+    --card: 240 6% 14%;
+    --card-foreground: 240 10% 94%;
 
     --popover: 30 5% 16%;
     --popover-foreground: 36 18% 94%;
@@ -102,11 +102,11 @@
     --primary-foreground: 30 5% 11%;
     --primary-soft: 148 32% 20%;
 
-    --secondary: 30 5% 20%;
-    --secondary-foreground: 36 18% 94%;
+    --secondary: 240 6% 18%;
+    --secondary-foreground: 240 10% 94%;
 
-    --muted: 30 5% 20%;
-    --muted-foreground: 30 8% 64%;      /* warm grey */
+    --muted: 240 6% 18%;
+    --muted-foreground: 240 6% 66%;
 
     --accent: 148 48% 55%;
     --accent-foreground: 30 5% 11%;
@@ -115,8 +115,8 @@
     --destructive-foreground: 36 18% 94%;
 
     /* Borders rendered via white @ 8% via utility (.border / border-border) */
-    --border: 30 5% 22%;
-    --input: 30 5% 22%;
+    --border: 240 6% 22%;
+    --input: 240 6% 22%;
     --ring: 148 48% 55%;
 
     --macro-protein: 148 48% 55%;
@@ -126,16 +126,16 @@
     --macro-sugar: 354 60% 64%;
     --macro-water: 211 65% 62%;
 
-    --shadow-soft: 0 2px 12px -4px hsl(0 0% 0% / 0.45);
-    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.35), 0 8px 24px -12px hsl(0 0% 0% / 0.5);
+    --shadow-soft: 0 1px 2px hsl(0 0% 0% / 0.40), 0 10px 30px -18px hsl(0 0% 0% / 0.55);
+    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.35), 0 18px 50px -30px hsl(0 0% 0% / 0.65);
 
-    --sidebar-background: 30 5% 11%;
-    --sidebar-foreground: 36 14% 90%;
+    --sidebar-background: 240 6% 10%;
+    --sidebar-foreground: 240 10% 90%;
     --sidebar-primary: 148 48% 55%;
-    --sidebar-primary-foreground: 30 5% 11%;
-    --sidebar-accent: 30 5% 20%;
-    --sidebar-accent-foreground: 36 18% 94%;
-    --sidebar-border: 30 5% 22%;
+    --sidebar-primary-foreground: 240 6% 10%;
+    --sidebar-accent: 240 6% 18%;
+    --sidebar-accent-foreground: 240 10% 94%;
+    --sidebar-border: 240 6% 22%;
     --sidebar-ring: 148 48% 55%;
 
     /* Themed accent surfaces — dark variants */
@@ -169,10 +169,10 @@
 
   html, body, #root {
     @apply bg-background text-foreground;
-    font-family: 'DM Sans', 'Inter', system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "ss01" on, "cv11" on;
+    text-rendering: optimizeLegibility;
   }
 
   .font-mono-data {
@@ -189,7 +189,7 @@
 
   /* Hero calorie number — the headline metric on Today */
   .nouri-calorie-hero {
-    font-family: 'DM Sans', system-ui, sans-serif;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     font-weight: 700;
     font-size: 50px;
     line-height: 1;
@@ -224,6 +224,14 @@
 }
 
 @layer utilities {
+  @keyframes nouri-pop {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+  .animate-nouri-pop {
+    animation: nouri-pop 180ms ease-out 1;
+  }
+
   /* Recording mic pulse */
   @keyframes nouri-pulse {
     0%, 100% { transform: scale(1); opacity: 0.6; }
@@ -249,6 +257,27 @@
   }
   .animate-bubble-in {
     animation: nouri-bubble-in 0.35s ease-out both;
+  }
+
+  /* Pending assistant shimmer sweep */
+  @keyframes nouri-shimmer {
+    0% { transform: translateX(-100%); }
+    60% { transform: translateX(100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* Gemini-style floating gradient blobs */
+  @keyframes nouri-float-a {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(40px, 30px) scale(1.15); }
+  }
+  @keyframes nouri-float-b {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-50px, 40px) scale(1.1); }
+  }
+  @keyframes nouri-float-c {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(30px, -40px) scale(1.2); }
   }
 
   /* Slide up sheet */

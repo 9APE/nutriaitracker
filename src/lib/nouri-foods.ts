@@ -38,7 +38,7 @@ export function saveCustomFood(p: FoodProduct) {
   try {
     localStorage.setItem(CUSTOM_KEY, JSON.stringify(all));
   } catch {
-    // storage full / disabled — silently ignore
+    // storage full / disabled  silently ignore
   }
 }
 
@@ -87,7 +87,7 @@ export async function fetchOpenFoodFacts(barcode: string): Promise<FoodProduct |
   if (ironG != null) micros.iron = Math.round(ironG * 1000 * 10) / 10;
   if (calciumG != null) micros.calcium = Math.round(calciumG * 1000);
   if (vitC != null) micros.vitamin_c = Math.round(vitC * 1000 * 10) / 10;
-  // OFF reports vitamin D in grams → µg = g * 1_000_000
+  // OFF reports vitamin D in grams  g = g * 1_000_000
   if (vitD != null) micros.vitamin_d = Math.round(vitD * 1_000_000 * 10) / 10;
 
   return {
@@ -103,7 +103,7 @@ export async function fetchOpenFoodFacts(barcode: string): Promise<FoodProduct |
   };
 }
 
-/** Resolve a barcode: cache → API. Throws on network errors. */
+/** Resolve a barcode: cache  API. Throws on network errors. */
 export async function resolveBarcode(barcode: string): Promise<FoodProduct | null> {
   const cached = findCustomFood(barcode);
   if (cached) return cached;
@@ -139,9 +139,9 @@ export function buildMealFromProduct(
   };
 }
 
-// ────────────────────────────────────────────────────────────────────────────
+// 
 // Nutrition-label OCR parsing
-// ────────────────────────────────────────────────────────────────────────────
+// 
 
 export interface ParsedLabel {
   name?: string;
@@ -191,14 +191,14 @@ export function parseNutritionLabel(rawText: string): ParsedLabel {
         l.length >= 3 &&
         l.length <= 40 &&
         !/\d/.test(l) &&
-        !/(nutrition|valeurs|per\s*100|pour\s*100|facts|información)/i.test(l),
+        !/(nutrition|valeurs|per\s*100|pour\s*100|facts|informacin)/i.test(l),
     )
     .slice(0, 2);
   if (candidateNameLines.length >= 1) out.name = candidateNameLines[0];
   if (candidateNameLines.length >= 2) out.brand = candidateNameLines[1];
 
   // Try to figure out if values are per 100g or per serving.
-  // We default to "per 100g" — the most common format in EU/UK labels.
+  // We default to "per 100g"  the most common format in EU/UK labels.
   // Then we extract the first matching number per nutrient.
   const findValue = (patterns: RegExp[]): number | undefined => {
     for (const re of patterns) {
@@ -212,32 +212,32 @@ export function parseNutritionLabel(rawText: string): ParsedLabel {
     return undefined;
   };
 
-  // Calories — prefer kcal lines; fall back to kJ → kcal conversion (÷ 4.184)
+  // Calories  prefer kcal lines; fall back to kJ  kcal conversion ( 4.184)
   let kcal = findValue([
     /\bkcal\b/i,
     /\bcalories?\b/i,
-    /\b(?:énergie|energie|energy)\b.*kcal/i,
-    /^\s*énergie\b/i,
+    /\b(?:nergie|energie|energy)\b.*kcal/i,
+    /^\s*nergie\b/i,
   ]);
   if (kcal === undefined) {
-    const kj = findValue([/\bkj\b/i, /\b(?:énergie|energie|energy)\b.*kj/i]);
+    const kj = findValue([/\bkj\b/i, /\b(?:nergie|energie|energy)\b.*kj/i]);
     if (kj !== undefined) kcal = Math.round(kj / 4.184);
   }
   if (kcal !== undefined) out.caloriesPer100g = Math.round(kcal);
 
-  const protein = findValue([/\b(prot[eé]ines?|protein)\b/i]);
+  const protein = findValue([/\b(prot[e]ines?|protein)\b/i]);
   if (protein !== undefined) out.proteinPer100g = Math.round(protein * 10) / 10;
 
-  // "Glucides" (FR) / "Carbohydrates" (EN) — but NOT "of which sugars"
+  // "Glucides" (FR) / "Carbohydrates" (EN)  but NOT "of which sugars"
   const carbs = findValue([
     /^(?!.*(of which|dont)).*\b(glucides|carbohydrates?|carbs)\b/i,
     /\b(glucides|carbohydrates?|carbs)\b/i, // fallback if first regex too strict
   ]);
   if (carbs !== undefined) out.carbsPer100g = Math.round(carbs * 10) / 10;
 
-  // Total fat — but NOT "saturated" / "saturés"
+  // Total fat  but NOT "saturated" / "saturs"
   const fat = findValue([
-    /^(?!.*(satur|of which)).*\b(fat|lipides|mati[eè]res grasses|grasas)\b/i,
+    /^(?!.*(satur|of which)).*\b(fat|lipides|mati[e]res grasses|grasas)\b/i,
     /\b(fat|lipides)\b/i,
   ]);
   if (fat !== undefined) out.fatPer100g = Math.round(fat * 10) / 10;
@@ -245,13 +245,13 @@ export function parseNutritionLabel(rawText: string): ParsedLabel {
   const fiber = findValue([/\b(fib(?:re|er)s?|fibres?)\b/i]);
   if (fiber !== undefined) out.fiberPer100g = Math.round(fiber * 10) / 10;
 
-  const sugar = findValue([/\b(sugars?|sucres?|az[uú]cares?)\b/i]);
+  const sugar = findValue([/\b(sugars?|sucres?|az[u]cares?)\b/i]);
   if (sugar !== undefined) out.sugarPer100g = Math.round(sugar * 10) / 10;
 
-  const satFat = findValue([/\b(satur(?:ated|és?|es)|of which satur)\b/i]);
+  const satFat = findValue([/\b(satur(?:ated|s?|es)|of which satur)\b/i]);
   if (satFat !== undefined) out.saturatedFatPer100g = Math.round(satFat * 10) / 10;
 
-  // Sodium / salt → normalize to mg per 100g (salt → sodium ≈ ÷ 2.5 → ×1000)
+  // Sodium / salt  normalize to mg per 100g (salt  sodium   2.5  1000)
   const sodium = findValue([/\bsodium\b/i]);
   if (sodium !== undefined) {
     // OFF-style labels often print "0.5 g" sodium; treat <50 as grams

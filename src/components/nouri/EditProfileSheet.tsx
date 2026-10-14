@@ -4,14 +4,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { cloud } from "@/lib/nouri-cloud";
 import type { Goals } from "@/lib/nouri-storage";
 import {
-  saveUserProfile,
-  saveUserWarnings,
   type UserProfile,
 } from "@/components/nouri/ProfileChatOnboarding";
 import { getLanguage, getLanguageName } from "@/lib/nouri-i18n";
+import { useUpdateProfile } from "@/hooks/queries/useProfile";
+import { useUpdateGoals } from "@/hooks/queries/useGoals";
+import { buildExtendedGoals, parseWeightToKg } from "@/lib/nouri-goals";
 
 // ── Field metadata ───────────────────────────────────────────────────────────
 type FieldKey =
@@ -19,7 +19,8 @@ type FieldKey =
   | "restrictions"
   | "activityLevel"
   | "dislikes"
-  | "preferences";
+  | "preferences"
+  | "cuisinePreferences";
 
 const FIELD_LABELS: Record<FieldKey, string> = {
   conditions: "Edit health conditions",
@@ -27,16 +28,18 @@ const FIELD_LABELS: Record<FieldKey, string> = {
   activityLevel: "Edit activity level",
   dislikes: "Edit food dislikes",
   preferences: "Edit food preferences",
+  cuisinePreferences: "Edit favorite cuisines",
 };
 
 const FIELD_HELP: Record<FieldKey, string> = {
   conditions:
-    "Anything Nouri should know about — diabetes, blood pressure, cholesterol, thyroid, etc.",
+    "Anything Nutri AI should know about — diabetes, blood pressure, cholesterol, thyroid, etc.",
   restrictions:
     "Diets you follow — vegetarian, vegan, halal, kosher, gluten-free, dairy-free, etc.",
   activityLevel: "How active you are on a typical day.",
   dislikes: "Foods you'd rather not see in recommendations.",
   preferences: "Foods or cuisines you enjoy and want more of.",
+  cuisinePreferences: "Cuisines you love cooking — the planner will favor these across the week.",
 };
 
 const CHIP_OPTIONS: Partial<Record<FieldKey, string[]>> = {
@@ -50,6 +53,11 @@ const CHIP_OPTIONS: Partial<Record<FieldKey, string[]>> = {
     "Gluten-free",
     "Dairy-free",
     "Other",
+  ],
+  cuisinePreferences: [
+    "Italian", "Mediterranean", "Mexican", "Japanese", "Thai", "Indian",
+    "Chinese", "Korean", "Vietnamese", "Middle Eastern", "French", "German",
+    "Spanish", "Greek", "American", "British",
   ],
 };
 
@@ -77,8 +85,9 @@ function previewValue(profile: UserProfile, key: FieldKey): string {
 interface Props {
   profile: UserProfile;
   onClose: () => void;
-  onProfileSaved: (next: UserProfile) => void;
-  onGoalsRecalculated: (goals: Goals, warnings: string[]) => void;
+  /** Optional — kept for callers that still want a notification. */
+  onProfileSaved?: (next: UserProfile) => void;
+  onGoalsRecalculated?: (goals: Goals, warnings: string[]) => void;
   userId: string;
 }
 
@@ -87,8 +96,10 @@ export function EditProfileSheet({
   onClose,
   onProfileSaved,
   onGoalsRecalculated,
-  userId,
+  userId: _userId,
 }: Props) {
+  const updateProfile = useUpdateProfile();
+  const updateGoals = useUpdateGoals();
   const [editingField, setEditingField] = useState<FieldKey | null>(null);
   const [recalculating, setRecalculating] = useState(false);
 
@@ -98,18 +109,17 @@ export function EditProfileSheet({
     "activityLevel",
     "dislikes",
     "preferences",
+    "cuisinePreferences",
   ];
 
   async function persistField(key: FieldKey, value: string[] | string) {
     const next: UserProfile = { ...profile, [key]: value } as UserProfile;
-    saveUserProfile(next);
     try {
-      await cloud.updateProfile(userId, { user_profile_json: next } as any);
-    } catch (e: any) {
-      toast.error(e?.message || "Couldn't save your profile");
-      return;
+      await updateProfile.mutateAsync({ user_profile_json: next } as any);
+    } catch {
+      return; // toast handled by hook
     }
-    onProfileSaved(next);
+    onProfileSaved?.(next);
     setEditingField(null);
     toast.success("Profile updated ✓");
   }
@@ -135,34 +145,10 @@ export function EditProfileSheet({
         fat: Math.round(plan.fat),
       };
       const warnings: string[] = Array.isArray(plan.warnings) ? plan.warnings : [];
-      await cloud.upsertGoals(userId, goals);
-      await cloud.updateProfile(userId, { user_warnings_json: warnings } as any);
-      saveUserWarnings(warnings);
-      // Persist full extended goals locally (macros + micros + reasoning)
-      const { saveUserGoals, parseWeightToKg } = await import("@/lib/nouri-goals");
-      saveUserGoals({
-        ...goals,
-        fiber: plan.fiber,
-        sugar_max: plan.sugar_max,
-        saturated_fat_max: plan.saturated_fat_max,
-        sodium_max: plan.sodium_max,
-        cholesterol_max: plan.cholesterol_max,
-        potassium: plan.potassium,
-        calcium: plan.calcium,
-        iron: plan.iron,
-        vitamin_c: plan.vitamin_c,
-        vitamin_d: plan.vitamin_d,
-        vitamin_a: plan.vitamin_a,
-        reasoning:
-          plan.reasoning && typeof plan.reasoning === "object"
-            ? plan.reasoning
-            : plan.reasoning
-            ? { calories: String(plan.reasoning) }
-            : undefined,
-        bodyweight_kg: parseWeightToKg(profile.weight),
-        calibrated_at: new Date().toISOString(),
-      });
-      onGoalsRecalculated(goals, warnings);
+      const ext = buildExtendedGoals(goals, plan, parseWeightToKg(profile.weight));
+      await updateGoals.mutateAsync({ base: goals, extended: ext });
+      await updateProfile.mutateAsync({ user_warnings_json: warnings } as any);
+      onGoalsRecalculated?.(goals, warnings);
       toast.success("Goals recalculated ✓");
     } catch (e: any) {
       toast.error(e?.message || "Couldn't recalculate goals");
@@ -424,3 +410,5 @@ function FieldEditor({
     </div>
   );
 }
+
+

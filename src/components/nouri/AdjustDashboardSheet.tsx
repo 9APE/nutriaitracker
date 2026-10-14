@@ -9,13 +9,14 @@ import type { Goals } from "@/lib/nouri-storage";
 interface Props {
   open: boolean;
   onClose: () => void;
+  userId?: string | null;
   profile: any;
   goals: Goals;
   currentLayout: DashboardLayout | null;
   onUpdated: (layout: DashboardLayout) => void;
 }
 
-export function AdjustDashboardSheet({ open, onClose, profile, goals, currentLayout, onUpdated }: Props) {
+export function AdjustDashboardSheet({ open, onClose, userId, profile, goals, currentLayout, onUpdated }: Props) {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -32,7 +33,7 @@ export function AdjustDashboardSheet({ open, onClose, profile, goals, currentLay
         currentLayout,
         userMessage: text,
       });
-      saveLayout(layout);
+      saveLayout(layout, userId);
       onUpdated(layout);
       toast.success("Dashboard updated");
       setInput("");
@@ -73,7 +74,7 @@ export function AdjustDashboardSheet({ open, onClose, profile, goals, currentLay
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="e.g. I want to focus on lowering sodium…"
+              placeholder="e.g. I want to focus on lowering sodium"
               disabled={busy}
               autoFocus
             />

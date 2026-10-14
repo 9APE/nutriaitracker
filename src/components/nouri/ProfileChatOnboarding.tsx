@@ -24,6 +24,8 @@ export interface UserProfile {
   allergies: string[];
   /** Free-form list of preferred foods/cuisines. Optional — set via Edit Profile. */
   preferences?: string[];
+  /** Cuisines the user enjoys cooking (e.g. Italian, Thai). Used to bias the meal planner. */
+  cuisinePreferences?: string[];
   /** ISO country code for nutritional guideline authority (AU, DE, FR, GB, US, IN, OTHER). */
   country?: string;
 }
@@ -187,7 +189,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
       }
     } catch (e: any) {
       console.error(e);
-      toast.error(e?.message || "Couldn't reach Nouri. Try again.");
+      toast.error(e?.message || "Couldn't reach Nutri AI. Try again.");
     } finally {
       setWaiting(false);
     }
@@ -243,7 +245,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background gap-4 px-6 text-center">
         
         <Loader2 className="animate-spin text-primary" size={28} />
-        <p className="text-foreground font-serif text-lg">Nouri is building your personalised plan…</p>
+        <p className="text-foreground font-serif text-lg">Nutri AI is building your personalised plan…</p>
         <p className="text-muted-foreground text-sm max-w-xs">
           Calculating your daily targets based on everything you shared.
         </p>
@@ -257,7 +259,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
         <header className="px-5 py-4 border-b border-border">
           <div className="max-w-md mx-auto flex items-center gap-2">
             
-            <span className="font-serif text-lg font-medium">Nouri</span>
+            <span className="font-serif text-lg font-medium">Nutri AI</span>
           </div>
         </header>
 
@@ -323,7 +325,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
         <header className="px-5 py-4 border-b border-border">
           <div className="max-w-md mx-auto flex items-center gap-2">
             
-            <span className="font-serif text-lg font-medium">Nouri</span>
+            <span className="font-serif text-lg font-medium">Nutri AI</span>
           </div>
         </header>
         <div className="flex-1 px-5 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
@@ -399,7 +401,7 @@ export function ProfileChatOnboarding({ initial, onDone, onClose }: Props) {
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             
-            <span className="font-serif text-lg font-medium">Nouri</span>
+            <span className="font-serif text-lg font-medium">Nutri AI</span>
           </div>
           {onClose && (
             <button
@@ -610,3 +612,5 @@ function AdjustSlider({
     </div>
   );
 }
+
+

@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { MealCard } from "./MealCard";
-import type { Meal } from "@/lib/nouri-storage";
+import type { Meal, MealMicros, Goals } from "@/lib/nouri-storage";
 import { useLanguage, t, getLocale } from "@/lib/nouri-i18n";
 
 interface HistoryScreenProps {
   meals: Meal[];
+  goals?: Goals;
   onDelete: (id: string) => void;
 }
 
@@ -17,7 +18,69 @@ const todayISO = () => {
 const toISO = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-export function HistoryScreen({ meals, onDelete }: HistoryScreenProps) {
+/** Renders only the date-grouped meal list  no header, no calendar, last 14 days. */
+export function MealHistoryList({ meals, onDelete }: { meals: Meal[]; onDelete: (id: string) => void }) {
+  const lang = useLanguage();
+  const locale = getLocale(lang);
+
+  const cutoff = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 13);
+    return toISO(d);
+  }, []);
+
+  const groups = useMemo(() => {
+    const m = new Map<string, Meal[]>();
+    for (const meal of meals) {
+      if (meal.date < cutoff) continue;
+      const arr = m.get(meal.date) ?? [];
+      arr.push(meal);
+      m.set(meal.date, arr);
+    }
+    return m;
+  }, [meals, cutoff]);
+
+  const visibleDates = useMemo(
+    () => [...groups.keys()].sort((a, b) => (a < b ? 1 : -1)),
+    [groups]
+  );
+
+  const formatLong = (iso: string) =>
+    new Date(iso + "T00:00:00").toLocaleDateString(locale, {
+      weekday: "long", month: "long", day: "numeric",
+    });
+
+  if (visibleDates.length === 0) {
+    return <p className="text-sm text-muted-foreground">{t("noMealsLogged", lang)}</p>;
+  }
+
+  return (
+    <div className="space-y-7">
+      {visibleDates.map((date) => {
+        const items = groups.get(date)!;
+        const totals = items.reduce(
+          (a, m) => ({ calories: a.calories + m.calories, protein: a.protein + m.protein }),
+          { calories: 0, protein: 0 }
+        );
+        return (
+          <section key={date}>
+            <h3 className="font-serif text-base font-medium mb-2 px-1">{formatLong(date)}</h3>
+            <div className="space-y-2">
+              {items.map((m) => <MealCard key={m.id} meal={m} onDelete={onDelete} />)}
+            </div>
+            <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground px-1 pt-2 border-t border-border/60">
+              <span className="font-mono-data">{Math.round(totals.calories)} {t("kcalShort", lang)}</span>
+              <span className="font-mono-data">{Math.round(totals.protein)}{t("gShort", lang)} {t("proteinShort", lang)}</span>
+              <span>{t("mealsCount", lang, { n: items.length })}</span>
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+export function HistoryScreen({ meals, goals, onDelete }: HistoryScreenProps) {
   const lang = useLanguage();
   const locale = getLocale(lang);
   const [showCal, setShowCal] = useState(false);
@@ -50,7 +113,7 @@ export function HistoryScreen({ meals, onDelete }: HistoryScreenProps) {
     });
 
   return (
-    <div className="px-5 pt-4 pb-28 max-w-md mx-auto">
+    <div className="px-5 pt-4 pb-36 max-w-md mx-auto">
       <div className="flex items-center justify-between mb-5">
         <h1 className="font-serif text-2xl font-medium">{t("historyTitle", lang)}</h1>
         <button
@@ -115,6 +178,8 @@ export function HistoryScreen({ meals, onDelete }: HistoryScreenProps) {
         </div>
       )}
 
+      <NutrientTrends meals={meals} goals={goals} />
+
       {showCal && (
         <CalendarOverlay
           locale={locale}
@@ -130,7 +195,7 @@ export function HistoryScreen({ meals, onDelete }: HistoryScreenProps) {
   );
 }
 
-// ── Calendar overlay ─────────────────────────────────────────────────────────
+//  Calendar overlay 
 function CalendarOverlay({
   locale,
   datesWithMeals,
@@ -153,7 +218,7 @@ function CalendarOverlay({
 
   // Build weekday headers starting Monday
   const weekdayLabels = useMemo(() => {
-    // Monday Jan 4 1971 — known Monday
+    // Monday Jan 4 1971  known Monday
     const base = new Date(1971, 0, 4);
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(base);
@@ -166,7 +231,7 @@ function CalendarOverlay({
   const cells = useMemo(() => {
     const first = new Date(cursor.year, cursor.month, 1);
     const daysInMonth = new Date(cursor.year, cursor.month + 1, 0).getDate();
-    // JS getDay: Sun=0..Sat=6 → convert to Mon=0..Sun=6
+    // JS getDay: Sun=0..Sat=6  convert to Mon=0..Sun=6
     const startOffset = (first.getDay() + 6) % 7;
     const arr: (Date | null)[] = [];
     for (let i = 0; i < startOffset; i++) arr.push(null);
@@ -270,5 +335,121 @@ function CalendarOverlay({
         </p>
       </div>
     </div>
+  );
+}
+
+//  Nutrient trends (last 30 days) 
+
+type TrendNutrient = {
+  key: "calories" | "protein" | "carbs" | "fat" | "fiber" | "sugar" | "sodium";
+  label: string;
+  unit: string;
+  direction: "atLeast" | "atMost";
+  defaultGoal: number;
+  stroke: string;
+};
+
+const TREND_NUTRIENTS: TrendNutrient[] = [
+  { key: "calories", label: "Calories", unit: "kcal", direction: "atLeast", defaultGoal: 2500, stroke: "hsl(var(--macro-calories))" },
+  { key: "protein",  label: "Protein",  unit: "g",    direction: "atLeast", defaultGoal: 150,  stroke: "hsl(var(--macro-protein))" },
+  { key: "carbs",    label: "Carbs",    unit: "g",    direction: "atLeast", defaultGoal: 200,  stroke: "hsl(var(--macro-carbs))" },
+  { key: "fat",      label: "Fat",      unit: "g",    direction: "atLeast", defaultGoal: 70,   stroke: "hsl(var(--macro-fat))" },
+  { key: "fiber",    label: "Fiber",    unit: "g",    direction: "atLeast", defaultGoal: 30,   stroke: "hsl(160 60% 45%)" },
+  { key: "sugar",    label: "Sugar",    unit: "g",    direction: "atMost",  defaultGoal: 50,   stroke: "hsl(330 70% 60%)" },
+  { key: "sodium",   label: "Sodium",   unit: "mg",   direction: "atMost",  defaultGoal: 2300, stroke: "hsl(38 90% 55%)" },
+];
+
+function valueOf(meal: Meal, key: TrendNutrient["key"]): number {
+  if (key === "calories" || key === "protein" || key === "carbs" || key === "fat") {
+    return meal[key] ?? 0;
+  }
+  const m: MealMicros = meal.micros ?? {};
+  return (m as any)[key] ?? 0;
+}
+
+function NutrientTrends({ meals, goals }: { meals: Meal[]; goals?: Goals }) {
+  const days = useMemo(() => {
+    const out: string[] = [];
+    const now = new Date();
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      out.push(toISO(d));
+    }
+    return out;
+  }, []);
+
+  const series = useMemo(() => {
+    return TREND_NUTRIENTS.map((n) => {
+      const values = days.map((date) => {
+        const day = meals.filter((m) => m.date === date);
+        return day.reduce((s, m) => s + valueOf(m, n.key), 0);
+      });
+      const daysWithData = values.filter((v) => v > 0);
+      const avg = daysWithData.length
+        ? daysWithData.reduce((s, v) => s + v, 0) / daysWithData.length
+        : 0;
+      const goal = goals && (n.key in goals) ? (goals as any)[n.key] : n.defaultGoal;
+      return { ...n, values, avg, goal, today: values[values.length - 1] };
+    });
+  }, [meals, days, goals]);
+
+  if (meals.length === 0) return null;
+
+  return (
+    <section className="mt-8">
+      <h2 className="font-serif text-base font-medium mb-3 px-1">Nutrient trends  30 days</h2>
+      <div className="space-y-2">
+        {series.map((s) => (
+          <div key={s.key} className="rounded-2xl border border-border bg-card p-3 flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-medium leading-tight">{s.label}</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                avg <span className="font-mono-data text-foreground">{Math.round(s.avg)}</span>
+                <span className="mx-1"></span>
+                goal {s.direction === "atMost" ? "" : ""}{Math.round(s.goal)} {s.unit}
+              </div>
+            </div>
+            <Sparkline values={s.values} goal={s.goal} stroke={s.stroke} />
+            <div className="w-12 text-right font-mono-data text-xs">
+              {Math.round(s.today)}
+              <div className="text-[9px] text-muted-foreground font-sans">today</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Sparkline({ values, goal, stroke }: { values: number[]; goal: number; stroke: string }) {
+  const w = 96;
+  const h = 28;
+  const max = Math.max(goal * 1.1, ...values, 1);
+  const stepX = values.length > 1 ? w / (values.length - 1) : w;
+  const points = values
+    .map((v, i) => `${(i * stepX).toFixed(1)},${(h - (v / max) * h).toFixed(1)}`)
+    .join(" ");
+  const goalY = h - (goal / max) * h;
+  return (
+    <svg width={w} height={h} className="shrink-0" aria-hidden>
+      {goal > 0 && goalY >= 0 && goalY <= h && (
+        <line
+          x1={0} x2={w} y1={goalY} y2={goalY}
+          stroke="hsl(var(--muted-foreground))"
+          strokeOpacity={0.5}
+          strokeDasharray="2 2"
+          strokeWidth={1}
+        />
+      )}
+      <polyline
+        fill="none"
+        stroke={stroke}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points}
+      />
+    </svg>
   );
 }

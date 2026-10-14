@@ -1,8 +1,8 @@
 export type MealType = "Breakfast" | "Lunch" | "Dinner" | "Snack";
 
-/** Optional per-meal micronutrient estimates (in their canonical units —
+/** Optional per-meal micronutrient estimates (in their canonical units 
  * grams for fiber/sugar/saturated_fat, mg for sodium/potassium/cholesterol/iron/calcium/vitamin_c,
- * µg for vitamin_d). Always best-effort estimates from the AI or food label. */
+ * g for vitamin_d). Always best-effort estimates from the AI or food label. */
 export interface MealMicros {
   fiber?: number;
   sugar?: number;
@@ -37,6 +37,14 @@ export interface Goals {
   fat: number;
 }
 
+export type WaterQuickAmount = "sip" | "glass" | "bottle";
+
+export const WATER_AMOUNTS_ML: Record<WaterQuickAmount, number> = {
+  sip: 50,
+  glass: 250,
+  bottle: 500,
+};
+
 export const DEFAULT_GOALS: Goals = {
   calories: 2500,
   protein: 150,
@@ -48,7 +56,24 @@ const KEYS = {
   goals: "nouri:goals",
   meals: "nouri:meals",
   onboarded: "nouri:onboarded",
+  water: "nouri:water",
 };
+
+function userKey(base: string, userId?: string | null) {
+  return userId ? `${base}:${userId}` : base;
+}
+
+function getWaterMap(userId?: string | null): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(userKey(KEYS.water, userId));
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return {};
+}
+
+function setWaterMap(map: Record<string, number>, userId?: string | null) {
+  localStorage.setItem(userKey(KEYS.water, userId), JSON.stringify(map));
+}
 
 export const storage = {
   getGoals(): Goals {
@@ -89,14 +114,38 @@ export const storage = {
     localStorage.removeItem(KEYS.goals);
     localStorage.removeItem(KEYS.meals);
     localStorage.removeItem(KEYS.onboarded);
+    localStorage.removeItem(KEYS.water);
   },
 };
 
-// Local calendar date (toISOString is UTC and flips "today" for hours each day outside UTC)
-export const todayISO = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
+export function getWaterIntakeForDate(date: string, userId?: string | null): number {
+  return Math.max(0, Number(getWaterMap(userId)[date] ?? 0));
+}
+
+export function addWaterIntakeForDate(date: string, amountMl: number, userId?: string | null): number {
+  const map = getWaterMap(userId);
+  const next = Math.max(0, Number(map[date] ?? 0) + amountMl);
+  map[date] = next;
+  setWaterMap(map, userId);
+  window.dispatchEvent(new CustomEvent("water:updated", { detail: { date, amountMl: next } }));
+  return next;
+}
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+export function isoDateLocal(d = new Date()): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+export function isoDateUTC(d = new Date()): string {
+  return d.toISOString().slice(0, 10);
+}
+
+// NOTE: previously this was UTC via toISOString(). That caused streak/XP to
+// roll over at UTC midnight rather than the user's local midnight.
+export const todayISO = () => isoDateLocal(new Date());
 
 export const mealTypeEmoji = (t: MealType) =>
-  ({ Breakfast: "", Lunch: "", Dinner: "", Snack: "" }[t]);
+  ({ Breakfast: "🌅", Lunch: "☀️", Dinner: "🌙", Snack: "🍎" }[t]);

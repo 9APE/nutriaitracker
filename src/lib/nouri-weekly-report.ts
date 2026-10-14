@@ -1,6 +1,8 @@
 import type { Goals, Meal } from "./nouri-storage";
+import { isoDateLocal } from "./nouri-storage";
+import { userScopedKey } from "@/lib/user-scoped-storage";
 
-// ISO week key like "2026-W18" — Monday is the first day of the week
+// ISO week key like "2026-W18"  Monday is the first day of the week
 export function isoWeekKey(d: Date = new Date()): string {
   const target = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const dayNr = (target.getUTCDay() + 6) % 7; // Mon=0..Sun=6
@@ -20,14 +22,14 @@ export function isMonday(d: Date = new Date()): boolean {
 
 const LAST_KEY = "lastWeeklyReport";
 
-export function shouldShowWeeklyReport(now: Date = new Date()): boolean {
+export function shouldShowWeeklyReport(userId?: string | null, now: Date = new Date()): boolean {
   if (!isMonday(now)) return false;
-  const last = localStorage.getItem(LAST_KEY);
+  const last = localStorage.getItem(userScopedKey(LAST_KEY, userId));
   return last !== isoWeekKey(now);
 }
 
-export function markWeeklyReportShown(now: Date = new Date()) {
-  localStorage.setItem(LAST_KEY, isoWeekKey(now));
+export function markWeeklyReportShown(userId?: string | null, now: Date = new Date()) {
+  localStorage.setItem(userScopedKey(LAST_KEY, userId), isoWeekKey(now));
 }
 
 function lastNDays(n: number, now: Date = new Date()): string[] {
@@ -35,7 +37,7 @@ function lastNDays(n: number, now: Date = new Date()): string[] {
   for (let i = 0; i < n; i++) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
-    days.push(d.toISOString().slice(0, 10));
+    days.push(isoDateLocal(d));
   }
   return days;
 }
@@ -52,7 +54,8 @@ export function computeWeeklyStats(
   meals: Meal[],
   goals: Goals,
   streak: number,
-  now: Date = new Date()
+  now: Date = new Date(),
+  userId?: string | null,
 ): WeeklyStats {
   const days = lastNDays(7, now);
   const set = new Set(days);
@@ -71,7 +74,7 @@ export function computeWeeklyStats(
   // XP earned in last 7 days from per-day map written by nouri-xp.ts
   let xpThisWeek = 0;
   try {
-    const raw = localStorage.getItem("xpDailyTotals");
+    const raw = localStorage.getItem(userScopedKey("xpDailyTotals", userId)) ?? localStorage.getItem("xpDailyTotals");
     if (raw) {
       const map: Record<string, number> = JSON.parse(raw);
       for (const day of days) xpThisWeek += map[day] ?? 0;

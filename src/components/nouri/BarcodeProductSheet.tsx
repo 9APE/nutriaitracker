@@ -110,7 +110,7 @@ export function BarcodeProductSheet({ barcode, onClose, onMealReady }: Props) {
       source: "custom",
     };
     saveCustomFood(newProduct);
-    toast.success("Saved — future scans will load instantly");
+    toast.success("Saved  future scans will load instantly");
     const draft = buildMealFromProduct(newProduct, 100, todayISO(), "Snack");
     onMealReady(draft);
   }
@@ -122,7 +122,7 @@ export function BarcodeProductSheet({ barcode, onClose, onMealReady }: Props) {
         <header className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h3 className="font-serif text-lg font-medium">
             {phase === "loading"
-              ? "Looking up product…"
+              ? "Looking up product"
               : phase === "found"
                 ? "Choose portion"
                 : phase === "not-found"
@@ -142,7 +142,7 @@ export function BarcodeProductSheet({ barcode, onClose, onMealReady }: Props) {
           {phase === "loading" && (
             <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
               <Loader2 size={28} className="animate-spin text-primary" />
-              <p className="text-sm">Fetching from Open Food Facts…</p>
+              <p className="text-sm">Fetching from Open Food Facts</p>
               <p className="text-xs font-mono-data">{barcode}</p>
             </div>
           )}
@@ -165,7 +165,7 @@ export function BarcodeProductSheet({ barcode, onClose, onMealReady }: Props) {
                   <p className="text-sm text-muted-foreground mt-0.5">{product.brand}</p>
                 )}
                 <p className="text-[11px] text-muted-foreground font-mono-data mt-1">
-                  {product.source === "custom" ? "Saved locally" : "Open Food Facts"} · {barcode}
+                  {product.source === "custom" ? "Saved locally" : "Open Food Facts"}  {barcode}
                 </p>
               </div>
 
@@ -248,7 +248,7 @@ export function BarcodeProductSheet({ barcode, onClose, onMealReady }: Props) {
           {phase === "not-found" && (
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-foreground">Product not found — add it manually.</p>
+                <p className="text-sm text-foreground">Product not found  add it manually.</p>
                 <p className="text-[11px] text-muted-foreground font-mono-data mt-1">
                   Barcode: {barcode}
                 </p>
@@ -321,7 +321,7 @@ export function BarcodeProductSheet({ barcode, onClose, onMealReady }: Props) {
                 </details>
 
                 <p className="text-xs text-muted-foreground">
-                  Saved to this device — next scan of this barcode will load instantly.
+                  Saved to this device  next scan of this barcode will load instantly.
                 </p>
               </div>
             </div>

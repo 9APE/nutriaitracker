@@ -10,7 +10,7 @@ interface Props {
   macroTotals: { protein: number; fat: number };
   /** Today's summed micro totals */
   microTotals: Partial<MealMicros> & { [key: string]: number | undefined };
-  /** Goal values — uses condition defaults when a goal is missing */
+  /** Goal values  uses condition defaults when a goal is missing */
   goals: Record<string, number>;
 }
 
@@ -74,7 +74,7 @@ function AlertCard({ alert }: { alert: ActiveAlert }) {
 
       {alert.conflictWarning && (
         <p className="text-xs text-destructive mt-1.5 font-medium">
-          ⚠ {alert.conflictWarning}
+           {alert.conflictWarning}
         </p>
       )}
     </div>
@@ -112,7 +112,7 @@ export function MicronutrientAlerts({ conditions, macroTotals, microTotals, goal
         ))}
       </div>
       <p className="text-[10px] text-muted-foreground px-1">
-        Not medical advice — consult your doctor or dietitian.
+        Not medical advice  consult your doctor or dietitian.
       </p>
     </section>
   );

@@ -2,6 +2,7 @@
 import { resolveLanguage } from "../_shared/language.ts";
 import { EVIDENCE_SOURCES_INSTRUCTION } from "../_shared/evidence.ts";
 import { requireAuth } from "../_shared/auth.ts";
+import { formatNutritionistContext } from "../_shared/nutritionist-context.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -113,6 +114,16 @@ function buildFamilyBlock(familyRestrictions?: Record<string, any>): string {
   return `\n━━ FAMILY / HOUSEHOLD MODE ━━\n${lines.join("\n")}`;
 }
 
+function buildFamilyMembersBlock(familyMembers?: Record<string, any>[]): string {
+  if (!Array.isArray(familyMembers) || familyMembers.length === 0) return "";
+  return `\nHousehold members:\n${familyMembers.map((member) => {
+    const targets = member.dailyTargets && typeof member.dailyTargets === "object"
+      ? `${Number(member.dailyTargets.calories) || 0} kcal, ${Number(member.dailyTargets.protein) || 0}g protein`
+      : "targets not set";
+    return `- ${member.name || "Family member"} | age ${member.age ?? "unknown"} | goals: ${fmtList(member.goals)} | restrictions: ${fmtList(member.restrictions)} | allergies: ${fmtList(member.allergies)} | conditions: ${fmtList(member.conditions)} | dislikes: ${fmtList(member.dislikes)} | targets: ${targets}`;
+  }).join("\n")}`;
+}
+
 function buildSystemPrompt(
   profile: Record<string, any>,
   totals: Record<string, number>,
@@ -123,6 +134,8 @@ function buildSystemPrompt(
   currentHour: number,
   familyMode: boolean,
   familyRestrictions?: Record<string, any>,
+  familyMembers?: Record<string, any>[],
+  nutritionistContext?: Record<string, any>,
 ): string {
   const p = profile ?? {};
 
@@ -157,6 +170,7 @@ If HIGH CHOLESTEROL is listed above: avoid saturated fats, prioritise fibre and 
 If CELIAC is listed above: never suggest gluten in any form.
 If KIDNEY DISEASE is listed above: limit potassium, phosphorus, protein, and sodium — every meal.
 ${familyMode ? buildFamilyBlock(familyRestrictions) : ""}
+${familyMode ? buildFamilyMembersBlock(familyMembers) : ""}
 USER PROFILE:
 Name: ${p.name || "User"}
 Age: ${p.age || "unknown"} | Sex: ${p.sex || "unknown"}
@@ -171,6 +185,8 @@ TODAY'S REMAINING NEEDS:
 Calories: ${Math.round(remaining.calories || 0)} kcal | Protein: ${Math.round(remaining.protein || 0)}g | Carbs: ${Math.round(remaining.carbs || 0)}g | Fat: ${Math.round(remaining.fat || 0)}g | Fibre: ${Math.round(remaining.fiber || 0)}g
 Current time: ${currentHour}:00 — before 11am suggest breakfast, 11am–3pm lunch, 3–6pm snack, after 6pm dinner
 
+${formatNutritionistContext(nutritionistContext)}
+
 MEALS ALREADY LOGGED TODAY — DO NOT SUGGEST ANYTHING SIMILAR:
 ${todayMealNames.length ? todayMealNames.join(", ") : "None"}
 
@@ -184,6 +200,8 @@ RULES:
 - All 3 suggestions must use genuinely different protein sources and cuisines
 - If training was logged, at least one suggestion must be high in protein
 - Before finalising each suggestion, verify it against EVERY restriction above. If it contains any restricted ingredient, replace it immediately.
+- If the request context implies a specific household member, prioritise that member's goals and restrictions while still respecting shared household safety constraints.
+- Use the Nutri AI colour context as the source of truth. Avoid RED/ORANGE limit nutrients and prioritise realistic food fixes for RED/ORANGE target nutrients.
 
 YOUR TASK:
 Suggest exactly 3 specific meals for ${p.name || "this user"}. Be specific with ingredients.
@@ -193,14 +211,21 @@ Return ONLY a valid JSON array of exactly 3 objects:
   {
     "meal_name": "string (specific and descriptive)",
     "meal_type": "Breakfast or Lunch or Dinner or Snack",
-    "why": "string (one sentence mentioning the user's name and why this fits their restrictions)",
+    "reason": "string — ONE short clause tied to the user's goals/remaining macros/conditions. Max 8 words. Example: 'Closes your 30g protein gap'",
+    "benefit": "string — ONE short clause on the physiological/practical benefit. Max 8 words. Example: 'helps muscle recovery and keeps you full'",
+    "why": "string — fallback one-sentence summary if reason+benefit are not used by the client",
     "protein": number,
     "calories": number,
     "carbs": number,
     "fat": number,
     "restriction_badges": ["array of strings — list each specific restriction respected e.g. Vegetarian, Gluten-free. Never use generic badges."]
   }
-]`;
+]
+
+EXPLANATION RULES:
+- "reason" must reference concrete user data (remaining grams, training, condition, time of day). Never generic.
+- "benefit" must be a clear physiological or behavioural payoff (recovery, satiety, energy, blood sugar, sleep, etc.).
+- Keep each under 8 words so the UI can show "reason → benefit" on one line.`;
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -235,6 +260,8 @@ Deno.serve(async (req) => {
       languageName,
       familyMode,
       familyRestrictions,
+      familyMembers,
+      nutritionistContext,
     } = await req.json();
 
     const lang = resolveLanguage(language, languageName);
@@ -252,12 +279,14 @@ Deno.serve(async (req) => {
         totals ?? {},
         remaining,
         todayMealNames ?? [],
-        training ?? "",
-        recentlyRecommended ?? [],
-        typeof currentHour === "number" ? currentHour : new Date().getHours(),
-        Boolean(familyMode),
-        familyRestrictions,
-      ) +
+          training ?? "",
+          recentlyRecommended ?? [],
+          typeof currentHour === "number" ? currentHour : new Date().getHours(),
+          Boolean(familyMode),
+          familyRestrictions,
+          familyMembers,
+          nutritionistContext,
+        ) +
       "\n" +
       EVIDENCE_SOURCES_INSTRUCTION +
       lang.suffix;
@@ -327,18 +356,29 @@ Deno.serve(async (req) => {
     }
 
     const arr = Array.isArray(parsed) ? parsed : (parsed.suggestions ?? []);
-    const suggestions = arr.slice(0, 3).map((s: any) => ({
-      meal_name: String(s.meal_name ?? "Meal"),
-      meal_type: String(s.meal_type ?? ""),
-      why: String(s.why ?? ""),
-      protein: Math.round(Number(s.protein) || 0),
-      calories: Math.round(Number(s.calories) || 0),
-      carbs: Math.round(Number(s.carbs) || 0),
-      fat: Math.round(Number(s.fat) || 0),
-      restriction_badges: Array.isArray(s.restriction_badges)
-        ? s.restriction_badges.map(String)
-        : s.suitable_for ? [String(s.suitable_for)] : [],
-    }));
+    const suggestions = arr.slice(0, 3).map((s: any) => {
+      const reason = typeof s.reason === "string" ? s.reason.trim() : "";
+      const benefit = typeof s.benefit === "string" ? s.benefit.trim() : "";
+      // Compose a single-line `why` for clients that don't render reason/benefit
+      // separately (backward compat). Falls back to whatever the model returned.
+      const composedWhy = reason && benefit
+        ? `${reason} → ${benefit}`
+        : String(s.why ?? reason ?? benefit ?? "");
+      return {
+        meal_name: String(s.meal_name ?? "Meal"),
+        meal_type: String(s.meal_type ?? ""),
+        reason,
+        benefit,
+        why: composedWhy,
+        protein: Math.round(Number(s.protein) || 0),
+        calories: Math.round(Number(s.calories) || 0),
+        carbs: Math.round(Number(s.carbs) || 0),
+        fat: Math.round(Number(s.fat) || 0),
+        restriction_badges: Array.isArray(s.restriction_badges)
+          ? s.restriction_badges.map(String)
+          : s.suitable_for ? [String(s.suitable_for)] : [],
+      };
+    });
 
     return new Response(JSON.stringify({ suggestions }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

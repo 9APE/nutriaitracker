@@ -9,14 +9,18 @@ import {
 } from "@/lib/nouri-suggestions";
 
 interface Options {
+  userId?: string | null;
+  profile?: Record<string, any> | null;
   goals: Goals;
   meals: Meal[];
   onNew?: () => void;
+  /** Set false to pause (e.g. the temporary guest preview has no AI). */
+  enabled?: boolean;
 }
 
 // Polls every 60s. When inside a meal window and no suggestion has fired
 // for that meal today yet, generate one and store it as a notification.
-export function useAutoSuggestions({ goals, meals, onNew }: Options) {
+export function useAutoSuggestions({ userId, profile, goals, meals, onNew, enabled = true }: Options) {
   const runningRef = useRef(false);
   const goalsRef = useRef(goals);
   const mealsRef = useRef(meals);
@@ -30,31 +34,32 @@ export function useAutoSuggestions({ goals, meals, onNew }: Options) {
     let cancelled = false;
 
     const tick = async () => {
-      if (runningRef.current) return;
+      if (!enabled || runningRef.current) return;
       const mealType = currentMealWindow();
       if (!mealType) return;
-      if (triggerStore.hasFiredToday(mealType)) return;
+      if (triggerStore.hasFiredToday(mealType, userId)) return;
 
       runningRef.current = true;
       try {
         const suggestions = await fetchSuggestions(
           goalsRef.current,
           mealsRef.current,
-          mealType
+          mealType,
+          { userId, profile },
         );
         if (cancelled || suggestions.length === 0) return;
 
-        triggerStore.markFired(mealType);
+        triggerStore.markFired(mealType, userId);
         notifStore.add({
           id: crypto.randomUUID(),
           created_at: Date.now(),
           mealType,
           suggestions,
           read: false,
-        });
+        }, userId);
         fireBrowserNotification(
-          `Nouri Â· ${mealType} ideas`,
-          suggestions.map((s) => s.meal_name).join(" Â· ")
+          `Nutri AI · ${mealType} ideas`,
+          suggestions.map((s) => s.meal_name).join(" · ")
         );
         onNew?.();
       } catch (e) {
@@ -73,5 +78,7 @@ export function useAutoSuggestions({ goals, meals, onNew }: Options) {
       clearInterval(interval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [onNew, profile, userId, enabled]);
 }
+
+

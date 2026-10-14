@@ -7,8 +7,10 @@ import { todayISO } from "@/lib/nouri-storage";
 import { getLanguage, getLanguageName } from "@/lib/nouri-i18n";
 import { toast } from "sonner";
 import type { Goals, Meal, MealType } from "@/lib/nouri-storage";
+import { buildNutritionistContext } from "@/lib/nutri-ai/nutritionist-context";
+import { userScopedKey } from "@/lib/user-scoped-storage";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+//  Types 
 
 interface Citation { title: string; url: string; }
 
@@ -47,14 +49,14 @@ function getNextMealType(): MealType {
 }
 
 function loadHistory(): ChatMessage[] {
-  try { const r = localStorage.getItem(CHAT_KEY); return r ? JSON.parse(r) : []; } catch { return []; }
+  try { const r = localStorage.getItem(userScopedKey(CHAT_KEY)); return r ? JSON.parse(r) : []; } catch { return []; }
 }
 function saveHistory(msgs: ChatMessage[]) {
-  try { localStorage.setItem(CHAT_KEY, JSON.stringify(msgs.slice(-MAX_STORED))); } catch {}
+  try { localStorage.setItem(userScopedKey(CHAT_KEY), JSON.stringify(msgs.slice(-MAX_STORED))); } catch {}
 }
 function uid() { return Math.random().toString(36).slice(2, 10); }
 
-// ── Citation list ────────────────────────────────────────────────────────────
+//  Citation list 
 
 function CitationList({ citations }: { citations: Citation[] }) {
   if (!citations.length) return null;
@@ -72,7 +74,7 @@ function CitationList({ citations }: { citations: Citation[] }) {
   );
 }
 
-// ── Suggestion card ──────────────────────────────────────────────────────────
+//  Suggestion card 
 
 function SuggestionCard({ s, onLog, onAsk, logging }: {
   s: MealSuggestion;
@@ -94,7 +96,7 @@ function SuggestionCard({ s, onLog, onAsk, logging }: {
       <p className="text-sm font-medium leading-tight line-clamp-2">{s.meal_name}</p>
       <div className="flex gap-2 text-[10px] text-muted-foreground">
         <span>{s.calories} kcal</span>
-        <span>·</span>
+        <span></span>
         <span>{s.protein}g P</span>
       </div>
       <div className="flex gap-1.5 mt-auto">
@@ -111,7 +113,7 @@ function SuggestionCard({ s, onLog, onAsk, logging }: {
   );
 }
 
-// ── Suggested meals strip ────────────────────────────────────────────────────
+//  Suggested meals strip 
 
 function SuggestedMealsStrip({ goals, todayMeals, getProfile, onAsk, onLog }: {
   goals: Goals;
@@ -146,6 +148,11 @@ function SuggestedMealsStrip({ goals, todayMeals, getProfile, onAsk, onLog }: {
           training: "",
           recentlyRecommended: shownRef.current,
           currentHour: new Date().getHours(),
+          nutritionistContext: buildNutritionistContext({
+            meals: todayMeals,
+            goals,
+            userProfile: profile,
+          }).aiContext,
           language: getLanguage() ?? "en",
           languageName: getLanguageName(),
         },
@@ -200,7 +207,7 @@ function SuggestedMealsStrip({ goals, todayMeals, getProfile, onAsk, onLog }: {
   );
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
+//  Main component 
 
 export function NutritionChatScreen({ goals, meals, onAddMeal }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory());
@@ -253,7 +260,7 @@ export function NutritionChatScreen({ goals, meals, onAddMeal }: Props) {
   }
 
   function handleSuggestionAsk(mealName: string) {
-    setInput(`Tell me more about "${mealName}" — is it right for my goals?`);
+    setInput(`Tell me more about "${mealName}"  is it right for my goals?`);
     inputRef.current?.focus();
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   }
@@ -286,7 +293,7 @@ export function NutritionChatScreen({ goals, meals, onAddMeal }: Props) {
       localStorage.setItem("userProfile", JSON.stringify(updated));
       const { data: { user } } = await supabase.auth.getUser();
       if (user) await supabase.from("profiles").update({ user_profile_json: updated }).eq("id", user.id);
-      toast.success(`✓ ${value} ${action === "remove" ? "removed from" : "added to"} your ${field}`);
+      toast.success(` ${value} ${action === "remove" ? "removed from" : "added to"} your ${field}`);
     } catch {}
   }
 
@@ -336,7 +343,7 @@ export function NutritionChatScreen({ goals, meals, onAddMeal }: Props) {
         </p>
       </div>
 
-      {/* Suggested meals — always visible at top */}
+      {/* Suggested meals  always visible at top */}
       <SuggestedMealsStrip
         goals={goals} todayMeals={todayMeals}
         getProfile={getFreshProfile}
@@ -381,7 +388,7 @@ export function NutritionChatScreen({ goals, meals, onAddMeal }: Props) {
           <div className="flex justify-start">
             <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-2">
               <Loader2 size={14} className="animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">Thinking…</span>
+              <span className="text-sm text-muted-foreground">Thinking</span>
             </div>
           </div>
         )}
@@ -401,7 +408,7 @@ export function NutritionChatScreen({ goals, meals, onAddMeal }: Props) {
       <div className="px-4 pb-4 pt-2 border-t border-border bg-background">
         <div className="flex items-end gap-2 bg-card border border-border rounded-2xl px-3 py-2">
           <textarea ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKey} placeholder="Ask anything about nutrition…" rows={1}
+            onKeyDown={handleKey} placeholder="Ask anything about nutrition" rows={1}
             className="flex-1 bg-transparent text-sm resize-none outline-none max-h-32 leading-relaxed placeholder:text-muted-foreground"
             style={{ fieldSizing: "content" } as any} disabled={loading || isRecording} />
           <div className="flex items-center gap-1 shrink-0">

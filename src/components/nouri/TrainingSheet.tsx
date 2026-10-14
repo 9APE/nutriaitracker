@@ -1,15 +1,21 @@
-import { useEffect } from "react";
-import { TRAINING_OPTIONS, type TrainingType } from "@/lib/nouri-training";
+import { useEffect, useState } from "react";
+import { TRAINING_OPTIONS, TRAINING_BURN, type TrainingType } from "@/lib/nouri-training";
+import { Flame } from "lucide-react";
 
 interface TrainingSheetProps {
   open: boolean;
   onClose: () => void;
-  onPick: (type: TrainingType) => void;
+  onPick: (type: TrainingType, calories?: number) => void;
 }
 
 export function TrainingSheet({ open, onClose, onPick }: TrainingSheetProps) {
+  const [selected, setSelected] = useState<TrainingType | null>(null);
+  const [calories, setCalories] = useState<string>("");
+
   useEffect(() => {
     if (!open) return;
+    setSelected(null);
+    setCalories("");
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
@@ -18,6 +24,12 @@ export function TrainingSheet({ open, onClose, onPick }: TrainingSheetProps) {
   }, [open, onClose]);
 
   if (!open) return null;
+
+  const submit = () => {
+    if (!selected) return;
+    const cal = calories.trim() ? Math.max(0, parseInt(calories, 10) || 0) : undefined;
+    onPick(selected, cal);
+  };
 
   return (
     <div
@@ -38,29 +50,66 @@ export function TrainingSheet({ open, onClose, onPick }: TrainingSheetProps) {
           What did you do today?
         </h3>
         <p className="text-xs text-center text-muted-foreground mt-1">
-          Adds +20g protein to today's target.
+          Adds +20g protein and your burned calories to today.
         </p>
+
         <div className="mt-4 space-y-2">
-          {TRAINING_OPTIONS.map((opt) => (
-            <button
-              key={opt.type}
-              type="button"
-              onClick={() => onPick(opt.type)}
-              className="w-full flex items-center gap-3 rounded-2xl p-3 border border-border bg-muted/40 hover:bg-muted transition-colors active:scale-[0.99]"
-            >
-              <span className="text-sm font-medium text-foreground">
-                {opt.label}
-              </span>
-            </button>
-          ))}
+          {TRAINING_OPTIONS.map((opt) => {
+            const isSel = selected === opt.type;
+            return (
+              <button
+                key={opt.type}
+                type="button"
+                onClick={() => setSelected(opt.type)}
+                className={`w-full flex items-center justify-between gap-3 rounded-2xl p-3 border transition-colors active:scale-[0.99] ${
+                  isSel
+                    ? "border-primary bg-primary/10"
+                    : "border-border bg-muted/40 hover:bg-muted"
+                }`}
+              >
+                <span className="text-sm font-medium text-foreground">{opt.label}</span>
+                <span className="text-[11px] text-muted-foreground">
+                  ~{TRAINING_BURN[opt.type]} kcal
+                </span>
+              </button>
+            );
+          })}
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-full mt-4 rounded-full py-3 text-sm font-medium border border-border text-muted-foreground hover:text-foreground"
-        >
-          Cancel
-        </button>
+
+        {selected && (
+          <div className="mt-4 rounded-2xl border border-border bg-muted/40 p-3 space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <label className="flex items-center gap-2 text-xs font-medium text-foreground">
+              <Flame size={14} className="text-primary" />
+              Calories burned (optional)
+            </label>
+            <input
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={calories}
+              onChange={(e) => setCalories(e.target.value.replace(/[^0-9]/g, ""))}
+              placeholder={`Default ~${TRAINING_BURN[selected]} kcal`}
+              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none focus:border-primary/50 font-mono-data"
+            />
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-2 mt-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full py-3 text-sm font-medium border border-border text-muted-foreground hover:text-foreground"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={!selected}
+            className="rounded-full py-3 text-sm font-medium bg-primary text-primary-foreground disabled:opacity-40"
+          >
+            Log training
+          </button>
+        </div>
       </div>
     </div>
   );

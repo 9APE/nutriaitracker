@@ -1,5 +1,5 @@
 // NutriAI — Grocery list generator from weekly meal plan
-// Uses claude-haiku for cost efficiency (no citations needed)
+// Uses the same model as plan-meals so one deployment config covers both
 import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
@@ -105,13 +105,34 @@ Deno.serve(async (req) => {
     const data = await response.json();
     const raw: string = data?.content?.[0]?.text ?? "";
 
+    function extractJson(text: string): any {
+      let cleaned = text.replace(/```(?:json)?\s*/gi, "").replace(/```/g, "").trim();
+      const start = cleaned.search(/[\{\[]/);
+      const openChar = start !== -1 ? cleaned[start] : "{";
+      const endChar = openChar === "[" ? "]" : "}";
+      const end = cleaned.lastIndexOf(endChar);
+      if (start !== -1 && end !== -1) cleaned = cleaned.substring(start, end + 1);
+      try { return JSON.parse(cleaned); } catch {}
+      // Fix trailing commas / control chars
+      const fixed = cleaned.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]").replace(/[\x00-\x1F\x7F]/g, " ");
+      try { return JSON.parse(fixed); } catch {}
+      // Try to repair truncation by closing open braces/brackets
+      const opens = (fixed.match(/\{/g) || []).length;
+      const closes = (fixed.match(/\}/g) || []).length;
+      const obrk = (fixed.match(/\[/g) || []).length;
+      const cbrk = (fixed.match(/\]/g) || []).length;
+      let repaired = fixed.replace(/,\s*$/, "");
+      // Remove trailing incomplete object after last complete entry
+      repaired = repaired.replace(/,[^,\}\]]*$/, "");
+      repaired += "]".repeat(Math.max(0, obrk - cbrk)) + "}".repeat(Math.max(0, opens - closes));
+      return JSON.parse(repaired);
+    }
+
     let parsed: any;
     try {
-      const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-      const str = fence ? fence[1].trim() : raw.trim();
-      const objMatch = str.match(/\{[\s\S]*\}/);
-      parsed = JSON.parse(objMatch ? objMatch[0] : str);
-    } catch {
+      parsed = extractJson(raw);
+    } catch (err) {
+      console.error("Failed to parse grocery JSON. Raw:", raw?.slice(0, 2000));
       return new Response(
         JSON.stringify({ error: "Failed to parse grocery list response" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }

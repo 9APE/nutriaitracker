@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Goals, Meal } from "@/lib/nouri-storage";
 import { todayISO } from "@/lib/nouri-storage";
 import { maybeAwardWeeklyCheckin } from "@/lib/nouri-xp";
+import { buildNutritionistContext } from "@/lib/nutri-ai/nutritionist-context";
 import { toast } from "sonner";
 
 export const LAST_CHECKIN_KEY = "lastCheckIn";
@@ -111,6 +112,11 @@ export function WeeklyCheckin({ goals, meals, profile, onClose, onGoalsUpdated }
           profile,
           avgProtein,
           avgCalories,
+          nutritionistContext: buildNutritionistContext({
+            meals,
+            goals,
+            userProfile: profile ?? null,
+          }).aiContext,
           messages: history,
           language: getLanguage() ?? "en",
           languageName: getLanguageName(),
@@ -138,7 +144,7 @@ export function WeeklyCheckin({ goals, meals, profile, onClose, onGoalsUpdated }
       }
     } catch (e: any) {
       console.error(e);
-      toast.error(e?.message || "Couldn't reach Nouri");
+      toast.error(e?.message || "Couldn't reach Nutri AI");
     } finally {
       setWaiting(false);
     }
@@ -286,3 +292,4 @@ export function isCheckinDue(signupISO?: string | null): boolean {
   const diffDays = Math.round((now.getTime() - ref.getTime()) / 86400000);
   return diffDays >= 7;
 }
+

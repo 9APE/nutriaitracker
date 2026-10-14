@@ -8,17 +8,19 @@ import {
   markWeeklyReportShown,
   type WeeklyStats,
 } from "@/lib/nouri-weekly-report";
+import { buildNutritionistContext } from "@/lib/nutri-ai/nutritionist-context";
 
 interface WeeklyReportProps {
   name: string;
+  userId?: string | null;
   meals: Meal[];
   goals: Goals;
   onClose: () => void;
 }
 
-export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps) {
+export function WeeklyReport({ name, userId, meals, goals, onClose }: WeeklyReportProps) {
   const [stats] = useState<WeeklyStats>(() =>
-    computeWeeklyStats(meals, goals, getStreak().count)
+    computeWeeklyStats(meals, goals, getStreak(userId).count, new Date(), userId)
   );
   const [summary, setSummary] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -38,6 +40,11 @@ export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps)
               proteinGoal: goals.protein,
               calorieGoal: goals.calories,
             },
+            nutritionistContext: buildNutritionistContext({
+              meals,
+              goals,
+              userProfile: { name },
+            }).aiContext,
           },
         });
         if (cancelled) return;
@@ -59,10 +66,10 @@ export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps)
     return () => {
       cancelled = true;
     };
-  }, [name, goals.protein, goals.calories]);
+  }, [name, goals.protein, goals.calories, stats]);
 
   const handleEnter = () => {
-    markWeeklyReportShown();
+    markWeeklyReportShown(userId);
     onClose();
   };
 
@@ -94,7 +101,7 @@ export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps)
             🌿
           </div>
           <p className="text-xs uppercase tracking-wider text-muted-foreground">
-            Your week with Nouri
+            Your week with Nutri AI
           </p>
           <h2 className="font-serif text-2xl font-medium mt-1 text-foreground">
             Hey {name}, here's your week
@@ -130,7 +137,7 @@ export function WeeklyReport({ name, meals, goals, onClose }: WeeklyReportProps)
               <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" />
               <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse [animation-delay:120ms]" />
               <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse [animation-delay:240ms]" />
-              <span className="ml-1">Nouri is writing your summary…</span>
+              <span className="ml-1">Nutri AI is writing your summary...</span>
             </div>
           ) : (
             <p className="text-sm leading-relaxed ">

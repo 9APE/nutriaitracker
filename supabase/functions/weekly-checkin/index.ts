@@ -1,6 +1,7 @@
 // Weekly check-in chat with Nouri (Claude Sonnet)
 import { resolveLanguage } from "../_shared/language.ts";
 import { requireAuth } from "../_shared/auth.ts";
+import { formatNutritionistContext } from "../_shared/nutritionist-context.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,13 +21,16 @@ function buildSystem(
   avgProtein: number,
   avgCalories: number,
   profile: any,
+  nutritionistContext?: Record<string, any>,
 ) {
-  return `You are Nouri, a warm and supportive nutrition assistant AND a clinical nutritionist. The user has been tracking for a week.
+  return `You are Nutri AI, a warm and supportive nutrition assistant. The user has been tracking for a week.
 
 Current daily goals: ${JSON.stringify(goals)}
 User profile: ${JSON.stringify(profile ?? {})}
 Average protein this week: ${Math.round(avgProtein)}g
 Average calories this week: ${Math.round(avgCalories)} kcal
+
+${formatNutritionistContext(nutritionistContext)}
 
 Have a short friendly check-in. Ask ONE question at a time, wait for their reply before the next. Keep each message to 1-3 sentences.
 
@@ -40,6 +44,7 @@ After all 3 answers:
 - If user said "too high" reduce that macro by 5-10%; "too low" increase by 5-10%; "about right" keep within 2%
 - Keep carbs and fat proportional to calories unless the user said otherwise
 - Personalize micronutrients to their profile (sex, age, conditions): Sodium 1500mg if hypertension else 2300mg; Iron 18mg female / 8mg male / up to 20mg athlete; Calcium 1200mg if 50+ else 1000mg; Vitamin D 15-25µg; Fiber 14g per 1000 kcal; Sugar max 25g if diabetic/weight-loss else 50g; Saturated fat = 10% of calories / 9; Cholesterol 200mg if high cholesterol else 300mg
+- Use the Nutri AI colour context only to explain what went well and what needs attention. Do not override clinician advice, and avoid weight-loss language in eating-disorder recovery mode.
 
 When ready, send your final message ending with EXACTLY this marker on its own line followed by a JSON object:
 
@@ -114,7 +119,7 @@ Deno.serve(async (req) => {
     const lang = resolveLanguage(body?.language, body?.languageName);
     const text = await callClaude(
       ANTHROPIC_API_KEY,
-      buildSystem(goals, avgProtein, avgCalories, profile) + lang.suffix,
+      buildSystem(goals, avgProtein, avgCalories, profile, body?.nutritionistContext) + lang.suffix,
       messages
     );
 

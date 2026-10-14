@@ -34,7 +34,7 @@ function TodayBody({ run, reduced, kcal, protein, carbs, fat, banner, children }
     <div className="space-y-3 px-4 pb-20 pt-3">
       <div className="flex items-start justify-between">
         <div>
-          <div className="text-[19px] font-bold tracking-tight">NutriAI</div>
+          <div className="text-[19px] font-bold tracking-tight">Nutri AI</div>
           <div className="font-mono-data text-[9px] text-muted-foreground">Wednesday, October 14, 2026</div>
         </div>
         <StreakPill days={run && kcal ? 1 : 0} />
@@ -136,7 +136,7 @@ export function AskAiScene({ reduced }: SceneProps) {
   const speaking = s === 5;
   const heard = useTyping(ASK_QUESTION, s >= 5, 24, reduced);
   const cursor: CursorState = {
-    target: s === 1 || s === 2 ? "tab-ask" : s === 4 || s === 5 ? "ask-mic" : s === 7 || s === 8 ? "recipe" : null,
+    target: s === 1 || s === 2 ? "tab-log" : s === 4 || s === 5 ? "ask-mic" : s === 7 || s === 8 ? "recipe" : null,
     pulse: s === 2 ? 1 : s === 5 ? 2 : s === 8 ? 3 : 0,
   };
   return (
@@ -199,7 +199,7 @@ export function AskAiScene({ reduced }: SceneProps) {
           </div>
         </div>
       )}
-      <TabBar active={onChat ? "ask" : "today"} />
+      <TabBar active={onChat ? "log" : "today"} />
     </PhoneFrame>
   );
 }

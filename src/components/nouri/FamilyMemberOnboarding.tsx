@@ -27,6 +27,7 @@ const QUESTIONS = [
   { key: "allergies", q: "Any food allergies?", type: "chips", multi: true, options: ["None", "Nuts", "Peanuts", "Shellfish", "Fish", "Eggs", "Soy", "Wheat", "Milk"] },
   { key: "activityLevel", q: "Activity level?", type: "chips", options: ["Sedentary", "Lightly active", "Moderately active", "Very active"] },
   { key: "dislikes", q: "Any foods they dislike? (comma-separated, or 'None')", type: "text" },
+  { key: "cuisinePreferences", q: "Which cuisines do they love? (pick any)", type: "chips", multi: true, options: ["Italian", "Mediterranean", "Mexican", "Japanese", "Thai", "Indian", "Chinese", "Korean", "Middle Eastern", "French", "German", "American"] },
 ] as const;
 
 function parseWeightToKg(w: string): number | null {
@@ -37,7 +38,7 @@ function parseWeightToKg(w: string): number | null {
 }
 
 function parseHeightToCm(h: string): number | null {
-  const ftMatch = h.match(/(\d+)\s*[''′]\s*(\d+)/);
+  const ftMatch = h.match(/(\d+)\s*['']\s*(\d+)/);
   if (ftMatch) return Math.round(parseInt(ftMatch[1]) * 30.48 + parseInt(ftMatch[2]) * 2.54);
   const num = parseFloat(h?.replace(/[^0-9.]/g, "") ?? "");
   return isFinite(num) ? Math.round(num) : null;
@@ -95,6 +96,7 @@ export function FamilyMemberOnboarding({ existingMember, onDone, onClose }: Prop
       allergies: existingMember.allergies?.length ? existingMember.allergies : [],
       activityLevel: existingMember.activityLevel || "",
       dislikes: existingMember.dislikes?.join(", ") || "",
+      cuisinePreferences: existingMember.cuisinePreferences?.length ? existingMember.cuisinePreferences : [],
     };
   });
   const [input, setInput] = useState("");
@@ -114,7 +116,7 @@ export function FamilyMemberOnboarding({ existingMember, onDone, onClose }: Prop
     setMultiSelected([]);
 
     if (step + 1 >= QUESTIONS.length) {
-      // All questions answered — build member
+      // All questions answered  build member
       const finalAnswers = { ...answers, [key]: value };
       const targets = calculateTargets(finalAnswers);
       const member: FamilyMember = {
@@ -138,6 +140,9 @@ export function FamilyMemberOnboarding({ existingMember, onDone, onClose }: Prop
           : [],
         activityLevel: finalAnswers.activityLevel || undefined,
         goals: finalAnswers.goals || undefined,
+        cuisinePreferences: Array.isArray(finalAnswers.cuisinePreferences)
+          ? finalAnswers.cuisinePreferences.filter((c: string) => c && c !== "None")
+          : [],
         dailyTargets: targets,
       };
       onDone(member);

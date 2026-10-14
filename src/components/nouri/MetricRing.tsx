@@ -22,7 +22,7 @@ export function MetricRing({ metric, current, goal, size }: Props) {
   const c = 2 * Math.PI * r;
   const dash = (pct / 100) * c;
 
-  // Wrapper width — the ring fills available card width up to a sensible max.
+  // Wrapper width  the ring fills available card width up to a sensible max.
   const wrapperClass = size === "large" ? "w-full max-w-[140px]" : "w-full max-w-[88px]";
 
   return (
@@ -72,7 +72,7 @@ export function MetricRing({ metric, current, goal, size }: Props) {
             </>
           ) : (
             <>
-              <span className={cn("text-muted-foreground", size === "large" ? "text-base" : "text-xs")}>—</span>
+              <span className={cn("text-muted-foreground", size === "large" ? "text-base" : "text-xs")}></span>
               <span className="text-[9px] text-muted-foreground mt-0.5">{meta.unit}</span>
             </>
           )}

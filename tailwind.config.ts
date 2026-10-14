@@ -94,11 +94,21 @@ export default {
           "0%, 100%": { transform: "scale(1)" },
           "50%": { transform: "scale(0.99)" },
         },
+        "jiggle-a": {
+          "0%, 100%": { transform: "rotate(-0.7deg) translateY(0)" },
+          "50%": { transform: "rotate(0.7deg) translateY(-0.5px)" },
+        },
+        "jiggle-b": {
+          "0%, 100%": { transform: "rotate(0.7deg) translateY(-0.5px)" },
+          "50%": { transform: "rotate(-0.7deg) translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         wiggle: "wiggle 1.5s ease-in-out infinite",
+        "jiggle-a": "jiggle-a 0.32s ease-in-out infinite",
+        "jiggle-b": "jiggle-b 0.36s ease-in-out infinite",
       },
     },
   },

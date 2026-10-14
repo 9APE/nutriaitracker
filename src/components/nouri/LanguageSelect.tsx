@@ -20,7 +20,7 @@ export function LanguageSelect({ onDone }: Props) {
       <header className="px-5 py-4 border-b border-border">
         <div className="max-w-md mx-auto flex items-center gap-2">
           
-          <span className="font-serif text-lg font-medium">Nouri</span>
+          <span className="font-serif text-lg font-medium">Nutri AI</span>
         </div>
       </header>
 
@@ -67,3 +67,5 @@ export function LanguageSelect({ onDone }: Props) {
     </div>
   );
 }
+
+

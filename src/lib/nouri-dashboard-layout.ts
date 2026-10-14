@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Goals, Meal } from "./nouri-storage";
+import type { ExtendedGoals } from "./nouri-goals";
 import { todayISO } from "./nouri-storage";
+import { userScopedKey } from "@/lib/user-scoped-storage";
 
 export const ALL_METRICS = [
   "calories", "protein", "carbs", "sugar", "fat", "fiber",
@@ -25,21 +27,39 @@ export interface DashboardLayout {
 const KEY = "dashboardLayout";
 const EVENT = "dashboard:layout-updated";
 
-export function getStoredLayout(): DashboardLayout | null {
+function normalizeLayout(value: unknown): DashboardLayout | null {
+  if (!value || typeof value !== "object") return null;
+  const parsed = value as DashboardLayout;
+  if (!Array.isArray(parsed.large) || !Array.isArray(parsed.medium) || !Array.isArray(parsed.small)) {
+    return null;
+  }
+  const validMetrics = new Set<Metric>(ALL_METRICS);
+  const clean = (metrics: unknown) =>
+    Array.isArray(metrics)
+      ? metrics.filter((metric): metric is Metric => typeof metric === "string" && validMetrics.has(metric as Metric))
+      : [];
+  return {
+    large: clean(parsed.large),
+    medium: clean(parsed.medium),
+    small: clean(parsed.small),
+    banner: typeof parsed.banner === "string" ? parsed.banner : DEFAULT_LAYOUT.banner,
+    reasoning: typeof parsed.reasoning === "string" ? parsed.reasoning : DEFAULT_LAYOUT.reasoning,
+  };
+}
+
+export function getStoredLayout(userId?: string | null): DashboardLayout | null {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(userScopedKey(KEY, userId));
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || !Array.isArray(parsed.large)) return null;
-    return parsed as DashboardLayout;
+    return normalizeLayout(JSON.parse(raw));
   } catch {
     return null;
   }
 }
 
-export function saveLayout(layout: DashboardLayout) {
+export function saveLayout(layout: DashboardLayout, userId?: string | null) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(layout));
+    localStorage.setItem(userScopedKey(KEY, userId), JSON.stringify(layout));
     window.dispatchEvent(new Event(EVENT));
   } catch {}
 }
@@ -66,7 +86,7 @@ export interface MetricMeta {
   color: string; // hsl-friendly css var or hex; we keep simple hex tokens
 }
 
-// Goal estimates (rough daily reference values for adults; surface only — never used for medical advice).
+// Goal estimates (rough daily reference values for adults; surface only  never used for medical advice).
 // Colors use the muted Nouri accent palette: sage / amber / purple / rose / steel-blue.
 export const METRIC_META: Record<Metric, MetricMeta> = {
   calories:      { key: "calories",      label: "Calories",       unit: "kcal", defaultGoal: 2000, color: "#5dbd8a" },
@@ -81,8 +101,8 @@ export const METRIC_META: Record<Metric, MetricMeta> = {
   saturated_fat: { key: "saturated_fat", label: "Saturated fat",  unit: "g",    defaultGoal: 20,   color: "#9b87d4" },
   iron:          { key: "iron",          label: "Iron",           unit: "mg",   defaultGoal: 18,   color: "#9b87d4" },
   vitamin_c:     { key: "vitamin_c",     label: "Vitamin C",      unit: "mg",   defaultGoal: 90,   color: "#5dbd8a" },
-  vitamin_d:     { key: "vitamin_d",     label: "Vitamin D",      unit: "µg",   defaultGoal: 20,   color: "#d4954a" },
-  vitamin_a:     { key: "vitamin_a",     label: "Vitamin A",      unit: "µg",   defaultGoal: 800,  color: "#d4954a" },
+  vitamin_d:     { key: "vitamin_d",     label: "Vitamin D",      unit: "g",   defaultGoal: 20,   color: "#d4954a" },
+  vitamin_a:     { key: "vitamin_a",     label: "Vitamin A",      unit: "g",   defaultGoal: 800,  color: "#d4954a" },
   calcium:       { key: "calcium",       label: "Calcium",        unit: "mg",   defaultGoal: 1000, color: "#5b9bd4" },
 };
 
@@ -107,36 +127,24 @@ export function totalForMetric(metric: Metric, meals: Meal[]): number {
   }
 }
 
-export function goalForMetric(metric: Metric, goals: Goals): number {
-  // Prefer personalised extended goals (from Claude) when available, including
-  // training-day adjustments. Falls back to the base macro Goals or generic defaults.
-  let ext: any = null;
-  try {
-    // Lazy-required to avoid circular imports
-    const today = localStorage.getItem("todayGoalsDate");
-    const isFresh = today ? today === new Date().toISOString().slice(0, 10) : false;
-    const raw = isFresh
-      ? localStorage.getItem("todayGoals")
-      : localStorage.getItem("userGoals");
-    if (raw) ext = JSON.parse(raw);
-  } catch {}
-
+export function goalForMetric(metric: Metric, goals: Goals | ExtendedGoals): number {
+  const g = goals as any;
   switch (metric) {
-    case "calories":      return ext?.calories ?? goals.calories;
-    case "protein":       return ext?.protein  ?? goals.protein;
-    case "carbs":         return ext?.carbs    ?? goals.carbs;
-    case "fat":           return ext?.fat      ?? goals.fat;
-    case "fiber":         return ext?.fiber             ?? METRIC_META.fiber.defaultGoal;
-    case "sugar":         return ext?.sugar_max         ?? METRIC_META.sugar.defaultGoal;
-    case "saturated_fat": return ext?.saturated_fat_max ?? METRIC_META.saturated_fat.defaultGoal;
-    case "sodium":        return ext?.sodium_max        ?? METRIC_META.sodium.defaultGoal;
-    case "cholesterol":   return ext?.cholesterol_max   ?? METRIC_META.cholesterol.defaultGoal;
-    case "potassium":     return ext?.potassium         ?? METRIC_META.potassium.defaultGoal;
-    case "calcium":       return ext?.calcium           ?? METRIC_META.calcium.defaultGoal;
-    case "iron":          return ext?.iron              ?? METRIC_META.iron.defaultGoal;
-    case "vitamin_c":     return ext?.vitamin_c         ?? METRIC_META.vitamin_c.defaultGoal;
-    case "vitamin_d":     return ext?.vitamin_d         ?? METRIC_META.vitamin_d.defaultGoal;
-    case "vitamin_a":     return ext?.vitamin_a         ?? METRIC_META.vitamin_a.defaultGoal;
+    case "calories":      return g.calories;
+    case "protein":       return g.protein;
+    case "carbs":         return g.carbs;
+    case "fat":           return g.fat;
+    case "fiber":         return g.fiber             ?? METRIC_META.fiber.defaultGoal;
+    case "sugar":         return g.sugar_max         ?? METRIC_META.sugar.defaultGoal;
+    case "saturated_fat": return g.saturated_fat_max ?? METRIC_META.saturated_fat.defaultGoal;
+    case "sodium":        return g.sodium_max        ?? METRIC_META.sodium.defaultGoal;
+    case "cholesterol":   return g.cholesterol_max   ?? METRIC_META.cholesterol.defaultGoal;
+    case "potassium":     return g.potassium         ?? METRIC_META.potassium.defaultGoal;
+    case "calcium":       return g.calcium           ?? METRIC_META.calcium.defaultGoal;
+    case "iron":          return g.iron              ?? METRIC_META.iron.defaultGoal;
+    case "vitamin_c":     return g.vitamin_c         ?? METRIC_META.vitamin_c.defaultGoal;
+    case "vitamin_d":     return g.vitamin_d         ?? METRIC_META.vitamin_d.defaultGoal;
+    case "vitamin_a":     return g.vitamin_a         ?? METRIC_META.vitamin_a.defaultGoal;
     default:              return METRIC_META[metric as Metric].defaultGoal;
   }
 }
@@ -147,7 +155,7 @@ export function isTracked(metric: Metric): boolean {
   return true;
 }
 
-// ── Edge function calls ────────────────────────────────────────────────────
+//  Edge function calls 
 
 async function langPayload() {
   const i18n = await import("./nouri-i18n");

@@ -1,4 +1,6 @@
 /** Weekly meal plan localStorage helpers */
+import { isoDateLocal } from "@/lib/nouri-storage";
+import { userScopedKey } from "@/lib/user-scoped-storage";
 
 export interface PlannedMeal {
   meal_name: string;
@@ -8,9 +10,18 @@ export interface PlannedMeal {
   fat: number;
   why?: string;
   prep_time?: string;
+  /** Estimated total cook time in minutes (active + passive). */
+  cook_time_min?: number;
   ingredients?: string[];
   servings?: number;
   modifications?: string;
+  /** When set, the planner produced two variants of the same shared base meal
+   * to accommodate mixed diets in the household (e.g. omnivore + vegetarian). */
+  variants?: {
+    omnivore?: { meal_name: string; protein: number; ingredients?: string[] };
+    vegetarian?: { meal_name: string; protein: number; ingredients?: string[] };
+    vegan?: { meal_name: string; protein: number; ingredients?: string[] };
+  };
 }
 
 export interface DayPlan {
@@ -40,15 +51,12 @@ export function getCurrentWeekKey(): string {
   const diff = day === 0 ? -6 : 1 - day;
   const monday = new Date(now);
   monday.setDate(now.getDate() + diff);
-  const y = monday.getFullYear();
-  const m = String(monday.getMonth() + 1).padStart(2, "0");
-  const d = String(monday.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  return isoDateLocal(monday);
 }
 
 function loadAllPlans(): WeeklyPlan[] {
   try {
-    const raw = localStorage.getItem(PLANS_KEY);
+    const raw = localStorage.getItem(userScopedKey(PLANS_KEY)) ?? localStorage.getItem(PLANS_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -58,7 +66,7 @@ function loadAllPlans(): WeeklyPlan[] {
 function saveAllPlans(plans: WeeklyPlan[]) {
   // Keep only last MAX_STORED_WEEKS
   const sorted = plans.sort((a, b) => b.weekKey.localeCompare(a.weekKey));
-  localStorage.setItem(PLANS_KEY, JSON.stringify(sorted.slice(0, MAX_STORED_WEEKS)));
+  localStorage.setItem(userScopedKey(PLANS_KEY), JSON.stringify(sorted.slice(0, MAX_STORED_WEEKS)));
 }
 
 export function getCurrentPlan(): WeeklyPlan | null {

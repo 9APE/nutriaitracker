@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getXPEarnedToday } from "@/lib/nouri-xp";
+import { haptic } from "@/lib/haptics";
 
 interface Confetto {
   id: number;
@@ -80,6 +81,7 @@ export function GoalCelebration() {
       setName(readUserName());
       setXpToday(getXPEarnedToday());
       setShow(true);
+      haptic("success");
       playChime();
       window.setTimeout(() => setShow(false), 2000);
     };
@@ -122,7 +124,7 @@ export function GoalCelebration() {
           <div className="text-2xl font-medium">All goals hit, {name}</div>
           {xpToday > 0 && (
             <div className="font-mono-data text-sm mt-1 opacity-80">
-              +{xpToday} XP earned today ⭐
+              +{xpToday} XP earned today 
             </div>
           )}
         </div>

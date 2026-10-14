@@ -6,7 +6,7 @@ import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 interface Props {
   onDetected: (barcode: string) => void;
   onClose: () => void;
-  /** User chose "Add from photo" instead — give them a label image to OCR. */
+  /** User chose "Add from photo" instead  give them a label image to OCR. */
   onPhotoCaptured: (file: File) => void;
 }
 
@@ -18,6 +18,8 @@ export function BarcodeScanner({ onDetected, onClose, onPhotoCaptured }: Props) 
   const detectedRef = useRef(false);
   const timeoutRef = useRef<number | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const onDetectedRef = useRef(onDetected);
+  onDetectedRef.current = onDetected;
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(true);
   const [timedOut, setTimedOut] = useState(false);
@@ -61,7 +63,7 @@ export function BarcodeScanner({ onDetected, onClose, onPhotoCaptured }: Props) 
               detectedRef.current = true;
               clearTimeoutSafe();
               ctrl.stop();
-              onDetected(result.getText());
+              onDetectedRef.current(result.getText());
             }
           },
         );
@@ -96,7 +98,7 @@ export function BarcodeScanner({ onDetected, onClose, onPhotoCaptured }: Props) 
       clearTimeoutSafe();
       controlsRef.current?.stop();
     };
-  }, [onDetected, restartKey]);
+  }, [restartKey]);
 
   const handleTryAgain = useCallback(() => {
     setRestartKey((k) => k + 1);
@@ -148,7 +150,7 @@ export function BarcodeScanner({ onDetected, onClose, onPhotoCaptured }: Props) 
         {starting && !error && !timedOut && (
           <div className="absolute inset-x-0 bottom-24 flex items-center justify-center text-white/90 gap-2 text-sm">
             <Loader2 size={16} className="animate-spin" />
-            Starting camera…
+            Starting camera
           </div>
         )}
 

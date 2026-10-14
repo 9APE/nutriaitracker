@@ -26,10 +26,10 @@ interface Slide {
 }
 
 export const SLIDES: Slide[] = [
-  { id: "log", label: "Log by voice", title: "Log a meal in seconds", caption: "Tap Log Meal, say what you ate, and NutriAI does the math.", ms: LOG_MEAL_MS, Scene: LogMealScene },
+  { id: "log", label: "Log by voice", title: "Log a meal in seconds", caption: "Open Nutri AI, say what you ate, and it does the math.", ms: LOG_MEAL_MS, Scene: LogMealScene },
   { id: "ask", label: "Ask AI", title: "Ask for meals that fit your goals", caption: "Speak your question and get a personalised meal with the macros that matter.", ms: ASK_AI_MS, Scene: AskAiScene },
   { id: "track", label: "Tracking", title: "Calories and nutrients, live", caption: "Targets are calculated from your own health metrics, not a generic average.", ms: TRACK_MS, Scene: TrackScene },
-  { id: "alerts", label: "Alerts", title: "Smart health alerts", caption: "Go over on sodium and NutriAI flags it, then suggests how to balance your day.", ms: ALERT_MS, Scene: AlertScene },
+  { id: "alerts", label: "Alerts", title: "Smart health alerts", caption: "Go over on sodium and Nutri AI flags it, then suggests how to balance your day.", ms: ALERT_MS, Scene: AlertScene },
   { id: "plan", label: "Meal plan", title: "A week of meals, planned", caption: "Pick the days, generate, then click through each day of your plan.", ms: PLAN_MS, Scene: PlanScene },
 ];
 
@@ -85,7 +85,7 @@ export function AuthShowcase({ onTryFree, tryFreeBusy = false }: Props) {
     <section
       className="relative isolate flex h-full min-h-screen flex-col overflow-hidden text-white"
       style={{ background: "linear-gradient(135deg, #07140f 0%, #0d2a20 45%, #08161f 100%)" }}
-      aria-label="NutriAI feature showcase"
+      aria-label="Nutri AI feature showcase"
     >
       <div className="pointer-events-none absolute -left-24 top-10 h-96 w-96 rounded-full bg-emerald-500/25 blur-[110px]" />
       <div className="pointer-events-none absolute -right-20 bottom-0 h-[420px] w-[420px] rounded-full bg-sky-500/20 blur-[120px]" />

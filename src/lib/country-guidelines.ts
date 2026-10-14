@@ -23,7 +23,7 @@ export const COUNTRY_GUIDELINES: Record<string, CountryGuideline> = {
     authority: "EFSA / DGE",
     authorityUrl: "https://efsa.europa.eu/",
     systemPromptBlock:
-      "Follow EFSA Dietary Reference Values (DRV 2019) and Deutsche Gesellschaft für Ernährung (DGE) guidelines. Use EU portion size conventions. Cite efsa.europa.eu or dge.de.",
+      "Follow EFSA Dietary Reference Values (DRV 2019) and Deutsche Gesellschaft fr Ernhrung (DGE) guidelines. Use EU portion size conventions. Cite efsa.europa.eu or dge.de.",
     calorieNote: "Based on EFSA DRV 2019 Population Reference Intakes.",
   },
   FR: {
@@ -32,7 +32,7 @@ export const COUNTRY_GUIDELINES: Record<string, CountryGuideline> = {
     authority: "ANSES",
     authorityUrl: "https://www.anses.fr/",
     systemPromptBlock:
-      "Follow ANSES (Agence nationale de sécurité sanitaire) ANC 2021 guidelines. Reference Programme National Nutrition Santé (PNNS4) food pyramid. Cite anses.fr.",
+      "Follow ANSES (Agence nationale de scurit sanitaire) ANC 2021 guidelines. Reference Programme National Nutrition Sant (PNNS4) food pyramid. Cite anses.fr.",
     calorieNote: "Based on ANSES ANC 2021 recommendations.",
   },
   GB: {
@@ -50,8 +50,8 @@ export const COUNTRY_GUIDELINES: Record<string, CountryGuideline> = {
     authority: "USDA / FDA",
     authorityUrl: "https://www.dietaryguidelines.gov/",
     systemPromptBlock:
-      "Follow USDA Dietary Guidelines for Americans 2020–2025 and FDA Daily Values (21 CFR 101.9). Reference MyPlate portions. Cite dietaryguidelines.gov or fda.gov.",
-    calorieNote: "Based on USDA Dietary Guidelines 2020–2025 EER.",
+      "Follow USDA Dietary Guidelines for Americans 20202025 and FDA Daily Values (21 CFR 101.9). Reference MyPlate portions. Cite dietaryguidelines.gov or fda.gov.",
+    calorieNote: "Based on USDA Dietary Guidelines 20202025 EER.",
   },
   IN: {
     code: "IN",
@@ -74,13 +74,13 @@ export const COUNTRY_GUIDELINES: Record<string, CountryGuideline> = {
 };
 
 export const COUNTRY_OPTIONS = [
-  { code: "AU", flag: "🇦🇺", label: "Australia" },
-  { code: "DE", flag: "🇩🇪", label: "Germany / EU" },
-  { code: "FR", flag: "🇫🇷", label: "France" },
-  { code: "GB", flag: "🇬🇧", label: "United Kingdom" },
-  { code: "US", flag: "🇺🇸", label: "United States" },
-  { code: "IN", flag: "🇮🇳", label: "India" },
-  { code: "OTHER", flag: "🌍", label: "Other (WHO)" },
+  { code: "AU", flag: "", label: "Australia" },
+  { code: "DE", flag: "", label: "Germany / EU" },
+  { code: "FR", flag: "", label: "France" },
+  { code: "GB", flag: "", label: "United Kingdom" },
+  { code: "US", flag: "", label: "United States" },
+  { code: "IN", flag: "", label: "India" },
+  { code: "OTHER", flag: "", label: "Other (WHO)" },
 ];
 
 export function getGuidelineForCountry(country?: string): CountryGuideline {
@@ -90,5 +90,5 @@ export function getGuidelineForCountry(country?: string): CountryGuideline {
 
 export function buildCountryPromptBlock(country?: string): string {
   const g = getGuidelineForCountry(country);
-  return `\n━━ NUTRITIONAL GUIDELINES AUTHORITY ━━\nThis user follows ${g.authority} guidelines (${g.name}).\n${g.systemPromptBlock}`;
+  return `\n NUTRITIONAL GUIDELINES AUTHORITY \nThis user follows ${g.authority} guidelines (${g.name}).\n${g.systemPromptBlock}`;
 }

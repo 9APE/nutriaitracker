@@ -51,7 +51,7 @@ function buildSystemPrompt(opts: {
           )
           .join("\n");
 
-  return `You are a personalized nutrition AI called Nouri. Here is the user's profile:
+  return `You are a personalized nutrition AI called Nutri AI. Here is the user's profile:
 
 Goals: ${fmtList(p.goals)}
 Health conditions: ${fmtList(p.conditions)}
@@ -83,9 +83,21 @@ where:
   vitamin_d/vitamin_a (µg).
   ALWAYS include every nutrient field. If a value is genuinely negligible (e.g. vitamin C in plain butter), use 0 — never omit. Use rounded whole numbers. Estimates are fine — they will be displayed as approximate daily totals.
 
-If quantities are TOO vague (e.g. 'I had chicken and rice', 'I had pasta', 'I had a salad'): do NOT estimate yet. Instead return ONLY valid JSON: {"type": "clarification", "question": "one short friendly question asking for the most important missing quantity", "options": ["option 1", "option 2", "option 3"]}. Always offer 2-3 short tappable options so the user doesn't have to think. Examples of question + options:
+CRITICAL — drinks and hydration:
+  - Treat drinks as meal ingredients instead of ignoring them.
+  - Plain water, mineral water, sparkling water, and unsweetened tea/coffee have negligible calories and sugar. Keep "water" in meal_name when the user mentions it so the app can count hydration.
+  - Sugary drinks such as Sprite, Fanta, cola, soda, lemonade, sweet tea, juice drinks, milkshakes, and energy drinks MUST add their calories, carbs, and sugar to the meal totals.
+  - Do not treat sugary drinks primarily as hydration. Count them primarily as sugar/calories.
+
+CRITICAL — multi-ingredient meals: If the meal contains multiple ingredients (e.g. "soy mince AND beef bolognese", "chicken with rice and broccoli", a sandwich, a smoothie with several items), you MUST:
+  1. Mentally itemize EVERY ingredient with its quantity.
+  2. Estimate EACH nutrient (calories, protein, carbs, fat, fiber, sugar, saturated_fat, sodium, potassium, cholesterol, iron, vitamin_c, vitamin_d, vitamin_a, calcium) PER INGREDIENT.
+  3. SUM the per-ingredient values to get the meal totals — do NOT take values from a single dominant ingredient and ignore the rest.
+  4. This applies even when ingredients overlap in nutrient (e.g. two protein sources both contribute protein; sum both).
+
+If quantities are TOO vague (e.g. 'I had chicken and rice', 'I had pasta', 'I had a salad'): do NOT estimate yet. Instead return ONLY valid JSON: {"type": "clarification", "question": "one short friendly question asking for the most important missing quantity", "options": ["option 1", "option 2", "option 3", "not sure"]}. Always offer 3-4 short tappable options so the user doesn't have to think, and include "not sure" when portion size is unclear. Examples of question + options:
 - question: "How much chicken roughly?" options: ["Small (~100g)", "Medium (~150g)", "Large (200g+)"]
-- question: "Was it a small bowl of pasta or a big one?" options: ["Small bowl (~80g dry)", "Medium (~120g dry)", "Big bowl (~180g dry)"]
+- question: "Rough portion size?" options: ["small bowl", "normal bowl", "large bowl", "not sure"]
 
 Ask only ONE question, for the single most impactful missing info. If the user has already been asked once and answers vaguely again, make a reasonable estimate and proceed with the normal meal JSON — never ask twice.`;
 }
@@ -202,7 +214,7 @@ Deno.serve(async (req) => {
         type: "clarification" as const,
         question: String(parsed.question ?? "Could you give me a rough quantity?"),
         options: Array.isArray(parsed.options)
-          ? parsed.options.slice(0, 3).map(String)
+          ? parsed.options.slice(0, 4).map(String)
           : [],
       };
       return new Response(JSON.stringify({ clarification }), {

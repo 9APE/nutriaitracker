@@ -11,7 +11,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const CHAT_SYSTEM = `You are Nouri, a warm and friendly personal nutrition assistant. Your job is to onboard a new user by having a natural conversation. Ask one question at a time and wait for the answer before continuing. Keep each message to 2-3 sentences maximum. Use the user's name once you have it.
+const CHAT_SYSTEM = `You are Nutri AI, a warm and friendly personal nutrition assistant. Your job is to onboard a new user by having a natural conversation. Ask one question at a time and wait for the answer before continuing. Keep each message to 2-3 sentences maximum. Use the user's name once you have it.
 
 Collect ALL of the following in this exact order:
 
@@ -113,54 +113,28 @@ Return ONLY a valid JSON object with no extra text:
   "warnings": ["list of things to watch based on conditions and goals"]
 }`;
 
-async function callGateway(system: string, messages: any[]) {
-  const key = Deno.env.get("LOVABLE_API_KEY");
-  if (!key) throw new Error("AI request failed");
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+async function callClaude(apiKey: string, system: string, messages: any[]) {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "claude-sonnet-4-5",
       max_tokens: 1024,
-      messages: [{ role: "system", content: system }, ...messages],
+      system,
+      messages,
     }),
   });
-  if (!res.ok) {
-    console.error("Gateway error:", res.status, await res.text());
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error("Anthropic error:", response.status, errText);
     throw new Error("AI request failed");
   }
-  const data = await res.json();
-  return (data?.choices?.[0]?.message?.content ?? "") as string;
-}
-
-async function callClaude(apiKey: string | undefined, system: string, messages: any[]) {
-  if (apiKey) {
-    try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-5",
-          max_tokens: 1024,
-          system,
-          messages,
-        }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        return (data?.content?.[0]?.text ?? "") as string;
-      }
-      console.error("Anthropic error:", response.status, await response.text());
-    } catch (e) {
-      console.error("Anthropic call failed:", e);
-    }
-  }
-  console.log("Falling back to Lovable AI gateway");
-  return await callGateway(system, messages);
+  const data = await response.json();
+  return (data?.content?.[0]?.text ?? "") as string;
 }
 
 function extractJson(raw: string): any | null {
@@ -184,6 +158,12 @@ Deno.serve(async (req) => {
 
   try {
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
+      return new Response(JSON.stringify({ error: "Service configuration error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const body = await req.json();
     const mode = body?.mode ?? "chat";

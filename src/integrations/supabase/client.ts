@@ -2,33 +2,23 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const FALLBACK_SUPABASE_PROJECT_ID = "hapazbmcpqcjkaqoejbb";
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhcGF6Ym1jcHFjamthcW9lamJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MjEzODEsImV4cCI6MjA5MzM5NzM4MX0.BFwbL-_G5rA-JMaReAVtApuN39UlBP6a22tje_HGTwA";
+
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL ||
+  `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID || FALLBACK_SUPABASE_PROJECT_ID}.supabase.co`;
+const SUPABASE_PUBLISHABLE_KEY =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// "Stay signed in" preference — when false we use sessionStorage so the
-// session ends when the browser tab closes. Default = true (persist forever
-// + auto-refresh tokens).
-const STAY_SIGNED_IN_KEY = "nouri.staySignedIn";
-const staySignedIn =
-  typeof window === "undefined"
-    ? true
-    : window.localStorage.getItem(STAY_SIGNED_IN_KEY) !== "false";
-
-const authStorage =
-  typeof window === "undefined"
-    ? undefined
-    : staySignedIn
-    ? window.localStorage
-    : window.sessionStorage;
-
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: authStorage,
+    storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
   }
 });

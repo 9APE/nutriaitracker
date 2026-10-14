@@ -10,6 +10,7 @@ export interface UseVoiceResult {
   start: () => Promise<void>;
   stop: () => Promise<string>; // resolves to final transcript
   reset: () => void;
+  getStream: () => MediaStream | null;
 }
 
 function pickMimeType(): string {
@@ -135,7 +136,13 @@ export function useVoice(): UseVoiceResult {
     } catch (e: any) {
       console.error("getUserMedia error", e);
       cleanupStream();
-      setError("Microphone permission denied. You can type instead.");
+      const msg =
+        e?.name === "NotAllowedError"
+          ? "Microphone permission denied. You can type instead."
+          : e?.name === "NotFoundError"
+            ? "No microphone found on this device. You can type instead."
+            : "Microphone unavailable. You can type instead.";
+      setError(msg);
     }
   }, [supported]);
 
@@ -167,5 +174,5 @@ export function useVoice(): UseVoiceResult {
     };
   }, []);
 
-  return { supported, listening, transcribing, transcript, error, start, stop, reset };
+  return { supported, listening, transcribing, transcript, error, start, stop, reset, getStream: () => streamRef.current };
 }

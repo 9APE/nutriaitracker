@@ -2,12 +2,20 @@ import { useEffect, useState, useRef } from "react";
 import { Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Goals, Meal } from "@/lib/nouri-storage";
-import { todayISO } from "@/lib/nouri-storage";
+import { isoDateLocal, todayISO } from "@/lib/nouri-storage";
+import { renderMarkdown } from "@/lib/renderMarkdown";
 import { Badge } from "@/components/ui/badge";
+import { buildNutritionistContext } from "@/lib/nutri-ai/nutritionist-context";
+import { userScopedKey } from "@/lib/user-scoped-storage";
 
 interface Suggestion {
   meal_name: string;
   meal_type?: string;
+  /** New: short clause tied to user goals/macros. */
+  reason?: string;
+  /** New: short physiological/practical benefit. */
+  benefit?: string;
+  /** Legacy single-line summary; still used as fallback. */
   why: string;
   protein: number;
   calories: number;
@@ -39,33 +47,33 @@ function readFresh(key: string): Record<string, any> | null {
   }
 }
 
-function getRecommendationHistory(): HistoryEntry[] {
+function getRecommendationHistory(userId?: string | null): HistoryEntry[] {
   try {
-    const raw = localStorage.getItem(HISTORY_KEY);
+    const raw = localStorage.getItem(userScopedKey(HISTORY_KEY, userId));
     if (!raw) return [];
     const entries: HistoryEntry[] = JSON.parse(raw);
     // Keep only last 7 days
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 7);
-    const cutoffISO = cutoff.toISOString().slice(0, 10);
+    const cutoffISO = isoDateLocal(cutoff);
     return entries.filter((e) => e.date >= cutoffISO);
   } catch {
     return [];
   }
 }
 
-function saveRecommendationHistory(mealNames: string[]) {
+function saveRecommendationHistory(mealNames: string[], userId?: string | null) {
   const today = todayISO();
-  let history = getRecommendationHistory();
+  let history = getRecommendationHistory(userId);
   // Remove today's existing entry if any, replace with new
   history = history.filter((e) => e.date !== today);
   history.push({ date: today, meals: mealNames });
   // Keep only last 7 days
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 7);
-  const cutoffISO = cutoff.toISOString().slice(0, 10);
+  const cutoffISO = isoDateLocal(cutoff);
   history = history.filter((e) => e.date >= cutoffISO);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  localStorage.setItem(userScopedKey(HISTORY_KEY, userId), JSON.stringify(history));
 }
 
 export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) {
@@ -99,6 +107,7 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
       // (e.g. user becomes vegetarian) are respected immediately on any device.
       let profile = readFresh("userProfile");
       const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id ?? null;
       if (user) {
         try {
           const { data: prof } = await supabase
@@ -148,12 +157,12 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
       } catch {}
 
       // Recommendation history
-      const history = getRecommendationHistory();
+      const history = getRecommendationHistory(userId);
       const recentMealNames = history.flatMap((h) => h.meals);
       // Also include extraAvoid (just-shown meals on refresh)
       const allAvoid = [...new Set([...recentMealNames, ...extraAvoid])];
 
-      // Verification log — confirm restrictions are being read from localStorage
+      // Verification log - confirm restrictions are being read from localStorage
       console.log("[NouriRecommends] Profile restrictions being sent to API:", {
         dietaryRestrictions: profile?.restrictions,
         allergies: profile?.allergies,
@@ -173,6 +182,11 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
           training,
           recentlyRecommended: allAvoid,
           currentHour: new Date().getHours(),
+          nutritionistContext: buildNutritionistContext({
+            meals,
+            goals: userGoals,
+            userProfile: profile,
+          }).aiContext,
           language: getLanguage() ?? "en",
           languageName: getLanguageName(),
         },
@@ -183,7 +197,7 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
       // Save to history
       const names = list.map((s) => s.meal_name);
       justShownRef.current = names;
-      saveRecommendationHistory(names);
+      saveRecommendationHistory(names, userId);
     } catch (e: any) {
       setError(e?.message || "Couldn't get suggestions");
     } finally {
@@ -217,7 +231,7 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
     <section className="space-y-2">
       <div className="flex items-center justify-between px-1">
         <h2 className="font-serif text-lg font-medium flex items-center gap-1.5">
-          Nouri Recommends
+          Nutri AI Recommends
         </h2>
         <button
           onClick={refresh}
@@ -231,13 +245,13 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
       </div>
 
       <p className="text-xs text-muted-foreground px-1">
-        To hit {Math.round(remaining.protein)}g protein · {Math.round(remaining.calories)} kcal left
+        To hit {Math.round(remaining.protein)}g protein � {Math.round(remaining.calories)} kcal left
       </p>
 
       {loading && !suggestions && (
         <div className="nouri-card p-5 flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <Loader2 size={14} className="animate-spin" />
-          Thinking up ideas…
+          Thinking up ideas...
         </div>
       )}
 
@@ -285,14 +299,30 @@ export function NouriRecommends({ goals, meals, onPick }: NouriRecommendsProps) 
                         ))}
                       </div>
                     )}
-                    <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                      {s.why}
-                    </div>
+                    {/* Reason → benefit on a single line. Falls back to `why`
+                        when the model didn't provide structured fields. */}
+                    {(s.reason || s.benefit) ? (
+                      <div className="text-xs mt-1 leading-relaxed">
+                        {s.reason && (
+                          <span className="text-foreground font-medium">{s.reason}</span>
+                        )}
+                        {s.reason && s.benefit && (
+                          <span className="text-muted-foreground mx-1">→</span>
+                        )}
+                        {s.benefit && (
+                          <span className="text-muted-foreground">{s.benefit}</span>
+                        )}
+                      </div>
+                    ) : s.why ? (
+                      <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                        {renderMarkdown(s.why)}
+                      </div>
+                    ) : null}
                     <div className="flex gap-3 mt-2 font-mono-data text-[11px] text-muted-foreground">
                       <span>~{s.protein}g P</span>
                       <span>~{s.carbs}g C</span>
                       <span>~{s.fat}g F</span>
-                      <span>·</span>
+                      <span>�</span>
                       <span>~{s.calories} kcal</span>
                     </div>
                   </div>

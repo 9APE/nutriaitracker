@@ -1,27 +1,41 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { Navigate } from "react-router-dom";
-import { storage, type Goals, type Meal, DEFAULT_GOALS, todayISO } from "@/lib/nouri-storage";
-// Onboarding.tsx is no longer used — AI chat onboarding handles everything
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { type Goals, type Meal, DEFAULT_GOALS, todayISO } from "@/lib/nouri-storage";
+import { computeNutrientAlerts, computeDayTotals } from "@/lib/nouri-nutrient-alerts";
 import { TabBar, type TabKey } from "@/components/nouri/TabBar";
 import { NouriHeader } from "@/components/nouri/NouriHeader";
-import { TodayScreen } from "@/components/nouri/TodayScreen";
-import { LogScreen } from "@/components/nouri/LogScreen";
-import { HistoryScreen } from "@/components/nouri/HistoryScreen";
-import { InsightsScreen } from "@/components/nouri/InsightsScreen";
-import { PlanScreen } from "@/components/nouri/PlanScreen";
-import { NutritionChatScreen } from "@/components/nouri/NutritionChatScreen";
+import { ScreenLoader } from "@/components/nouri/ScreenLoader";
 import { NotificationBell } from "@/components/nouri/NotificationBell";
+import { MeScreen } from "@/components/nouri/MeScreen";
+import { LogOptionsFAB } from "@/components/nouri/LogOptionsFAB";
+
+// Lazy-loaded heavy screens  each becomes its own JS chunk, shrinking the
+// initial bundle. Named exports are re-mapped to default for React.lazy.
+const TodayScreen = lazy(() =>
+  import("@/components/nouri/TodayScreen").then((m) => ({ default: m.TodayScreen }))
+);
+const PlanScreen = lazy(() =>
+  import("@/components/nouri/PlanScreen").then((m) => ({ default: m.PlanScreen }))
+);
+const NouriChatScreen = lazy(() =>
+  import("@/components/nouri/NouriChatScreen").then((m) => ({ default: m.NouriChatScreen }))
+);
+
+
 import { useAutoSuggestions } from "@/hooks/useAutoSuggestions";
 import { notifStore } from "@/lib/nouri-suggestions";
 import { useAuth } from "@/lib/auth-context";
-import { cloud, type Profile } from "@/lib/nouri-cloud";
+import type { Profile } from "@/lib/nouri-cloud";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import {
   ProfileChatOnboarding,
   type UserProfile,
 } from "@/components/nouri/ProfileChatOnboarding";
-import { reconcileStreakOnAppOpen, consumePendingMessage } from "@/lib/nouri-streak";
+import { reconcileStreakOnAppOpen, consumePendingMessage, recordMealLogged } from "@/lib/nouri-streak";
 import { awardMealXP, checkDailyGoalAwards } from "@/lib/nouri-xp";
 import { XPFloater } from "@/components/nouri/XPFloater";
 import { XPScreen } from "@/components/nouri/XPScreen";
@@ -29,199 +43,169 @@ import { WeeklyCheckin } from "@/components/nouri/WeeklyCheckin";
 import { WeeklyReport } from "@/components/nouri/WeeklyReport";
 import { shouldShowWeeklyReport } from "@/lib/nouri-weekly-report";
 import { GoalCelebration } from "@/components/nouri/GoalCelebration";
+import { GuestLogScreen } from "@/components/nouri/GuestLogScreen";
 import { LanguageSelect } from "@/components/nouri/LanguageSelect";
 import { SettingsScreen } from "@/components/nouri/SettingsScreen";
+import { ScreenErrorBoundary } from "@/components/nouri/ScreenErrorBoundary";
+import { FeedbackPrompt } from "@/components/nouri/FeedbackPrompt";
 import { getLanguage, getLanguageMeta, useLanguage, t } from "@/lib/nouri-i18n";
 import { Settings as SettingsIcon } from "lucide-react";
 import { generateLayout, saveLayout, getStoredLayout } from "@/lib/nouri-dashboard-layout";
-import { GUEST_PROFILE, GUEST_GOALS } from "@/lib/guest-mode";
-import { saveUserGoals, parseWeightToKg, type ExtendedGoals } from "@/lib/nouri-goals";
-
-const MIGRATED_KEY = "nouri:migrated";
+import { buildExtendedGoals, parseWeightToKg, type ExtendedGoals } from "@/lib/nouri-goals";
+import { useMeals, useAddMeal, useDeleteMeal } from "@/hooks/queries/useMeals";
+import { useGoals, useUpdateGoals } from "@/hooks/queries/useGoals";
+import { useProfile, useUpdateProfile } from "@/hooks/queries/useProfile";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { fetchFeedbackPromptDecision, type FeedbackPromptDecision } from "@/lib/feedback-prompt";
 
 const Index = () => {
   const { user, loading: authLoading, signOut, isGuest } = useAuth();
-  const [bootstrapping, setBootstrapping] = useState(true);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [goals, setGoals] = useState<Goals>(DEFAULT_GOALS);
-  const [meals, setMeals] = useState<Meal[]>([]);
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const qc = useQueryClient();
+
+  const profileQ = useProfile();
+  const goalsQ = useGoals();
+  const mealsQ = useMeals();
+  const updateProfile = useUpdateProfile();
+  const updateGoals = useUpdateGoals();
+  const addMealM = useAddMeal();
+  const deleteMealM = useDeleteMeal();
+
+  const profile: Profile | null = profileQ.data ?? null;
+  const goals: Goals = goalsQ.data?.base ?? DEFAULT_GOALS;
+  const meals: Meal[] = mealsQ.data ?? [];
+
   const [tab, setTab] = useState<TabKey>("today");
   const [notifKey, setNotifKey] = useState(0);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [editingProfile, setEditingProfile] = useState(false);
-  const [logPrefill, setLogPrefill] = useState<string | undefined>(undefined);
+  const [logPrefill, setLogPrefill] = useState<{ text: string; source?: "voice" | "text"; autoSend?: boolean } | undefined>(undefined);
+  const [chatAutoVoice, setChatAutoVoice] = useState(false);
   const [showXP, setShowXP] = useState(false);
   const [showCheckin, setShowCheckin] = useState(false);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [feedbackDecision, setFeedbackDecision] = useState<FeedbackPromptDecision | null>(null);
   const [settingsPickLang, setSettingsPickLang] = useState(false);
   const [hasLanguage, setHasLanguage] = useState<boolean>(() => {
-    // Show language picker only on very first use (never picked before)
     if (localStorage.getItem("nouri:lang-picked")) return true;
     if (getLanguage()) { localStorage.setItem("nouri:lang-picked", "1"); return true; }
     return false;
   });
+  const bootstrapping =
+    !!user && (profileQ.isLoading || goalsQ.isLoading || mealsQ.isLoading);
   const currentLang = useLanguage();
   const langMeta = getLanguageMeta(currentLang);
 
-  // Reconcile streak (spend a freeze if a day was missed) on app open
+  // Derive the chat-onboarding profile and warnings from the profile row.
+  const userProfile: UserProfile | null =
+    (profile?.user_profile_json as UserProfile | null) ?? null;
+
+  // Onboarding is needed if the profile row has no body stats yet.
+  const needsOnboarding = !!user && profileQ.isSuccess && !(
+    profile?.age || profile?.weight_kg || profile?.height_cm || profile?.activity_level ||
+    userProfile?.age || userProfile?.weight || userProfile?.height || userProfile?.activityLevel
+  );
+
+  // Returning users skip the language picker once onboarding/profile data exists.
+  // The live backend does not have a `language_selected` column, so we rely on
+  // local app state plus existing body stats instead of a missing schema field.
   useEffect(() => {
-    reconcileStreakOnAppOpen();
-    const pending = consumePendingMessage();
-    if (pending?.kind === "freeze-used") {
-      toast("Streak freeze used. Your 🔥 streak is safe — log today to keep it going.", {
-        duration: 6000,
-      });
-    } else if (pending?.kind === "streak-ended") {
-      toast("Your streak ended — start a new one today.", { duration: 6000 });
+    const isReturning =
+      profile?.age || profile?.weight_kg || profile?.height_cm || profile?.activity_level;
+    if (isReturning && !hasLanguage) {
+      localStorage.setItem("nouri:lang-picked", "1");
+      setHasLanguage(true);
     }
-    // Record signup date once for weekly check-in cadence
+  }, [profile]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Mirror warnings into localStorage for legacy readers (one-way only).
+  useEffect(() => {
+    if (profile?.user_warnings_json && Array.isArray(profile.user_warnings_json)) {
+      try {
+        localStorage.setItem("userWarnings", JSON.stringify(profile.user_warnings_json));
+      } catch {}
+    }
+  }, [profile?.user_warnings_json]);
+
+  // Reconcile streak on app open
+  useEffect(() => {
+    if (!user) return;
+    reconcileStreakOnAppOpen(user.id);
+    const pending = consumePendingMessage(user.id);
+    if (pending?.kind === "freeze-used") {
+      toast("Streak freeze used. Your  streak is safe  log today to keep it going.", { duration: 6000 });
+    } else if (pending?.kind === "streak-ended") {
+      toast("Your streak ended  start a new one today.", { duration: 6000 });
+    }
     if (!localStorage.getItem("nouri:signupDate")) {
       localStorage.setItem("nouri:signupDate", todayISO());
     }
-  }, []);
+  }, [user?.id]);
 
-  // Load user data on auth
+  // Show weekly report once data has loaded.
   useEffect(() => {
-    if (!user) {
-      setBootstrapping(false);
-      return;
-    }
+    if (!user || isGuest || mealsQ.isLoading) return;
+    if (shouldShowWeeklyReport(user.id)) setShowWeeklyReport(true);
+  }, [user, isGuest, mealsQ.isLoading]);
+
+  useEffect(() => {
+    if (!user?.id || isGuest) return; // no feedback prompts in the temporary preview
+    if (authLoading || bootstrapping) return;
+    if (needsOnboarding || !userProfile || editingProfile) return;
+
+    const sessionKey = `nouri:feedback-open-counted:${user.id}`;
+    try {
+      if (sessionStorage.getItem(sessionKey)) return;
+      sessionStorage.setItem(sessionKey, "1");
+    } catch {}
 
     let cancelled = false;
-    setBootstrapping(true);
-
-    (async () => {
-      try {
-        // Temporary preview: local defaults only, nothing is read from or saved to the cloud
-        if (isGuest) {
-          setProfile(null);
-          setGoals(GUEST_GOALS);
-          setMeals([]);
-          setUserProfile(GUEST_PROFILE);
-          setNeedsOnboarding(false);
-          return;
-        }
-
-        // One-time migration from localStorage (only for *this* browser)
-        const alreadyMigrated = localStorage.getItem(`${MIGRATED_KEY}:${user.id}`) === "true";
-        if (!alreadyMigrated) {
-          const localMeals = storage.getMeals();
-          if (localMeals.length > 0) {
-            try {
-              await cloud.bulkInsertMeals(
-                user.id,
-                localMeals.map((m) => ({
-                  meal_name: m.meal_name,
-                  type: m.type,
-                  calories: m.calories,
-                  protein: m.protein,
-                  carbs: m.carbs,
-                  fat: m.fat,
-                  date: m.date,
-                }))
-              );
-              toast(`Imported ${localMeals.length} meals from this device`);
-            } catch (e) {
-              console.error("migration failed", e);
-            }
-          }
-          // Migrate goals if user has customised them locally
-          const localGoals = storage.getGoals();
-          const isDefaultGoals =
-            localGoals.calories === DEFAULT_GOALS.calories &&
-            localGoals.protein === DEFAULT_GOALS.protein &&
-            localGoals.carbs === DEFAULT_GOALS.carbs &&
-            localGoals.fat === DEFAULT_GOALS.fat;
-          if (!isDefaultGoals) {
-            try {
-              await cloud.upsertGoals(user.id, localGoals);
-            } catch (e) {
-              console.error("goal migration failed", e);
-            }
-          }
-          localStorage.setItem(`${MIGRATED_KEY}:${user.id}`, "true");
-          // Clear local data so it's no longer the source of truth
-          storage.reset();
-        }
-
-        const [prof, g, ms] = await Promise.all([
-          cloud.getProfile(user.id),
-          cloud.getGoals(user.id),
-          cloud.listMeals(user.id),
-        ]);
-        if (cancelled) return;
-
-        setProfile(prof);
-        setGoals(g ?? DEFAULT_GOALS);
-        setMeals(ms);
-
-        // Hydrate the chat-onboarding profile from the cloud (per-user)
-        if (prof?.user_profile_json) {
-          setUserProfile(prof.user_profile_json as UserProfile);
-        } else {
-          setUserProfile(null);
-        }
-        if (prof?.user_warnings_json && Array.isArray(prof.user_warnings_json)) {
-          try {
-            localStorage.setItem("userWarnings", JSON.stringify(prof.user_warnings_json));
-          } catch {}
-        }
-
-        // Trigger onboarding if profile has no body stats yet
-        const hasStats = !!(prof?.age || prof?.weight_kg || prof?.height_cm || prof?.activity_level);
-        setNeedsOnboarding(!hasStats);
-      } catch (e: any) {
-        console.error(e);
-        toast.error(e?.message || "Failed to load your data");
-      } finally {
-        if (!cancelled) {
-          setBootstrapping(false);
-          if (!isGuest && shouldShowWeeklyReport()) setShowWeeklyReport(true);
-        }
-      }
-    })();
-
+    void fetchFeedbackPromptDecision()
+      .then((decision) => {
+        if (cancelled || !decision.shouldPrompt) return;
+        setFeedbackDecision(decision);
+      })
+      .catch((error) => {
+        console.warn("[feedback-prompt] state fetch failed", error);
+      });
     return () => {
       cancelled = true;
     };
-  }, [user, isGuest]);
+  }, [authLoading, bootstrapping, editingProfile, isGuest, needsOnboarding, user?.id, userProfile]);
+
+  // Reset React Query caches on sign-out so a new user doesn't see stale data.
+  useEffect(() => {
+    if (!user) qc.clear();
+  }, [user, qc]);
 
   // Auto-generate dashboard layout once if missing for an existing user
   useEffect(() => {
-    if (!userProfile || isGuest) return; // guests keep the default layout
-    if (getStoredLayout()) return;
+    if (!userProfile || isGuest) return; // guests keep the default layout (no AI call)
+    if (getStoredLayout(user?.id)) return;
     let cancelled = false;
     (async () => {
       try {
         const layout = await generateLayout({ profile: userProfile, goals });
-        if (!cancelled) saveLayout(layout);
+        if (!cancelled) saveLayout(layout, user?.id);
       } catch (e) {
         console.error("initial layout generation failed", e);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [userProfile]);
+    return () => { cancelled = true; };
+  }, [user?.id, userProfile, isGuest]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useAutoSuggestions({
+    userId: user?.id,
+    enabled: !isGuest,
+    profile: userProfile ?? null,
     goals,
     meals,
     onNew: () => setNotifKey((k) => k + 1),
   });
 
-  // Old static onboarding handler removed — AI chat handles everything now
-
   const handleAddMeal = async (m: Meal) => {
     if (!user) return;
-    // Optimistic add
-    setMeals((prev) => [m, ...prev]);
     setTab("today");
-
-    // Award XP: meal log, then check daily goal milestones
-    awardMealXP();
     const todayKey = todayISO();
     const totalsToday = [m, ...meals.filter((x) => x.date === todayKey)].reduce(
       (a, x) => ({
@@ -232,12 +216,26 @@ const Index = () => {
       }),
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     );
-    checkDailyGoalAwards(totalsToday, goals);
+    checkDailyGoalAwards(totalsToday, goals, user.id);
 
-    if (isGuest) return; // temporary preview: keep it in memory only
+    // Detect newly-triggered nutrient limit alerts caused by this meal
+    const extGoals = goalsQ.data?.extended;
+    if (extGoals) {
+      const beforeTotals = computeDayTotals(meals);
+      const beforeIds = new Set(
+        computeNutrientAlerts(beforeTotals, extGoals, userProfile).map((a) => a.id)
+      );
+      const afterTotals = computeDayTotals([m, ...meals]);
+      const newAlert = computeNutrientAlerts(afterTotals, extGoals, userProfile)
+        .find((a) => !beforeIds.has(a.id) && (a.level === "exceeded" || a.level === "warning"));
+      if (newAlert) {
+        toast.warning(`${newAlert.label}: ${newAlert.message}. ${newAlert.advice}`, { duration: 6000 });
+      }
+    }
 
     try {
-      const saved = await cloud.addMeal(user.id, {
+      await addMealM.mutateAsync({
+        id: m.id,
         meal_name: m.meal_name,
         type: m.type,
         calories: m.calories,
@@ -247,29 +245,20 @@ const Index = () => {
         date: m.date,
         micros: m.micros,
       });
-      // Preserve the AI-estimated micros locally even if the DB round-trip
-      // doesn't echo them back identically (so the Today tab keeps real numbers).
-      saved.micros = saved.micros ?? m.micros;
-      // Replace optimistic entry with server row (so id matches)
-      setMeals((prev) => [saved, ...prev.filter((x) => x.id !== m.id)]);
     } catch (e: any) {
-      setMeals((prev) => prev.filter((x) => x.id !== m.id));
       toast.error(e?.message || "Couldn't save meal");
+      return;
     }
+
+    // Only award XP and update streak once the meal is actually saved.
+    awardMealXP(user.id);
+    recordMealLogged(user.id);
+    checkDailyGoalAwards(totalsToday, goals, user.id);
   };
 
   const handleDeleteMeal = async (id: string) => {
     if (!user) return;
-    const previous = meals;
-    setMeals((prev) => prev.filter((m) => m.id !== id));
-    if (isGuest) return;
-    try {
-      await cloud.deleteMeal(user.id, id);
-      toast("Meal removed");
-    } catch (e: any) {
-      setMeals(previous);
-      toast.error(e?.message || "Couldn't delete meal");
-    }
+    await deleteMealM.mutateAsync(id);
   };
 
   const handleSignOut = async () => {
@@ -277,12 +266,13 @@ const Index = () => {
       ? "Leave the temporary preview? Everything you did here will be discarded."
       : t("signOutConfirm", currentLang);
     if (!confirm(message)) return;
-    notifStore.clear();
+    notifStore.clear(user?.id);
+    qc.clear();
     await signOut();
     toast(t("signedOut", currentLang));
   };
 
-  if (authLoading || (user && bootstrapping)) {
+  if (authLoading || bootstrapping) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="animate-spin text-primary" size={28} />
@@ -292,78 +282,61 @@ const Index = () => {
 
   if (!user) return <Navigate to="/auth" replace />;
 
-  // Language selection — must come BEFORE any AI chat / onboarding
-  if (!hasLanguage && !isGuest) {
-    return <LanguageSelect onDone={() => { localStorage.setItem("nouri:lang-picked", "1"); setHasLanguage(true); }} />;
+  // Surface server errors so users can retry instead of seeing an empty app.
+  if (profileQ.isError || goalsQ.isError || mealsQ.isError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-3 px-6 text-center">
+        <p className="text-sm text-muted-foreground">Couldn't load your data.</p>
+        <button
+          onClick={() => {
+            profileQ.refetch(); goalsQ.refetch(); mealsQ.refetch();
+          }}
+          className="px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
-  // Onboarding: always use AI chat (covers both needsOnboarding and !userProfile)
-  if ((!isGuest && (needsOnboarding || !userProfile)) || editingProfile) {
+  if (!hasLanguage && !isGuest) {
+    return (
+      <LanguageSelect
+        onDone={async () => {
+          localStorage.setItem("nouri:lang-picked", "1");
+          setHasLanguage(true);
+        }}
+      />
+    );
+  }
+
+  if (needsOnboarding || !userProfile || editingProfile) {
     return (
       <ProfileChatOnboarding
         initial={userProfile}
         onClose={editingProfile ? () => setEditingProfile(false) : undefined}
         onDone={async ({ profile: p, goals: g, warnings, plan }) => {
-          setUserProfile(p);
           setEditingProfile(false);
-          setNeedsOnboarding(false);
-          // Persist the FULL extended goals (macros + micros + reasoning) locally.
-          const ext: ExtendedGoals = {
-            calories: g.calories,
-            protein: g.protein,
-            carbs: g.carbs,
-            fat: g.fat,
-            fiber: plan?.fiber,
-            sugar_max: plan?.sugar_max,
-            saturated_fat_max: plan?.saturated_fat_max,
-            sodium_max: plan?.sodium_max,
-            cholesterol_max: plan?.cholesterol_max,
-            potassium: plan?.potassium,
-            calcium: plan?.calcium,
-            iron: plan?.iron,
-            vitamin_c: plan?.vitamin_c,
-            vitamin_d: plan?.vitamin_d,
-            vitamin_a: plan?.vitamin_a,
-            reasoning:
-              plan?.reasoning && typeof plan.reasoning === "object"
-                ? plan.reasoning
-                : plan?.reasoning
-                ? { calories: String(plan.reasoning) }
-                : undefined,
-            bodyweight_kg: parseWeightToKg(p.weight),
-            calibrated_at: new Date().toISOString(),
-          };
-          saveUserGoals(ext);
-          if (user) {
-            try {
-              await cloud.upsertGoals(user.id, g);
-              // Save both the full chat profile JSON and extracted body stats
-              const weightKg = parseWeightToKg(p.weight);
-              const heightCm = (() => {
-                const h = p.height;
-                const num = parseFloat(h?.replace(/[^0-9.]/g, "") ?? "");
-                return isFinite(num) ? num : null;
-              })();
-              const age = typeof p.age === "number" ? p.age : parseInt(String(p.age), 10) || null;
-              await cloud.updateProfile(user.id, {
-                user_profile_json: p,
-                user_warnings_json: warnings ?? [],
-                age,
-                weight_kg: weightKg ?? null,
-                height_cm: heightCm,
-                activity_level: p.activityLevel || null,
-              } as any);
-              setGoals(g);
-              setProfile((prev) =>
-                prev
-                  ? ({ ...prev, user_profile_json: p, user_warnings_json: warnings ?? [] } as Profile)
-                  : prev
-              );
-            } catch (e: any) {
-              toast.error(e?.message || "Couldn't save goals");
-            }
+          const ext: ExtendedGoals = buildExtendedGoals(g, plan, parseWeightToKg(p.weight));
+          try {
+            await updateGoals.mutateAsync({ base: g, extended: ext });
+            const heightCm = (() => {
+              const h = p.height;
+              const num = parseFloat(h?.replace(/[^0-9.]/g, "") ?? "");
+              return isFinite(num) ? num : null;
+            })();
+            const age = typeof p.age === "number" ? p.age : parseInt(String(p.age), 10) || null;
+            await updateProfile.mutateAsync({
+              user_profile_json: p,
+              user_warnings_json: warnings ?? [],
+              age,
+              weight_kg: parseWeightToKg(p.weight) ?? null,
+              height_cm: heightCm,
+              activity_level: p.activityLevel || null,
+            } as any);
+          } catch (e: any) {
+            toast.error(e?.message || "Couldn't save goals");
           }
-          // Generate AI personalized dashboard layout for the new/updated profile
           try {
             const layout = await generateLayout({ profile: p, goals: g });
             saveLayout(layout);
@@ -397,22 +370,15 @@ const Index = () => {
         rightSlot={
           <>
             <button
-              onClick={() => {
-                setSettingsPickLang(true);
-                setShowSettings(true);
-              }}
+              onClick={() => { setSettingsPickLang(true); setShowSettings(true); }}
               className="text-base flex items-center justify-center px-2 py-1.5 rounded-full hover:bg-muted transition-colors"
               aria-label={`Change language (current: ${langMeta.native})`}
               title={`Language: ${langMeta.native}`}
             >
               <span aria-hidden>{langMeta.flag}</span>
             </button>
-            {/* Edit-profile moved to Settings → Edit profile (focused per-field sheet) */}
             <button
-              onClick={() => {
-                setSettingsPickLang(false);
-                setShowSettings(true);
-              }}
+              onClick={() => { setSettingsPickLang(false); setShowSettings(true); }}
               className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-muted transition-colors"
               aria-label="Settings"
               title="Settings"
@@ -422,6 +388,7 @@ const Index = () => {
             <NotificationBell
               goals={goals}
               meals={meals}
+              profile={userProfile ?? null}
               onAddMeal={handleAddMeal}
               refreshKey={notifKey}
             />
@@ -429,34 +396,82 @@ const Index = () => {
         }
       />
       <main>
-        {tab === "today" && (
-          <TodayScreen
-            goals={goals}
-            meals={meals}
-            userProfile={userProfile}
-            onDeleteMeal={handleDeleteMeal}
-            onGoLog={() => setTab("log")}
-            onGoHistory={() => setTab("history")}
-            onPickSuggestion={(name) => {
-              setLogPrefill(name);
-              setTab("log");
-            }}
-            onOpenXP={() => setShowXP(true)}
-            onStartCheckin={() => setShowCheckin(true)}
-          />
-        )}
-        {tab === "log" && (
-          <LogScreen
-            onLogged={handleAddMeal}
-            prefillText={logPrefill}
-            onPrefillConsumed={() => setLogPrefill(undefined)}
-          />
-        )}
-        {tab === "ask" && <NutritionChatScreen goals={goals} meals={meals} onAddMeal={handleAddMeal} />}
-        {tab === "plan" && <PlanScreen goals={goals} userProfile={userProfile} />}
-        {tab === "history" && <HistoryScreen meals={meals} onDelete={handleDeleteMeal} />}
-        {tab === "insights" && <InsightsScreen meals={meals} goals={goals} />}
+        {/* Suspense fallback handles the brief async chunk fetch on first
+            visit to each tab. After that, the chunk is cached. */}
+        <Suspense fallback={<ScreenLoader />}>
+          <ScreenErrorBoundary resetKey={tab} title="This Nutri AI screen hit an error">
+          {tab === "today" && (
+            <TodayScreen
+              goals={goals}
+              meals={meals}
+              userId={user?.id}
+              userProfile={userProfile}
+              onDeleteMeal={handleDeleteMeal}
+              onGoLog={(prefillText) => {
+                if (prefillText) setLogPrefill({ text: prefillText, source: "text", autoSend: false });
+                setTab("log");
+              }}
+              onGoHistory={() => setTab("me")}
+              onPickSuggestion={(name) => { setLogPrefill({ text: name, source: "text", autoSend: false }); setTab("log"); }}
+              onOpenXP={() => setShowXP(true)}
+              onStartCheckin={() => setShowCheckin(true)}
+            />
+          )}
+          {tab === "log" && isGuest && <GuestLogScreen onAddMeal={handleAddMeal} />}
+          {tab === "log" && !isGuest && (
+            <NouriChatScreen
+              goals={goals}
+              meals={meals}
+              prefillText={logPrefill?.text}
+              prefillSource={logPrefill?.source}
+              prefillAutoSend={logPrefill?.autoSend}
+              onPrefillConsumed={() => setLogPrefill(undefined)}
+              autoStartVoice={chatAutoVoice}
+              onAutoVoiceConsumed={() => setChatAutoVoice(false)}
+              onAddMeal={handleAddMeal}
+              onDeleteMeal={handleDeleteMeal}
+            />
+          )}
+          {tab === "plan" && <PlanScreen goals={goals} userProfile={userProfile} />}
+          {tab === "me" && (
+            <MeScreen
+              meals={meals}
+              goals={goals}
+              userId={user?.id}
+              onDelete={handleDeleteMeal}
+              onOpenXP={() => setShowXP(true)}
+              onStartCheckin={() => setShowCheckin(true)}
+              onOpenSettings={() => { setSettingsPickLang(false); setShowSettings(true); }}
+              onOpenFeedback={() =>
+                setFeedbackDecision((current) =>
+                  current ?? {
+                    shouldPrompt: true,
+                    reason: "third_open",
+                    state: {
+                      app_open_count: 0,
+                      last_prompted_at: null,
+                      submitted_at: null,
+                      next_due_at: null,
+                    },
+                  },
+                )
+              }
+            />
+          )}
+          </ScreenErrorBoundary>
+        </Suspense>
       </main>
+      {tab === "today" && !isGuest && (
+        <LogOptionsFAB
+          meals={meals}
+          onAddMeal={handleAddMeal}
+          onGoChat={(opts) => {
+            if (opts?.prefill) setLogPrefill(opts.prefill);
+            if (opts?.startVoice) setChatAutoVoice(true);
+            setTab("log");
+          }}
+        />
+      )}
       <TabBar active={tab} onChange={setTab} />
       <XPFloater />
       <GoalCelebration />
@@ -466,27 +481,29 @@ const Index = () => {
           initialPicking={settingsPickLang}
           userProfile={userProfile}
           userId={isGuest ? undefined : user?.id}
-          onProfileSaved={(p) => {
-            setUserProfile(p);
-            setProfile((prev) =>
-              prev ? ({ ...prev, user_profile_json: p } as Profile) : prev,
-            );
-          }}
-          onGoalsRecalculated={(g, w) => {
-            setGoals(g);
-            setProfile((prev) =>
-              prev ? ({ ...prev, user_warnings_json: w } as Profile) : prev,
-            );
-          }}
-          onClose={() => {
+          onOpenFeedback={() => {
             setShowSettings(false);
             setSettingsPickLang(false);
+            setFeedbackDecision((current) =>
+              current ?? {
+                shouldPrompt: true,
+                reason: "third_open",
+                state: {
+                  app_open_count: 0,
+                  last_prompted_at: null,
+                  submitted_at: null,
+                  next_due_at: null,
+                },
+              },
+            );
           }}
+          onClose={() => { setShowSettings(false); setSettingsPickLang(false); }}
         />
       )}
       {showWeeklyReport && !needsOnboarding && (
         <WeeklyReport
           name={userProfile?.name?.split(" ")[0] || "friend"}
+          userId={user?.id}
           meals={meals}
           goals={goals}
           onClose={() => setShowWeeklyReport(false)}
@@ -499,9 +516,7 @@ const Index = () => {
           profile={userProfile}
           onClose={() => setShowCheckin(false)}
           onGoalsUpdated={async (g, full) => {
-            setGoals(g);
-            // Persist full extended goals from the recalibration
-            const prev = (await import("@/lib/nouri-goals")).loadUserGoals();
+            const prev = goalsQ.data?.extended;
             const ext: ExtendedGoals = {
               ...(prev ?? { calories: g.calories, protein: g.protein, carbs: g.carbs, fat: g.fat }),
               calories: g.calories,
@@ -521,27 +536,30 @@ const Index = () => {
               vitamin_a: full?.vitamin_a ?? prev?.vitamin_a,
               calibrated_at: new Date().toISOString(),
             };
-            saveUserGoals(ext);
-            if (full?.summary) toast.success(full.summary);
-            if (user && !isGuest) {
-              try {
-                await cloud.upsertGoals(user.id, g);
-              } catch (e: any) {
-                toast.error(e?.message || "Couldn't save updated goals");
-              }
+            try {
+              await updateGoals.mutateAsync({ base: g, extended: ext });
+              if (full?.summary) toast.success(full.summary);
+            } catch (e: any) {
+              toast.error(e?.message || "Couldn't save updated goals");
             }
-            // Re-run AI dashboard layout after weekly check-in (goals/conditions may have shifted)
             try {
               const layout = await generateLayout({
                 profile: userProfile,
                 goals: g,
-                currentLayout: getStoredLayout(),
+                currentLayout: getStoredLayout(user?.id),
               });
-              saveLayout(layout);
+              saveLayout(layout, user?.id);
             } catch (e) {
               console.error("layout regeneration failed", e);
             }
           }}
+        />
+      )}
+      {feedbackDecision && !showXP && !showSettings && !showWeeklyReport && !showCheckin && (
+        <FeedbackPrompt
+          decision={feedbackDecision}
+          onClose={() => setFeedbackDecision(null)}
+          onSubmitted={() => setFeedbackDecision(null)}
         />
       )}
     </div>

@@ -1,6 +1,7 @@
 // NutriAI Chat — Claude-powered nutrition Q&A with research citations, country guidelines, and family mode
 import { resolveLanguage } from "../_shared/language.ts";
 import { requireAuth } from "../_shared/auth.ts";
+import { formatNutritionistContext } from "../_shared/nutritionist-context.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +32,8 @@ function buildSystemPrompt(
   languageName: string,
   familyMode: boolean,
   familyRestrictions?: Record<string, any>,
+  familyMembers?: Record<string, any>[],
+  nutritionistContext?: Record<string, any>,
 ): string {
   const p = profile ?? {};
 
@@ -64,6 +67,15 @@ Combined dietary restrictions: ${fmtList(familyRestrictions.restrictions)}
 Combined allergies (NEVER recommend): ${fmtList(familyRestrictions.allergies)}
 Combined health conditions: ${fmtList(familyRestrictions.conditions)}
 ${familyRestrictions.hasConflictingConditions ? `⚠ Note: ${familyRestrictions.conflictNote} — give balanced advice.` : ""}`
+      : "";
+
+  const familyMembersBlock = familyMode && Array.isArray(familyMembers) && familyMembers.length
+    ? `\nHousehold members:\n${familyMembers.map((member) => {
+      const targets = member.dailyTargets && typeof member.dailyTargets === "object"
+        ? `${Number(member.dailyTargets.calories) || 0} kcal, ${Number(member.dailyTargets.protein) || 0}g protein`
+        : "targets not set";
+      return `- ${member.name || "Family member"} | age ${member.age ?? "unknown"} | goals: ${fmtList(member.goals)} | restrictions: ${fmtList(member.restrictions)} | allergies: ${fmtList(member.allergies)} | conditions: ${fmtList(member.conditions)} | dislikes: ${fmtList(member.dislikes)} | targets: ${targets}`;
+    }).join("\n")}`
     : "";
 
   return `You are NutriAI, a personal nutrition coach. You give warm, evidence-based nutritional guidance tailored specifically to this user.
@@ -80,6 +92,7 @@ Food allergies: ${fmtList(p.allergies)}
 Foods to avoid: ${fmtList(p.dislikes)}
 Food preferences: ${fmtList(p.preferences)}
 ${familyBlock}
+${familyMembersBlock}
 ━━ TODAY'S NUTRITION TARGETS ━━
 Calories: ${goals.calories || 0} kcal | Protein: ${goals.protein || 0}g | Carbs: ${goals.carbs || 0}g | Fat: ${goals.fat || 0}g
 
@@ -89,11 +102,14 @@ ${mealsSummary}
 Consumed: ${Math.round(totals.calories)} kcal | ${Math.round(totals.protein)}g P | ${Math.round(totals.carbs)}g C | ${Math.round(totals.fat)}g F
 Remaining: ${Math.round(remaining.calories)} kcal | ${Math.round(remaining.protein)}g P | ${Math.round(remaining.carbs)}g C | ${Math.round(remaining.fat)}g F
 
+${formatNutritionistContext(nutritionistContext)}
+
 ━━ NUTRITIONAL GUIDELINES AUTHORITY ━━
 ${countryRule}
 
 ━━ RULES ━━
 1. Always tailor answers to this user's specific profile, conditions, restrictions, and remaining nutrition needs.
+1a. Use the Nutri AI personalised colour context as the source of truth for good, caution, and bad nutrient signals. Explain those results; do not override them.
 2. For every response, include 2–3 real citations from trusted sources: PubMed (https://pubmed.ncbi.nlm.nih.gov/[PMID]/), WHO (https://www.who.int/...), NHS (https://www.nhs.uk/...), ADA (https://diabetes.org/...), Mayo Clinic (https://www.mayoclinic.org/...), NIH ODS (https://ods.od.nih.gov/...). Only cite URLs you are confident exist.
 3. If the user has a health condition, reference condition-specific guidelines.
 4. Never diagnose or replace a medical professional. For medical questions, always recommend consulting their doctor.
@@ -101,6 +117,7 @@ ${countryRule}
 6. If the user expresses a food preference, restriction, allergy, or dislike in their message, acknowledge it warmly and confirm it has been noted for future recommendations.
 7. Always reply in ${languageName}.
 8. Keep responses to 6 chat messages of context maximum — be concise.
+9. If the user asks about a named family member, tailor the answer to that specific person first. If no person is named, answer for the signed-in user unless the question is clearly about the whole household.
 
 ━━ RESPONSE FORMAT ━━
 You MUST return valid JSON only — no markdown fences, no extra text:
@@ -139,6 +156,8 @@ Deno.serve(async (req) => {
       languageName,
       familyMode,
       familyRestrictions,
+      familyMembers,
+      nutritionistContext,
     } = await req.json();
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -156,6 +175,8 @@ Deno.serve(async (req) => {
       lang.name,
       Boolean(familyMode),
       familyRestrictions,
+      familyMembers,
+      nutritionistContext,
     );
 
     // Send last 6 messages for context (token optimisation)

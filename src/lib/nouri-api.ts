@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { storage, todayISO, type Meal } from "./nouri-storage";
+import { storage, todayISO, type Meal, type Goals } from "./nouri-storage";
 
 function readUserProfile(): Record<string, any> | null {
   try {
@@ -55,12 +55,41 @@ export type AnalyzeResult =
 
 export async function analyzeMeal(
   text: string,
-  opts?: { alreadyClarified?: boolean }
+  opts?: { alreadyClarified?: boolean; context?: { goals: Goals; meals: Meal[] } }
 ): Promise<AnalyzeResult> {
   const profile = readUserProfile();
-  const goals = storage.getGoals();
-  const eatenToday = buildEatenToday();
   const warnings = readUserWarnings();
+
+  let goals: Goals;
+  let eatenToday: ReturnType<typeof buildEatenToday>;
+  if (opts?.context) {
+    const today = todayISO();
+    const todayMeals = opts.context.meals.filter((m) => m.date === today);
+    const totals = todayMeals.reduce(
+      (a, m) => ({
+        calories: a.calories + (m.calories || 0),
+        protein: a.protein + (m.protein || 0),
+        carbs: a.carbs + (m.carbs || 0),
+        fat: a.fat + (m.fat || 0),
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+    goals = opts.context.goals;
+    eatenToday = {
+      totals,
+      meals: todayMeals.map((m) => ({
+        meal_name: m.meal_name,
+        type: m.type,
+        calories: m.calories,
+        protein: m.protein,
+        carbs: m.carbs,
+        fat: m.fat,
+      })),
+    };
+  } else {
+    goals = storage.getGoals();
+    eatenToday = buildEatenToday();
+  }
 
   const i18n = await import("@/lib/nouri-i18n");
   const { data, error } = await supabase.functions.invoke("analyze-meal", {
