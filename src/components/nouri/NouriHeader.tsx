@@ -5,8 +5,10 @@ import { useLanguage, t } from "@/lib/nouri-i18n";
 export function NouriHeader({
   onSignOut,
   rightSlot,
+  signOutLabel,
 }: {
   onSignOut: () => void;
+  signOutLabel?: string;
   rightSlot?: ReactNode;
 }) {
   const lang = useLanguage();
@@ -24,7 +26,7 @@ export function NouriHeader({
             className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-muted transition-colors"
           >
             <LogOut size={13} />
-            {t("signOut", lang)}
+            {signOutLabel ?? t("signOut", lang)}
           </button>
         </div>
       </div>

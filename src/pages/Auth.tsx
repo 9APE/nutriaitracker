@@ -8,12 +8,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AuthShowcase } from "@/components/auth/AuthShowcase";
-import { prepareGuestDevice } from "@/lib/guest-mode";
 
 type Mode = "signin" | "signup";
 
 const Auth = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, startGuest } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("signup");
   const [email, setEmail] = useState("");
@@ -23,7 +22,6 @@ const Auth = () => {
     () => localStorage.getItem("nouri.staySignedIn") !== "false"
   );
   const [busy, setBusy] = useState(false);
-  const [guestBusy, setGuestBusy] = useState(false);
 
   if (loading) {
     return (
@@ -87,25 +85,14 @@ const Auth = () => {
     }
   };
 
-  // "Try for Free": anonymous Supabase session, no email needed.
-  const handleGuest = async () => {
-    setGuestBusy(true);
-    try {
-      prepareGuestDevice(); // skips the language picker and profile chat
-      const { error } = await supabase.auth.signInAnonymously();
-      if (error) throw error;
-      toast.success("Welcome! You're exploring as a guest");
-      navigate("/");
-    } catch (err: any) {
-      const msg = String(err?.message || "");
-      toast.error(
-        /anonymous/i.test(msg)
-          ? "Guest mode isn't switched on yet. Enable anonymous sign-ins in Supabase Auth settings."
-          : msg || "Couldn't start guest mode",
-      );
-    } finally {
-      setGuestBusy(false);
+  // "Try for Free": a temporary, local-only preview. No account, nothing is saved.
+  const handleGuest = () => {
+    if (!startGuest()) {
+      toast.error("Your browser is blocking local storage, so the preview can't start.");
+      return;
     }
+    toast("Temporary preview: nothing you do here is saved.", { duration: 6000 });
+    navigate("/");
   };
 
   return (
@@ -221,15 +208,18 @@ const Auth = () => {
             <span className="absolute inset-x-0 top-1/2 h-px bg-border" />
             <span className="relative bg-card px-3 text-xs text-muted-foreground">or</span>
           </div>
-          <Button type="button" variant="outline" onClick={handleGuest} disabled={guestBusy} className="w-full h-11">
-            {guestBusy ? <Loader2 className="animate-spin" size={16} /> : "Try for Free as a guest"}
+          <Button type="button" variant="outline" onClick={handleGuest} className="w-full h-11">
+            Try for Free
           </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            A temporary preview of the app. Nothing is saved, and AI features need an account.
+          </p>
         </div>
       </main>
       </div>
 
       <div className="hidden lg:block">
-        <AuthShowcase onTryFree={handleGuest} tryFreeBusy={guestBusy} />
+        <AuthShowcase onTryFree={handleGuest} />
       </div>
     </div>
   );

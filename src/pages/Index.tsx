@@ -34,19 +34,18 @@ import { SettingsScreen } from "@/components/nouri/SettingsScreen";
 import { getLanguage, getLanguageMeta, useLanguage, t } from "@/lib/nouri-i18n";
 import { Settings as SettingsIcon } from "lucide-react";
 import { generateLayout, saveLayout, getStoredLayout } from "@/lib/nouri-dashboard-layout";
-import { isGuestUser, GUEST_PROFILE, GUEST_GOALS } from "@/lib/guest-mode";
+import { GUEST_PROFILE, GUEST_GOALS } from "@/lib/guest-mode";
 import { saveUserGoals, parseWeightToKg, type ExtendedGoals } from "@/lib/nouri-goals";
 
 const MIGRATED_KEY = "nouri:migrated";
 
 const Index = () => {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut, isGuest } = useAuth();
   const [bootstrapping, setBootstrapping] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [goals, setGoals] = useState<Goals>(DEFAULT_GOALS);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
-  const isGuest = isGuestUser(user);
   const [tab, setTab] = useState<TabKey>("today");
   const [notifKey, setNotifKey] = useState(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -95,6 +94,16 @@ const Index = () => {
 
     (async () => {
       try {
+        // Temporary preview: local defaults only, nothing is read from or saved to the cloud
+        if (isGuest) {
+          setProfile(null);
+          setGoals(GUEST_GOALS);
+          setMeals([]);
+          setUserProfile(GUEST_PROFILE);
+          setNeedsOnboarding(false);
+          return;
+        }
+
         // One-time migration from localStorage (only for *this* browser)
         const alreadyMigrated = localStorage.getItem(`${MIGRATED_KEY}:${user.id}`) === "true";
         if (!alreadyMigrated) {
@@ -148,14 +157,6 @@ const Index = () => {
         setGoals(g ?? DEFAULT_GOALS);
         setMeals(ms);
 
-        // Guests go straight into the app: no language picker, no profile chat
-        if (isGuestUser(user) && !prof?.user_profile_json) {
-          setGoals(g ?? GUEST_GOALS);
-          setUserProfile(GUEST_PROFILE);
-          setNeedsOnboarding(false);
-          return;
-        }
-
         // Hydrate the chat-onboarding profile from the cloud (per-user)
         if (prof?.user_profile_json) {
           setUserProfile(prof.user_profile_json as UserProfile);
@@ -177,7 +178,7 @@ const Index = () => {
       } finally {
         if (!cancelled) {
           setBootstrapping(false);
-          if (!isGuestUser(user) && shouldShowWeeklyReport()) setShowWeeklyReport(true);
+          if (!isGuest && shouldShowWeeklyReport()) setShowWeeklyReport(true);
         }
       }
     })();
@@ -185,7 +186,7 @@ const Index = () => {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, isGuest]);
 
   // Auto-generate dashboard layout once if missing for an existing user
   useEffect(() => {
@@ -233,6 +234,8 @@ const Index = () => {
     );
     checkDailyGoalAwards(totalsToday, goals);
 
+    if (isGuest) return; // temporary preview: keep it in memory only
+
     try {
       const saved = await cloud.addMeal(user.id, {
         meal_name: m.meal_name,
@@ -259,6 +262,7 @@ const Index = () => {
     if (!user) return;
     const previous = meals;
     setMeals((prev) => prev.filter((m) => m.id !== id));
+    if (isGuest) return;
     try {
       await cloud.deleteMeal(user.id, id);
       toast("Meal removed");
@@ -269,7 +273,10 @@ const Index = () => {
   };
 
   const handleSignOut = async () => {
-    if (!confirm(t("signOutConfirm", currentLang))) return;
+    const message = isGuest
+      ? "Leave the temporary preview? Everything you did here will be discarded."
+      : t("signOutConfirm", currentLang);
+    if (!confirm(message)) return;
     notifStore.clear();
     await signOut();
     toast(t("signedOut", currentLang));
@@ -371,7 +378,21 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {isGuest && (
+        <div className="bg-amber-100 text-amber-950 border-b border-amber-300 px-4 py-2 text-xs flex items-center justify-between gap-3">
+          <span>
+            <b>Temporary preview.</b> Nothing here is saved, and AI features need an account.
+          </span>
+          <button
+            onClick={async () => { await signOut(); }}
+            className="shrink-0 rounded-full bg-amber-950 text-amber-50 px-3 py-1 font-semibold"
+          >
+            Create account
+          </button>
+        </div>
+      )}
       <NouriHeader
+        signOutLabel={isGuest ? "Exit preview" : undefined}
         onSignOut={handleSignOut}
         rightSlot={
           <>
@@ -444,7 +465,7 @@ const Index = () => {
         <SettingsScreen
           initialPicking={settingsPickLang}
           userProfile={userProfile}
-          userId={user?.id}
+          userId={isGuest ? undefined : user?.id}
           onProfileSaved={(p) => {
             setUserProfile(p);
             setProfile((prev) =>
@@ -502,7 +523,7 @@ const Index = () => {
             };
             saveUserGoals(ext);
             if (full?.summary) toast.success(full.summary);
-            if (user) {
+            if (user && !isGuest) {
               try {
                 await cloud.upsertGoals(user.id, g);
               } catch (e: any) {

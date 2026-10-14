@@ -136,7 +136,7 @@ export function AuthShowcase({ onTryFree, tryFreeBusy = false }: Props) {
         >
           {tryFreeBusy ? <Loader2 size={16} className="animate-spin" /> : null}
           Try for Free
-          <span className="text-[11px] font-normal opacity-70">no account needed</span>
+          <span className="text-[11px] font-normal opacity-70">temporary preview, nothing saved</span>
         </button>
 
         {/* Progress */}
